@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+#------------------------------------------------------------------------------
+# Create the master
+#------------------------------------------------------------------------------
+
+function launch_master {
+  multipass launch --name $1 --cpus 2 --mem 2G --disk 4G --cloud-init - <<- EOF
+	#cloud-config
+	runcmd:
+	- 'curl -sfL https://get.k3s.io |
+			K3S_KUBECONFIG_MODE="644" \
+			CONTAINERD_LOG_LEVEL="debug" \
+			INSTALL_K3S_EXEC="--flannel-backend=none --cluster-cidr=10.42.0.0/16 --disable-network-policy --disable=traefik" \
+			sh -s - --node-taint node-role.kubernetes.io/master=effect:NoSchedule'
+	- 'kubectl create -f https://projectcalico.docs.tigera.io/manifests/tigera-operator.yaml'
+	- 'kubectl create -f https://projectcalico.docs.tigera.io/manifests/custom-resources.yaml'
+	EOF
+}
+
+launch_master foo-master 2>/dev/null || multipass start foo-master
+launch_master bar-master 2>/dev/null || multipass start bar-master
+
+#------------------------------------------------------------------------------
+# Setup KUBECONFIG
+#------------------------------------------------------------------------------
+
+#mkdir -p /tmp/${MASTER}
+#multipass mount /tmp/${MASTER} ${MASTER}:/mnt/workstation 2>/dev/null
+

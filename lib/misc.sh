@@ -12,7 +12,7 @@
 #------------------------------------------------------------------------------
 
 function launch_k8s {
-  multipass launch --name $1 --cpus 2 --mem 2G --disk 4G --mount tmp/$1:/mnt/host --cloud-init - <<- EOF
+  multipass launch --name $1 --cpus 2 --mem 2G --disk 8G --mount tmp/$1:/mnt/host --cloud-init - <<- EOF
 	#cloud-config
 	write_files:
 	- path: /var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl

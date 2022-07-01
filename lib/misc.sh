@@ -25,7 +25,7 @@ function launch_k8s {
 	- kubectl label --overwrite node $1 topology.kubernetes.io/region=$1
 	- IP=\$(hostname -I | awk '{print \$1}')
 	- 'kubectl config view --raw | sed "s/127\.0\.0\.1/\${IP}/g; s/: default/: $1/g" \
-	  > /home/ubuntu/config.yaml'
+	  > /home/ubuntu/config'
 	EOF
-  multipass exec $1 -- cp config.yaml /mnt/host
+  multipass exec $1 -- cp config /mnt/host
 }

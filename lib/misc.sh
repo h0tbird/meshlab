@@ -8,7 +8,7 @@
 # cat /var/log/cloud-init-output.log
 
 function launch_k8s {
-  multipass -vvvv launch --name $1 --cpus 2 --mem 2G --disk 4G --mount tmp/$1:/mnt/host --cloud-init - <<- EOF
+  multipass launch --name $1 --cpus 2 --mem 2G --disk 4G --mount tmp/$1:/mnt/host --cloud-init - <<- EOF
 	#cloud-config
 	write_files:
 	- path: /var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl
@@ -24,8 +24,8 @@ function launch_k8s {
 	- sleep 10; kubectl wait --for=condition=Ready nodes --all --timeout=60s
 	- kubectl label --overwrite node $1 topology.kubernetes.io/region=$1
 	- IP=\$(hostname -I | awk '{print \$1}')
-	- 'kubectl config view --raw | sed "s/127\.0\.0\.1/\${IP}/g; s/: default/: \$(hostname)/g" \
-	  > /home/ubuntu/\$(hostname)-config.yaml'
+	- 'kubectl config view --raw | sed "s/127\.0\.0\.1/\${IP}/g; s/: default/: $1/g" \
+	  > /home/ubuntu/config.yaml'
 	EOF
-  multipass exec $1 -- cp $1-config.yaml /mnt/host
+  multipass exec $1 -- cp config.yaml /mnt/host
 }

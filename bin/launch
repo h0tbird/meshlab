@@ -20,13 +20,10 @@ docker start registry-docker.io || docker run -d -p 5001:5000 \
 # Create two k8s clusters
 #------------------------------------------------------------------------------
 
-launch_k8s kube-01 2>/dev/null || multipass start kube-01
-launch_k8s kube-02 2>/dev/null || multipass start kube-02
+multipass start kube-01 || launch_k8s kube-01 2>/dev/null
+#multipass start kube-02 || launch_k8s kube-02
 
 #------------------------------------------------------------------------------
 # Setup KUBECONFIG
 #------------------------------------------------------------------------------
-
-#mkdir -p /tmp/${MASTER}
-#multipass mount /tmp/${MASTER} ${MASTER}:/mnt/workstation 2>/dev/null
 

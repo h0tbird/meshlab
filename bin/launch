@@ -20,6 +20,7 @@ docker start registry-docker.io || docker run -d -p 5001:5000 \
 # Create two k8s clusters
 #------------------------------------------------------------------------------
 
+multipass start kube-00 2>/dev/null || launch_k8s kube-00
 multipass start kube-01 2>/dev/null || launch_k8s kube-01
 multipass start kube-02 2>/dev/null || launch_k8s kube-02
 
@@ -27,5 +28,5 @@ multipass start kube-02 2>/dev/null || launch_k8s kube-02
 # Setup KUBECONFIG
 #------------------------------------------------------------------------------
 
-KUBECONFIG=~/.kube/config:tmp/kube-01/config:tmp/kube-02/config \
+KUBECONFIG=~/.kube/config:tmp/kube-00/config:tmp/kube-01/config:tmp/kube-02/config \
 kubectl config view --flatten > tmp/config && cp tmp/config ~/.kube/config

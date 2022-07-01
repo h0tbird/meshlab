@@ -4,12 +4,16 @@
 # Delete clusters
 #------------------------------------------------------------------------------
 
-multipass delete kube-01 kube-02
+multipass delete kube-00 kube-01 kube-02
 multipass purge
 
 #------------------------------------------------------------------------------
 # Setup KUBECONFIG
 #------------------------------------------------------------------------------
+
+kubectl config delete-user kube-00
+kubectl config delete-cluster kube-00
+kubectl config delete-context kube-00
 
 kubectl config delete-user kube-01
 kubectl config delete-cluster kube-01

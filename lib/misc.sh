@@ -1,11 +1,15 @@
 #------------------------------------------------------------------------------
-# launch_master
+#
 #------------------------------------------------------------------------------
 
 # tail -f /Library/Logs/Multipass/multipassd.log
 # cat /var/lib/cloud/instance/user-data.txt 
 # cat /var/lib/cloud/instance/scripts/runcmd
 # cat /var/log/cloud-init-output.log
+
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
 
 function launch_k8s {
   multipass launch --name $1 --cpus 2 --mem 2G --disk 4G --mount tmp/$1:/mnt/host --cloud-init - <<- EOF

@@ -27,4 +27,5 @@ function launch_k8s {
 	- 'kubectl config view --raw | sed "s/127\.0\.0\.1/\${IP}/g; s/: default/: \$(hostname)/g" \
 	  > /home/ubuntu/\$(hostname)-config.yaml'
 	EOF
+  multipass exec $1 -- cp $1-config.yaml /mnt/host
 }

@@ -17,7 +17,7 @@ docker start registry-docker.io || docker run -d -p 5001:5000 \
   registry:2
 
 #------------------------------------------------------------------------------
-# Create two k8s clusters
+# Create k8s clusters
 #------------------------------------------------------------------------------
 
 multipass start kube-00 2>/dev/null || launch_k8s kube-00

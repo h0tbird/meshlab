@@ -32,12 +32,9 @@ KUBECONFIG=~/.kube/config:tmp/kube-00/config:tmp/kube-01/config:tmp/kube-02/conf
 kubectl config view --flatten > tmp/config && cp tmp/config ~/.kube/config
 
 #------------------------------------------------------------------------------
-# Install ArgoCD
+# Setup ArgoCD
 #------------------------------------------------------------------------------
 
-kubectl --context kube-00 create ns argocd
-kubectl --context kube-00 -n argocd apply -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-kubectl --context kube-00 -n argocd patch svc argocd-server -p '{"spec": {"type": "LoadBalancer"}}'
 ARGOCD_PASS=$(kubectl --context kube-00 -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d)
 ARGOCD_IP=$(kubectl --context kube-00 -n argocd get svc argocd-server -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 argocd login ${ARGOCD_IP} --username admin --password ${ARGOCD_PASS} --insecure

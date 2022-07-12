@@ -1,0 +1,29 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: istio-base
+  namespace: argocd
+spec:
+  generators:
+  - list:
+      elements:
+      - cluster: kube-01
+        url: https://192.168.64.151:6443
+      - cluster: kube-02
+        url: https://192.168.64.152:6443
+  template:
+    metadata:
+      name: '{{cluster}}-istio-base'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/h0tbird/istio.git
+        targetRevision: HEAD
+        path: base
+      destination:
+        server: '{{url}}'
+        namespace: istio-system
+      syncPolicy:
+        syncOptions:
+        - CreateNamespace=true

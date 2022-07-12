@@ -25,3 +25,30 @@ spec:
       syncPolicy:
         syncOptions:
         - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: istio-cni
+  namespace: argocd
+spec:
+  generators:
+  - clusters:
+      selector:
+        matchLabels:
+          argocd.argoproj.io/secret-type: cluster
+  template:
+    metadata:
+      name: '{{name}}-istio-cni'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/h0tbird/istio.git
+        targetRevision: HEAD
+        path: cni
+      destination:
+        server: '{{server}}'
+        namespace: istio-system
+      syncPolicy:
+        syncOptions:
+        - CreateNamespace=true

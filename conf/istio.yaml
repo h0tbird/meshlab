@@ -79,6 +79,11 @@ spec:
       syncPolicy:
         syncOptions:
         - CreateNamespace=true
+      ignoreDifferences:
+      - group: "*"
+        kind: "*"
+        managedFieldsManagers:
+        - pilot-discovery
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet

@@ -52,3 +52,57 @@ spec:
       syncPolicy:
         syncOptions:
         - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: istio-pilot
+  namespace: argocd
+spec:
+  generators:
+  - clusters:
+      selector:
+        matchLabels:
+          argocd.argoproj.io/secret-type: cluster
+  template:
+    metadata:
+      name: '{{name}}-istio-pilot'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/h0tbird/istio.git
+        targetRevision: HEAD
+        path: pilot
+      destination:
+        server: '{{server}}'
+        namespace: istio-system
+      syncPolicy:
+        syncOptions:
+        - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: istio-igws
+  namespace: argocd
+spec:
+  generators:
+  - clusters:
+      selector:
+        matchLabels:
+          argocd.argoproj.io/secret-type: cluster
+  template:
+    metadata:
+      name: '{{name}}-istio-igws'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/h0tbird/istio.git
+        targetRevision: HEAD
+        path: igws
+      destination:
+        server: '{{server}}'
+        namespace: istio-system
+      syncPolicy:
+        syncOptions:
+        - CreateNamespace=true

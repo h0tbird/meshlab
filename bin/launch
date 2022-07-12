@@ -37,4 +37,13 @@ kubectl config view --flatten > tmp/config && cp tmp/config ~/.kube/config
 
 ARGOCD_PASS=$(kubectl --context kube-00 -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d)
 ARGOCD_IP=$(kubectl --context kube-00 -n argocd get svc argocd-server -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+
+[[ -n "${ARGOCD_PASS}" && -n "${ARGOCD_IP}" ]] || exit 1
 argocd login ${ARGOCD_IP} --username admin --password ${ARGOCD_PASS} --insecure
+argocd cluster add -y kube-01
+argocd cluster add -y kube-02
+
+echo
+echo "ArgoCD WebUI: https://${ARGOCD_IP}"
+echo "ArgoCD User: admin"
+echo "ArgoCD Pass: ${ARGOCD_PASS}"

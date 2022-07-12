@@ -43,6 +43,32 @@ argocd login ${ARGOCD_IP} --username admin --password ${ARGOCD_PASS} --insecure
 argocd cluster add -y kube-01
 argocd cluster add -y kube-02
 
+#------------------------------------------------------------------------------
+# Setup Istio with ArgoCD
+#------------------------------------------------------------------------------
+
+kubectl --context kube-00 apply -f ./conf/istio.yaml
+
+# Base
+argocd app sync kube-01-istio-base kube-02-istio-base
+argocd app wait kube-01-istio-base kube-02-istio-base
+
+# Cni
+argocd app sync kube-01-istio-cni kube-02-istio-cni
+argocd app wait kube-01-istio-cni kube-02-istio-cni
+
+# Pilot
+argocd app sync kube-01-istio-pilot kube-02-istio-pilot
+argocd app wait kube-01-istio-pilot kube-02-istio-pilot
+
+# IngressGateways
+argocd app sync kube-01-istio-igws kube-02-istio-igws
+argocd app wait kube-01-istio-igws kube-02-istio-igws
+
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
+
 echo
 echo "ArgoCD WebUI: https://${ARGOCD_IP}"
 echo "ArgoCD User: admin"

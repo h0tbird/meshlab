@@ -1,5 +1,20 @@
 ---
 apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: istio
+  namespace: argocd
+spec:
+  clusterResourceWhitelist:
+  - group: '*'
+    kind: '*'
+  destinations:
+  - namespace: '*'
+    server: '*'
+  sourceRepos:
+  - '*'
+---
+apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
   name: istio-base
@@ -14,7 +29,7 @@ spec:
     metadata:
       name: '{{name}}-istio-base'
     spec:
-      project: default
+      project: istio
       source:
         repoURL: https://github.com/h0tbird/istio.git
         targetRevision: HEAD
@@ -41,7 +56,7 @@ spec:
     metadata:
       name: '{{name}}-istio-cni'
     spec:
-      project: default
+      project: istio
       source:
         repoURL: https://github.com/h0tbird/istio.git
         targetRevision: HEAD
@@ -68,7 +83,7 @@ spec:
     metadata:
       name: '{{name}}-istio-pilot'
     spec:
-      project: default
+      project: istio
       source:
         repoURL: https://github.com/h0tbird/istio.git
         targetRevision: HEAD
@@ -100,7 +115,7 @@ spec:
     metadata:
       name: '{{name}}-istio-igws'
     spec:
-      project: default
+      project: istio
       source:
         repoURL: https://github.com/h0tbird/istio.git
         targetRevision: HEAD

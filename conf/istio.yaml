@@ -6,15 +6,13 @@ metadata:
   namespace: argocd
 spec:
   generators:
-  - list:
-      elements:
-      - cluster: kube-01
-        url: https://192.168.64.151:6443
-      - cluster: kube-02
-        url: https://192.168.64.152:6443
+  - clusters:
+      selector:
+        matchLabels:
+          argocd.argoproj.io/secret-type: cluster
   template:
     metadata:
-      name: '{{cluster}}-istio-base'
+      name: '{{name}}-istio-base'
     spec:
       project: default
       source:
@@ -22,7 +20,7 @@ spec:
         targetRevision: HEAD
         path: base
       destination:
-        server: '{{url}}'
+        server: '{{server}}'
         namespace: istio-system
       syncPolicy:
         syncOptions:

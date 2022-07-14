@@ -27,5 +27,10 @@ qemu-system-aarch64 \
 
 ```
 calicoctl get ippool -o wide
+```
 
+List images in pull-through registries:
+```
+curl -s 192.168.64.1:5001/v2/_catalog | jq
+curl -s 192.168.64.1:5002/v2/_catalog | jq
 ```

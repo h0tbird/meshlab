@@ -70,8 +70,24 @@ function launch_k8s {
 	  #--------------------
 	  
 	  [ "\$(hostname)" != "kube-00" ] && {
+	  
+	    # Install step CLI
 	    wget -qO- https://github.com/smallstep/cli/releases/download/v0.21.0/step_linux_0.21.0_$(arch).tar.gz |
 	    tar zxv --strip-components=2 -C /usr/bin/ step_0.21.0/bin/step
+	  
+	    # Generate ICA
+	    step certificate create \
+	    "Istio intermediate CA" \
+	    /etc/ca-cert.pem \
+	    /etc/ca-key.pem \
+	    --ca /etc/root-cert.pem \
+	    --ca-key /etc/root-key.pem \
+	    --profile intermediate-ca \
+	    --san *.example.com \
+	    --not-after 43800h \
+	    --no-password \
+	    --insecure \
+	    --kty RSA
 	  }
 	  
 	  #----------------

@@ -33,12 +33,15 @@ docker start registry-ghcr.io || docker run -d -p 5003:5000 \
 #------------------------------------------------------------------------------
 
 step certificate create \
-  "identity.mesh.example.com" \
+  "Istio root CA" \
   "${CA_DIR}/root-cert.pem" \
   "${CA_DIR}/root-key.pem" \
+  --san *.example.com \
+  --not-after 87600h \
   --profile root-ca \
   --no-password \
   --insecure \
+  --kty RSA \
   --force
 
 #------------------------------------------------------------------------------

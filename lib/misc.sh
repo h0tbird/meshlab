@@ -96,6 +96,14 @@ function launch_k8s {
 	    /etc/certs/ca-cert.pem \
 	    /etc/certs/root-cert.pem \
 	    /etc/certs/cert-chain.pem
+	  
+	    # Create a cacerts secret
+	    kubectl create namespace istio-system
+	    kubectl -n istio-system create secret generic cacerts \
+	    --from-file=/etc/certs/ca-cert.pem \
+	    --from-file=/etc/certs/ca-key.pem \
+	    --from-file=/etc/certs/root-cert.pem \
+	    --from-file=/etc/certs/cert-chain.pem
 	  }
 	  
 	  #----------------

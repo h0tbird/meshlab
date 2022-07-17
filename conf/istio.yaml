@@ -33,7 +33,10 @@ spec:
       source:
         repoURL: https://github.com/h0tbird/istio.git
         targetRevision: HEAD
-        path: base
+        path: charts/base
+        helm:
+          valueFiles:
+          - '../../values/{{name}}.yaml'
       destination:
         server: '{{server}}'
         namespace: istio-system
@@ -60,7 +63,10 @@ spec:
       source:
         repoURL: https://github.com/h0tbird/istio.git
         targetRevision: HEAD
-        path: cni
+        path: charts/cni
+        helm:
+          valueFiles:
+          - '../../values/{{name}}.yaml'
       destination:
         server: '{{server}}'
         namespace: istio-system
@@ -87,7 +93,10 @@ spec:
       source:
         repoURL: https://github.com/h0tbird/istio.git
         targetRevision: HEAD
-        path: pilot
+        path: charts/pilot
+        helm:
+          valueFiles:
+          - '../../values/{{name}}.yaml'
       destination:
         server: '{{server}}'
         namespace: istio-system
@@ -119,7 +128,10 @@ spec:
       source:
         repoURL: https://github.com/h0tbird/istio.git
         targetRevision: HEAD
-        path: igws
+        path: charts/igws
+        helm:
+          valueFiles:
+          - '../../values/{{name}}.yaml'
       destination:
         server: '{{server}}'
         namespace: istio-system

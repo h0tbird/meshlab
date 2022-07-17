@@ -29,6 +29,19 @@ docker start registry-ghcr.io || docker run -d -p 5003:5000 \
   registry:2
 
 #------------------------------------------------------------------------------
+# Create a root CA
+#------------------------------------------------------------------------------
+
+step certificate create \
+  "identity.mesh.example.com" \
+  "${CA_DIR}/root-cert.pem" \
+  "${CA_DIR}/root-key.pem" \
+  --profile root-ca \
+  --no-password \
+  --insecure \
+  --force
+
+#------------------------------------------------------------------------------
 # Create k8s clusters
 #------------------------------------------------------------------------------
 

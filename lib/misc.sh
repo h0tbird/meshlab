@@ -42,6 +42,8 @@ function launch_k8s {
 	runcmd:
 	- |
 	  
+	  set -xo errexit
+	  
 	  #-------------
 	  # Install k3s
 	  #-------------
@@ -114,7 +116,7 @@ function launch_k8s {
 	     kubectl create ns argocd
 	     kubectl -n argocd apply -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 	     kubectl -n argocd patch svc argocd-server -p '{"spec": {"type": "LoadBalancer"}}'
-	  }
+	  } || true
 	EOF
 
   # Share the k8s config with the host

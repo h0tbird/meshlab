@@ -71,11 +71,11 @@ function launch_k8s {
 	  # Generate Istio ICA
 	  #--------------------
 	  
-	  [ "\$(hostname)" != "kube-00" ] && {
+	  # Install step CLI
+	  wget -qO- https://github.com/smallstep/cli/releases/download/v0.21.0/step_linux_0.21.0_$(arch).tar.gz |
+	  tar zxv --strip-components=2 -C /usr/bin/ step_0.21.0/bin/step
 	  
-	    # Install step CLI
-	    wget -qO- https://github.com/smallstep/cli/releases/download/v0.21.0/step_linux_0.21.0_$(arch).tar.gz |
-	    tar zxv --strip-components=2 -C /usr/bin/ step_0.21.0/bin/step
+	  [ "\$(hostname)" != "kube-00" ] && {
 	  
 	    # Generate ICA
 	    step certificate create \
@@ -90,6 +90,12 @@ function launch_k8s {
 	    --no-password \
 	    --insecure \
 	    --kty RSA
+	  
+	    # Generate bundle
+	    step certificate bundle \
+	    /etc/certs/ca-cert.pem \
+	    /etc/certs/root-cert.pem \
+	    /etc/certs/cert-chain.pem
 	  }
 	  
 	  #----------------

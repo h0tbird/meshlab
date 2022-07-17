@@ -31,11 +31,13 @@ function launch_k8s {
 	- path: /etc/calico-installation.yaml
 	  content: ${CALICO_CONFIG}
 	  encoding: b64
-	- path: /etc/root-cert.pem
+	- path: /etc/certs/root-cert.pem
 	  content: ${ROOTCA_CERT}
+	  permissions: '0600'
 	  encoding: b64
-	- path: /etc/root-key.pem
+	- path: /etc/certs/root-key.pem
 	  content: ${ROOTCA_KEY}
+	  permissions: '0600'
 	  encoding: b64
 	runcmd:
 	- |
@@ -78,10 +80,10 @@ function launch_k8s {
 	    # Generate ICA
 	    step certificate create \
 	    "Istio intermediate CA" \
-	    /etc/ca-cert.pem \
-	    /etc/ca-key.pem \
-	    --ca /etc/root-cert.pem \
-	    --ca-key /etc/root-key.pem \
+	    /etc/certs/ca-cert.pem \
+	    /etc/certs/ca-key.pem \
+	    --ca /etc/certs/root-cert.pem \
+	    --ca-key /etc/certs/root-key.pem \
 	    --profile intermediate-ca \
 	    --san *.example.com \
 	    --not-after 43800h \

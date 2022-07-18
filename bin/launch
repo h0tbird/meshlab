@@ -93,6 +93,12 @@ argocd app wait kube-01-istio-pilot kube-02-istio-pilot
 argocd app sync kube-01-istio-igws kube-02-istio-igws
 argocd app wait kube-01-istio-igws kube-02-istio-igws
 
+# Enable endpoint discovery
+istioctl x create-remote-secret --context kube-01 --name=cluster1 | \
+kubectl apply -f - --context kube-02
+istioctl x create-remote-secret --context kube-02 --name=cluster2 | \
+kubectl apply -f - --context kube-01
+
 #------------------------------------------------------------------------------
 #
 #------------------------------------------------------------------------------

@@ -33,6 +33,7 @@ spec:
       source:
         repoURL: https://github.com/h0tbird/httpbin.git
         targetRevision: HEAD
+        path: .
       destination:
         server: '{{server}}'
         namespace: httpbin

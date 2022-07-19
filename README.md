@@ -35,3 +35,17 @@ curl -s 192.168.64.1:5001/v2/_catalog | jq
 curl -s 192.168.64.1:5002/v2/_catalog | jq
 curl -s 192.168.64.1:5003/v2/_catalog | jq
 ```
+
+```
+k --context kube-01 -n httpbin exec -it httpbin-69d46696d6-c6p6m -c istio-proxy -- sudo tcpdump dst port 8080 -A
+k --context kube-02 -n httpbin exec -it httpbin-7f859459c6-lkfbr -c istio-proxy -- sudo tcpdump dst port 8080 -A
+```
+
+```
+k --context kube-01 -n httpbin exec -it sleep-5f694bf9d6-vqbfv -- curl http://httpbin.httpbin:5000/get
+k --context kube-02 -n httpbin exec -it sleep-74456b78d-8hwd7 -- curl http://httpbin.httpbin:5000/get
+```
+
+- If `STRICT` mTLS then requests are encrypted and balanced across both clusters.
+- If `DISABLE` mTLS then requests are not encrypted and local to each cluster.
+

@@ -24,6 +24,7 @@ function launch_k8s {
   # Setup the VM with cloud-config
   multipass launch --name $1 --cpus 2 --mem 2G --disk 8G --mount tmp/$1:/mnt/host --cloud-init - <<- EOF
 	#cloud-config
+	 
 	write_files:
 	- path: /var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl
 	  content: ${CONTAINERD_CONFIG}
@@ -39,6 +40,7 @@ function launch_k8s {
 	  content: ${ROOTCA_KEY}
 	  permissions: '0600'
 	  encoding: b64
+	 
 	runcmd:
 	- |
 	  
@@ -121,4 +123,11 @@ function launch_k8s {
 
   # Share the k8s config with the host
   multipass exec $1 -- cp config /mnt/host
+
+  # Workaround for arm64 istio-sidecar.deb
+  [ "$1" = "kube-00" ] && {
+    gh run download -n istio-deb-arm64 -D ./tmp 2472000863 -R resf/istio
+    multipass transfer ./tmp/istio-sidecar.deb kube-00:/home/ubuntu
+    multipass exec kube-00 -- sudo dpkg -i istio-sidecar.deb
+  }
 }

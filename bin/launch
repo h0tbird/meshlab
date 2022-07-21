@@ -67,6 +67,7 @@ ARGOCD_PASS=$(kubectl --context kube-00 -n argocd get secret argocd-initial-admi
 ARGOCD_IP=$(kubectl --context kube-00 -n argocd get svc argocd-server -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 
 [[ -n "${ARGOCD_PASS}" && -n "${ARGOCD_IP}" ]] || exit 1
+
 argocd login ${ARGOCD_IP} --username admin --password ${ARGOCD_PASS} --insecure
 argocd cluster add -y kube-01
 argocd cluster add -y kube-02
@@ -124,7 +125,9 @@ istioctl \
   -o ./tmp/kube-00/vm-files
 
 # Workaround for arm64 istio-sidecar.deb
-gh run download -n istio-deb-arm64 -D ./tmp/kube-00 2472000863 -R resf/istio
+[ -f ./tmp/kube-00/istio-sidecar.deb ] || {
+  gh run download -n istio-deb-arm64 -D ./tmp/kube-00 2472000863 -R resf/istio
+}
 
 # Setup the VM files
 cp ./conf/vm-setup ./tmp/kube-00

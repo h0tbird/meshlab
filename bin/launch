@@ -121,19 +121,14 @@ istioctl \
   x workload entry configure \
   --name vm-httpbin \
   --clusterID cluster1 \
-  -o ./tmp/vm-files
+  -o ./tmp/kube-00/vm-files
 
-[ "$1" = "kube-00" ] && {
+# Workaround for arm64 istio-sidecar.deb
+gh run download -n istio-deb-arm64 -D ./tmp/kube-00 2472000863 -R resf/istio
 
-  # Workaround for arm64 istio-sidecar.deb
-  gh run download -n istio-deb-arm64 -D ./tmp 2472000863 -R resf/istio
-  multipass transfer ./tmp/istio-sidecar.deb kube-00:/home/ubuntu
-
-  # Setup the VM files
-  multipass transfer ./conf/vm-setup kube-00:
-  multipass exec kube-00 -- chmod 755 vm-httpbin
-  multipass exec kube-00 -- sudo ./vm-httpbin
-}
+# Setup the VM files
+cp ./conf/vm-setup ./tmp/kube-00
+multipass exec kube-00 -- sudo ./mnt/host/vm-httpbin
 
 #------------------------------------------------------------------------------
 #

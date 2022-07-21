@@ -36,6 +36,13 @@ curl -s 192.168.64.1:5002/v2/_catalog | jq
 curl -s 192.168.64.1:5003/v2/_catalog | jq
 ```
 
+List image tags in pull-through registries:
+```
+curl -s 192.168.64.1:5001/v2/calico/cni/tags/list | jq
+curl -s 192.168.64.1:5002/v2/argoproj/argocd/tags/list | jq
+curl -s 192.168.64.1:5003/v2/resf/istio/pilot/tags/list | jq
+```
+
 ```
 k --context kube-01 -n httpbin exec -it httpbin-69d46696d6-c6p6m -c istio-proxy -- sudo tcpdump dst port 8080 -A
 k --context kube-02 -n httpbin exec -it httpbin-7f859459c6-lkfbr -c istio-proxy -- sudo tcpdump dst port 8080 -A

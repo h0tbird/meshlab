@@ -112,6 +112,30 @@ argocd app sync kube-01-httpbin kube-02-httpbin
 argocd app wait kube-01-httpbin kube-02-httpbin
 
 #------------------------------------------------------------------------------
+# Setup a non-k8s workload
+#------------------------------------------------------------------------------
+
+# Generate the VM files
+istioctl \
+  --context kube-01 -n httpbin -r 1-14-1 \
+  x workload entry configure \
+  --name vm-httpbin \
+  --clusterID cluster1 \
+  -o ./tmp/vm-files
+
+[ "$1" = "kube-00" ] && {
+
+  # Workaround for arm64 istio-sidecar.deb
+  gh run download -n istio-deb-arm64 -D ./tmp 2472000863 -R resf/istio
+  multipass transfer ./tmp/istio-sidecar.deb kube-00:/home/ubuntu
+
+  # Setup the VM files
+  multipass transfer ./conf/vm-setup kube-00:
+  multipass exec kube-00 -- chmod 755 vm-httpbin
+  multipass exec kube-00 -- sudo ./vm-httpbin
+}
+
+#------------------------------------------------------------------------------
 #
 #------------------------------------------------------------------------------
 

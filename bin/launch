@@ -77,33 +77,34 @@ argocd cluster add -y kube-02
 #------------------------------------------------------------------------------
 
 kubectl --context kube-00 apply -f ./conf/istio.yaml
+sleep 3; ALIST=$(argocd app list)
 
 # Base
-[ $(argocd app list | grep istio-base | grep -c 'Synced  Healthy') -eq 2 ] || {
+[ $(echo "${ALIST}" | grep istio-base | grep -c 'Synced  Healthy') -eq 2 ] || {
   argocd app sync kube-01-istio-base kube-02-istio-base
   argocd app wait kube-01-istio-base kube-02-istio-base
 }
 
 # Cni
-[ $(argocd app list | grep istio-cni | grep -c 'Synced  Healthy') -eq 2 ] || {
+[ $(echo "${ALIST}" | grep istio-cni | grep -c 'Synced  Healthy') -eq 2 ] || {
   argocd app sync kube-01-istio-cni kube-02-istio-cni
   argocd app wait kube-01-istio-cni kube-02-istio-cni
 }
 
 # Pilot
-[ $(argocd app list | grep istio-pilot | grep -c 'Synced  Healthy') -eq 2 ] || {
+[ $(echo "${ALIST}" | grep istio-pilot | grep -c 'Synced  Healthy') -eq 2 ] || {
  argocd app sync kube-01-istio-pilot kube-02-istio-pilot
  argocd app wait kube-01-istio-pilot kube-02-istio-pilot
 }
 
 # IngressGateways
-[ $(argocd app list | grep istio-igws | grep -c 'Synced  Healthy') -eq 2 ] || {
+[ $(echo "${ALIST}" | grep istio-igws | grep -c 'Synced  Healthy') -eq 2 ] || {
   argocd app sync kube-01-istio-igws kube-02-istio-igws
   argocd app wait kube-01-istio-igws kube-02-istio-igws
 }
 
 # East-West gateway
-[ $(argocd app list | grep istio-ewgw | grep -c 'Synced  Healthy') -eq 2 ] || {
+[ $(echo "${ALIST}" | grep istio-ewgw | grep -c 'Synced  Healthy') -eq 2 ] || {
   argocd app sync kube-01-istio-ewgw kube-02-istio-ewgw
   argocd app wait kube-01-istio-ewgw kube-02-istio-ewgw
 }
@@ -120,7 +121,7 @@ kubectl apply -f - --context kube-01
 
 kubectl --context kube-00 apply -f ./conf/httpbin.yaml
 
-[ $(argocd app list | grep httpbin | grep -c 'Synced  Healthy') -eq 2 ] || {
+[ $(echo "${ALIST}" | grep httpbin | grep -c 'Synced  Healthy') -eq 2 ] || {
   argocd app sync kube-01-httpbin kube-02-httpbin
   argocd app wait kube-01-httpbin kube-02-httpbin
 }

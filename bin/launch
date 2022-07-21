@@ -29,20 +29,23 @@ docker start registry-ghcr.io || docker run -d -p 5003:5000 \
   registry:2
 
 #------------------------------------------------------------------------------
-# Create a root CA
+# Create an Istio root CA
 #------------------------------------------------------------------------------
 
-step certificate create \
-  "Istio root CA" \
-  "${CA_DIR}/root-cert.pem" \
-  "${CA_DIR}/root-key.pem" \
-  --san *.example.com \
-  --not-after 87600h \
-  --profile root-ca \
-  --no-password \
-  --insecure \
-  --kty RSA \
-  --force
+[ -d ./tmp/istio-ca ] || {
+  mkdir -p ./tmp/istio-ca
+  step certificate create \
+    "Istio root CA" \
+    "./tmp/istio-ca/root-cert.pem" \
+    "./tmp/istio-ca/root-key.pem" \
+    --san *.example.com \
+    --not-after 87600h \
+    --profile root-ca \
+    --no-password \
+    --insecure \
+    --kty RSA \
+    --force
+}
 
 #------------------------------------------------------------------------------
 # Create k8s clusters
@@ -66,11 +69,19 @@ kubectl config view --flatten > tmp/config && cp tmp/config ~/.kube/config
 ARGOCD_PASS=$(kubectl --context kube-00 -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d)
 ARGOCD_IP=$(kubectl --context kube-00 -n argocd get svc argocd-server -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 
-[[ -n "${ARGOCD_PASS}" && -n "${ARGOCD_IP}" ]] || exit 1
+argocd context kube-00 || {
 
-argocd login ${ARGOCD_IP} --username admin --password ${ARGOCD_PASS} --insecure
-argocd cluster add -y kube-01
-argocd cluster add -y kube-02
+  [[ -n "${ARGOCD_PASS}" && -n "${ARGOCD_IP}" ]] || exit 1
+
+  argocd login ${ARGOCD_IP} \
+    --insecure \
+    --name kube-00 \
+    --username admin \
+    --password ${ARGOCD_PASS}
+
+  argocd cluster add -y kube-01
+  argocd cluster add -y kube-02
+}
 
 #------------------------------------------------------------------------------
 # Deploy Istio

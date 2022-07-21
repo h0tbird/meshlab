@@ -22,3 +22,15 @@ kubectl config delete-context kube-01
 kubectl config delete-user kube-02
 kubectl config delete-cluster kube-02
 kubectl config delete-context kube-02
+
+#------------------------------------------------------------------------------
+# Delete ArgoCD context
+#------------------------------------------------------------------------------
+
+argocd context --delete kube-00
+
+#------------------------------------------------------------------------------
+# Delete Istio root CA
+#------------------------------------------------------------------------------
+
+rm -rf ./tmp/istio-ca

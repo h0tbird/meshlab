@@ -2,12 +2,6 @@
 #
 #------------------------------------------------------------------------------
 
-CA_DIR=$(mktemp --tmpdir="${TMPDIR:-/tmp}" -d root-ca.XXXXX)
-
-#------------------------------------------------------------------------------
-#
-#------------------------------------------------------------------------------
-
 # tail -f /Library/Logs/Multipass/multipassd.log
 # cat /var/lib/cloud/instance/user-data.txt 
 # cat /var/lib/cloud/instance/scripts/runcmd
@@ -18,8 +12,8 @@ function launch_k8s {
   # Base64 encoded config files
   CONTAINERD_CONFIG=$(base64 -w0 conf/containerd.tmpl)
   CALICO_CONFIG=$(base64 -w0 conf/calico.yaml)
-  ROOTCA_CERT=$(base64 -w0 ${CA_DIR}/root-cert.pem)
-  ROOTCA_KEY=$(base64 -w0 ${CA_DIR}/root-key.pem)
+  ROOTCA_CERT=$(base64 -w0 ./tmp/istio-ca/root-cert.pem)
+  ROOTCA_KEY=$(base64 -w0 ./tmp/istio-ca/root-key.pem)
 
   # Setup the VM with cloud-config
   multipass launch --name $1 --cpus 2 --mem 2G --disk 8G --mount tmp/$1:/mnt/host --cloud-init - <<- EOF

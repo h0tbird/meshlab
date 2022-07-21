@@ -48,6 +48,13 @@ Get manifest for a given image tag:
 curl -s http://192.168.64.1:5002/v2/argoproj/argocd/manifests/v2.4.7 | jq
 ```
 
+Tail cloud-init logs:
+```
+multipass exec kube-00 -- tail -f /var/log/cloud-init-output.log
+multipass exec kube-01 -- tail -f /var/log/cloud-init-output.log
+multipass exec kube-02 -- tail -f /var/log/cloud-init-output.log
+```
+
 ```
 k --context kube-01 -n httpbin exec -it httpbin-69d46696d6-c6p6m -c istio-proxy -- sudo tcpdump dst port 8080 -A
 k --context kube-02 -n httpbin exec -it httpbin-7f859459c6-lkfbr -c istio-proxy -- sudo tcpdump dst port 8080 -A

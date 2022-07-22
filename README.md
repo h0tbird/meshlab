@@ -1,20 +1,18 @@
 # it-works-on-my-machine
 Local k8s on arm64
 
-### Local pull-through registries
+## Local pull-through registries
 
 List images in pull-through registries:
-```
-curl -s 192.168.64.1:5001/v2/_catalog | jq
-curl -s 192.168.64.1:5002/v2/_catalog | jq
-curl -s 192.168.64.1:5003/v2/_catalog | jq
+```bash
+curl -s 192.168.64.1:5001/v2/_catalog | jq # docker.io
+curl -s 192.168.64.1:5002/v2/_catalog | jq # quay.io
+curl -s 192.168.64.1:5003/v2/_catalog | jq # ghcr.io
 ```
 
 List image tags in pull-through registries:
 ```
-curl -s 192.168.64.1:5001/v2/calico/cni/tags/list | jq
 curl -s 192.168.64.1:5002/v2/argoproj/argocd/tags/list | jq
-curl -s 192.168.64.1:5003/v2/resf/istio/pilot/tags/list | jq
 ```
 
 Get manifest for a given image tag:
@@ -22,14 +20,14 @@ Get manifest for a given image tag:
 curl -s http://192.168.64.1:5002/v2/argoproj/argocd/manifests/v2.4.7 | jq
 ```
 
-### Calico
+## Calico
 
 Commands to manage Calico:
 ```
 calicoctl get ippool -o wide
 ```
 
-### Cluid-init
+## Cluid-init
 
 Tail cloud-init logs:
 ```
@@ -38,14 +36,14 @@ multipass exec kube-01 -- tail -f /var/log/cloud-init-output.log
 multipass exec kube-02 -- tail -f /var/log/cloud-init-output.log
 ```
 
-### Envoy config in VMs
+## Envoy config in VMs
 
 Status of the certificates in the VM:
 ```
 multipass exec virt-01 -- curl -s localhost:15000/config_dump | istioctl pc secret --file -
 ```
 
-### Tcpdump
+## Tcpdump
 
 Tcpdump traffic to port `8080`:
 ```

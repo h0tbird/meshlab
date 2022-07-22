@@ -83,6 +83,7 @@ k --context kube-02 -n httpbin exec -it sleep-74456b78d-8hwd7 -- curl http://htt
 Connect to the externally exposed `istiod` service and inspect the certificate bundle it presents:
 ```
 step certificate inspect --bundle --servername istiod-1-14-1.istio-system.svc https://192.168.64.3:15012 --roots ./tmp/istio-ca/root-cert.pem
+step certificate inspect --bundle --servername istiod-1-14-1.istio-system.svc https://192.168.64.3:15012 --insecure
 ```
 
 As a client, inspect the certificate provided by a workload:

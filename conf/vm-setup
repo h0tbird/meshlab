@@ -4,7 +4,8 @@ HOST=/mnt/host
 VM_FILES=${HOST}/vm-files
 
 dpkg -i ${HOST}/istio-sidecar.deb
-mkdir -p /var/run/secrets/tokens
+mkdir -p /var/run/secrets/tokens /etc/certs
+cp ${VM_FILES}/root-cert.pem /etc/certs/root-cert.pem
 cp ${VM_FILES}/istio-token /var/run/secrets/tokens/istio-token
 cp ${VM_FILES}/cluster.env /var/lib/istio/envoy/cluster.env
 cp ${VM_FILES}/mesh.yaml /etc/istio/config/mesh

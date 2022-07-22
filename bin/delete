@@ -4,7 +4,7 @@
 # Delete clusters
 #------------------------------------------------------------------------------
 
-multipass delete kube-00 kube-01 kube-02
+multipass delete kube-00 kube-01 kube-02 virt-01
 multipass purge
 
 #------------------------------------------------------------------------------

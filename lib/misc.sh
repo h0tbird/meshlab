@@ -7,6 +7,10 @@
 # cat /var/lib/cloud/instance/scripts/runcmd
 # cat /var/log/cloud-init-output.log
 
+function launch_vms {
+  multipass launch --name $1 --cpus 1 --mem 1G --disk 8G --mount tmp/$1:/mnt/host
+}
+
 function launch_k8s {
 
   # Base64 encoded config files

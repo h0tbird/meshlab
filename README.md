@@ -55,11 +55,18 @@ multipass exec kube-01 -- tail -f /var/log/cloud-init-output.log
 multipass exec kube-02 -- tail -f /var/log/cloud-init-output.log
 ```
 
+Status of the certificates in the VM:
+```
+multipass exec virt-01 -- curl -s localhost:15000/config_dump | istioctl-1-14-1 pc secret --file -
+```
+
+Tcpdump traffic to port `8080`:
 ```
 k --context kube-01 -n httpbin exec -it httpbin-69d46696d6-c6p6m -c istio-proxy -- sudo tcpdump dst port 8080 -A
 k --context kube-02 -n httpbin exec -it httpbin-7f859459c6-lkfbr -c istio-proxy -- sudo tcpdump dst port 8080 -A
 ```
 
+Send requests to the service above:
 ```
 k --context kube-01 -n httpbin exec -it sleep-5f694bf9d6-vqbfv -- curl http://httpbin.httpbin:5000/get
 k --context kube-02 -n httpbin exec -it sleep-74456b78d-8hwd7 -- curl http://httpbin.httpbin:5000/get

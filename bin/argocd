@@ -1,0 +1,8 @@
+#!/bin/bash
+
+ARGOCD_PASS=$(kubectl --context kube-00 -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d)
+ARGOCD_IP=$(kubectl --context kube-00 -n argocd get svc argocd-server -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+
+echo "ArgoCD WebUI: https://${ARGOCD_IP}"
+echo "ArgoCD User: admin"
+echo "ArgoCD Pass: ${ARGOCD_PASS}"

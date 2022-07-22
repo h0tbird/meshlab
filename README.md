@@ -29,6 +29,14 @@ multipass exec kube-01 -- tail -f /var/log/cloud-init-output.log
 multipass exec kube-02 -- tail -f /var/log/cloud-init-output.log
 ```
 
+Inspect the rendered `runcmd`:
+```
+multipass exec kube-00 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
+multipass exec kube-01 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
+multipass exec kube-02 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
+multipass exec virt-01 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
+```
+
 ## ArgoCD
 
 List all applications:

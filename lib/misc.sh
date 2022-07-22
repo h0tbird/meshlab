@@ -8,7 +8,14 @@
 # cat /var/log/cloud-init-output.log
 
 function launch_vms {
-  multipass launch --name $1 --cpus 1 --mem 1G --disk 8G --mount tmp/$1:/mnt/host
+  multipass launch --name $1 --cpus 1 --mem 1G --disk 8G --mount tmp/$1:/mnt/host --cloud-init - <<- EOF
+	#cloud-config
+	runcmd:
+	- |
+	  set -xo errexit
+	  wget -qO- https://github.com/smallstep/cli/releases/download/v0.21.0/step_linux_0.21.0_$(arch).tar.gz |
+	  tar zxv --strip-components=2 -C /usr/bin/ step_0.21.0/bin/step
+	EOF
 }
 
 function launch_k8s {

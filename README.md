@@ -29,6 +29,23 @@ multipass exec kube-01 -- tail -f /var/log/cloud-init-output.log
 multipass exec kube-02 -- tail -f /var/log/cloud-init-output.log
 ```
 
+## ArgoCD
+
+List all applications:
+```
+argocd app list
+```
+
+Manually sync applications:
+```
+argocd app sync kube-01-istio-base kube-02-istio-base
+argocd app sync kube-01-istio-cni kube-02-istio-cni
+argocd app sync kube-01-istio-pilot kube-02-istio-pilot
+argocd app sync kube-01-istio-igws kube-02-istio-igws
+argocd app sync kube-01-istio-ewgw kube-02-istio-ewgw
+argocd app sync kube-01-httpbin kube-02-httpbin
+```
+
 ## Calico
 
 Commands to manage Calico:

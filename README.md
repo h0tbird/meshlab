@@ -1,5 +1,5 @@
 # it-works-on-my-machine
-Local k8s on arm64
+Multi-cluster Istio mesh with a non-k8s workload on a VM.
 
 ## Local pull-through registries
 

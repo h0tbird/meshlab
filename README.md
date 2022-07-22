@@ -77,3 +77,10 @@ Send requests to the service above:
 k --context kube-01 -n httpbin exec -it sleep-5f694bf9d6-vqbfv -- curl http://httpbin.httpbin:5000/get
 k --context kube-02 -n httpbin exec -it sleep-74456b78d-8hwd7 -- curl http://httpbin.httpbin:5000/get
 ```
+
+## Certificates
+
+Connect to the externally exposed `istiod` service and inspect the certificate bundle it presents:
+```
+step certificate inspect --bundle --servername istiod-1-14-1.istio-system.svc https://192.168.64.3:15012 --roots ./tmp/istio-ca/root-cert.pem
+```

@@ -50,13 +50,17 @@ argocd app sync kube-01-httpbin kube-02-httpbin
 
 Commands to manage Calico:
 ```
-calicoctl get ippool -o wide
+calicoctl get ipPool -o wide --allow-version-mismatch
+calicoctl get node -o wide --allow-version-mismatch
 ```
 
 ## Envoy config in VMs
 
-Status of the certificates in the VM:
+Inspect `config_dump`:
 ```
+multipass exec virt-01 -- curl -s localhost:15000/config_dump | istioctl pc listeners --file -
+multipass exec virt-01 -- curl -s localhost:15000/config_dump | istioctl pc routes --file -
+multipass exec virt-01 -- curl -s localhost:15000/config_dump | istioctl pc clusters --file -
 multipass exec virt-01 -- curl -s localhost:15000/config_dump | istioctl pc secret --file -
 ```
 

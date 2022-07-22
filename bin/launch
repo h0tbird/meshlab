@@ -143,11 +143,13 @@ kubectl --context kube-00 apply -f ./conf/httpbin.yaml
 #------------------------------------------------------------------------------
 
 # Generate the VM files
-istioctl \
-  --context kube-01 -n httpbin -r 1-14-1 \
-  x workload entry configure \
+istioctl x workload entry configure \
+  --context kube-01 \
+  -n httpbin \
+  -r 1-14-1 \
   --name vm-httpbin \
   --clusterID cluster1 \
+  --autoregister \
   -o ./tmp/virt-01/vm-files
 
 # Workaround for arm64 istio-sidecar.deb

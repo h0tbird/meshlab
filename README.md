@@ -78,6 +78,11 @@ k --context kube-01 -n httpbin exec -it sleep-5f694bf9d6-vqbfv -- curl http://ht
 k --context kube-02 -n httpbin exec -it sleep-74456b78d-8hwd7 -- curl http://httpbin:5000/get
 ```
 
+Same thing but using the VM:
+```
+multipass exec virt-01 -- curl httpbin:5000/get
+```
+
 ## Certificates
 
 Connect to the externally exposed `istiod` service and inspect the certificate bundle it presents:

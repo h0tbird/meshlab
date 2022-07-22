@@ -20,13 +20,6 @@ Get manifest for a given image tag:
 curl -s http://192.168.64.1:5002/v2/argoproj/argocd/manifests/v2.4.7 | jq
 ```
 
-## Calico
-
-Commands to manage Calico:
-```
-calicoctl get ippool -o wide
-```
-
 ## Cluid-init
 
 Tail cloud-init logs:
@@ -34,6 +27,13 @@ Tail cloud-init logs:
 multipass exec kube-00 -- tail -f /var/log/cloud-init-output.log
 multipass exec kube-01 -- tail -f /var/log/cloud-init-output.log
 multipass exec kube-02 -- tail -f /var/log/cloud-init-output.log
+```
+
+## Calico
+
+Commands to manage Calico:
+```
+calicoctl get ippool -o wide
 ```
 
 ## Envoy config in VMs

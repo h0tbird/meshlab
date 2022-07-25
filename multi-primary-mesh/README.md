@@ -7,6 +7,10 @@ Multi-primary Istio mesh with a non-k8s workload running on a VM.
 ./bin/argocd # Print ArgoCD details
 ```
 
+ArgoCD is used to deploy:
+- https://github.com/h0tbird/istio
+- https://github.com/h0tbird/httpbin
+
 ## Local pull-through registries
 
 List images in pull-through registries:

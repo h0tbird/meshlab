@@ -1,0 +1,8 @@
+[Unit]
+Description=chinaran/go-httpbin
+
+[Service]
+ExecStart=/usr/local/bin/go-httpbin
+
+[Install]
+WantedBy=multi-user.target

@@ -147,7 +147,7 @@ istioctl x workload entry configure \
   --context kube-01 \
   -n httpbin \
   -r 1-14-1 \
-  --name vm-httpbin \
+  --name httpbin \
   --clusterID cluster1 \
   --autoregister \
   -o ./tmp/virt-01/vm-files

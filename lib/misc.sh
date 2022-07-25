@@ -39,6 +39,7 @@ function launch_vms {
 	  git clone https://github.com/chinaran/go-httpbin.git; cd go-httpbin
 	  GOCACHE=/root/.cache/go-build GOPATH=/root/go CGO_ENABLED=0 \
 	  go build -ldflags="-s -w" -o /usr/local/bin/go-httpbin ./cmd/go-httpbin
+	  systemctl start httpbin
 	EOF
 }
 

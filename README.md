@@ -80,6 +80,8 @@ k --context kube-01 -n httpbin exec -it httpbin-69d46696d6-c6p6m -c istio-proxy 
 k --context kube-02 -n httpbin exec -it httpbin-7f859459c6-lkfbr -c istio-proxy -- sudo tcpdump dst port 8080 -A
 ```
 
+## Testing
+
 Send requests to the service above:
 ```
 k --context kube-01 -n httpbin exec -it sleep-5f694bf9d6-vqbfv -- curl http://httpbin/get
@@ -89,6 +91,7 @@ k --context kube-02 -n httpbin exec -it sleep-74456b78d-8hwd7 -- curl http://htt
 Same thing but using the VM:
 ```
 multipass exec virt-01 -- curl httpbin/get
+for i in {1..6}; do multipass exec virt-01 -- curl -s httpbin/get | jq -r '.envs."HOSTNAME"'; done
 ```
 
 ## Certificates
@@ -114,7 +117,7 @@ istioctl --context kube-02 pc endpoint deploy/httpbin.httpbin | egrep '^END|http
 
 ## Devel
 
-Provision only one VM
+Provision only one VM:
 ```
 source ./lib/misc.sh && launch_k8s kube-00
 source ./lib/misc.sh && launch_vms virt-01

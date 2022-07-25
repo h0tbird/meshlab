@@ -1,17 +1,13 @@
 #------------------------------------------------------------------------------
-#
+# Used to provision virt-01
 #------------------------------------------------------------------------------
-
-# tail -f /Library/Logs/Multipass/multipassd.log
-# cat /var/lib/cloud/instance/user-data.txt 
-# cat /var/lib/cloud/instance/scripts/runcmd
-# cat /var/log/cloud-init-output.log
 
 function launch_vms {
 
   # Base64 encoded config files
   HTTPBIN_SYSTEMD=$(base64 -w0 conf/httpbin.service)
 
+  # Setup the VM with cloud-config
   multipass launch --name $1 --cpus 1 --mem 1G --disk 8G --mount tmp/$1:/mnt/host --cloud-init - <<- EOF
 	#cloud-config
 	
@@ -45,6 +41,10 @@ function launch_vms {
 	  go build -ldflags="-s -w" -o /usr/local/bin/go-httpbin ./cmd/go-httpbin
 	EOF
 }
+
+#------------------------------------------------------------------------------
+# Used to provision kube-00, kube-01 and kube-02
+#------------------------------------------------------------------------------
 
 function launch_k8s {
 

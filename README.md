@@ -104,6 +104,14 @@ As a client, inspect the certificate provided by a workload:
 k -n httpbin exec -it sleep-66b495d847-jkbpg -c istio-proxy -- openssl s_client -showcerts httpbin:5000
 ```
 
+## Workload endpoints
+
+List all the endpoints for a given cluster/workload:
+```
+istioctl --context kube-01 pc endpoint deploy/httpbin.httpbin | egrep '^END|httpbin'
+istioctl --context kube-02 pc endpoint deploy/httpbin.httpbin | egrep '^END|httpbin'
+```
+
 ## Devel
 
 Provision only one VM

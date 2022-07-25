@@ -121,7 +121,10 @@ sleep 2; ALIST=$(argocd app list)
   argocd app wait kube-01-istio-ewgw kube-02-istio-ewgw
 }
 
+#------------------------------------------------------------------------------
 # Enable endpoint discovery
+#------------------------------------------------------------------------------
+
 istioctl x create-remote-secret --context kube-01 --name=cluster1 | \
 kubectl apply -f - --context kube-02
 istioctl x create-remote-secret --context kube-02 --name=cluster2 | \

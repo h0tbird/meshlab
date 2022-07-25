@@ -82,13 +82,13 @@ k --context kube-02 -n httpbin exec -it httpbin-7f859459c6-lkfbr -c istio-proxy 
 
 Send requests to the service above:
 ```
-k --context kube-01 -n httpbin exec -it sleep-5f694bf9d6-vqbfv -- curl http://httpbin:5000/get
-k --context kube-02 -n httpbin exec -it sleep-74456b78d-8hwd7 -- curl http://httpbin:5000/get
+k --context kube-01 -n httpbin exec -it sleep-5f694bf9d6-vqbfv -- curl http://httpbin/get
+k --context kube-02 -n httpbin exec -it sleep-74456b78d-8hwd7 -- curl http://httpbin/get
 ```
 
 Same thing but using the VM:
 ```
-multipass exec virt-01 -- curl httpbin:5000/get
+multipass exec virt-01 -- curl httpbin/get
 ```
 
 ## Certificates
@@ -101,7 +101,7 @@ step certificate inspect --bundle --servername istiod-1-14-1.istio-system.svc ht
 
 As a client, inspect the certificate provided by a workload:
 ```
-k -n httpbin exec -it sleep-66b495d847-jkbpg -c istio-proxy -- openssl s_client -showcerts httpbin:5000
+k -n httpbin exec -it sleep-66b495d847-jkbpg -c istio-proxy -- openssl s_client -showcerts httpbin:80
 ```
 
 ## Workload endpoints

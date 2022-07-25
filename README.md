@@ -103,3 +103,11 @@ As a client, inspect the certificate provided by a workload:
 ```
 k -n httpbin exec -it sleep-66b495d847-jkbpg -c istio-proxy -- openssl s_client -showcerts httpbin:5000
 ```
+
+## Devel
+
+Provision only one VM
+```
+source ./lib/misc.sh && launch_k8s kube-00
+source ./lib/misc.sh && launch_vms virt-01
+```

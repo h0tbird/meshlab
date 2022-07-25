@@ -8,16 +8,41 @@
 # cat /var/log/cloud-init-output.log
 
 function launch_vms {
+
+  # Base64 encoded config files
+  HTTPBIN_SYSTEMD=$(base64 -w0 conf/httpbin.service)
+
   multipass launch --name $1 --cpus 1 --mem 1G --disk 8G --mount tmp/$1:/mnt/host --cloud-init - <<- EOF
 	#cloud-config
+	
+	write_files:
+	- path: /etc/systemd/system/httpbin.service
+	  content: ${HTTPBIN_SYSTEMD}
+	  encoding: b64
+	
 	packages:
 	- golang-go
 	- net-tools
+	
 	runcmd:
 	- |
+	  
 	  set -xo errexit
+	  
+	  #--------------
+	  # Install step
+	  #--------------
+	  
 	  wget -qO- https://github.com/smallstep/cli/releases/download/v0.21.0/step_linux_0.21.0_$(arch).tar.gz |
 	  tar zxv --strip-components=2 -C /usr/bin/ step_0.21.0/bin/step
+	  
+	  #-----------------
+	  # Install httpbin
+	  #-----------------
+	  
+	  git clone https://github.com/chinaran/go-httpbin.git; cd go-httpbin
+	  GOCACHE=/root/.cache/go-build GOPATH=/root/go CGO_ENABLED=0 \
+	  go build -ldflags="-s -w" -o /usr/local/bin/go-httpbin ./cmd/go-httpbin
 	EOF
 }
 

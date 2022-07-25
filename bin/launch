@@ -88,8 +88,8 @@ argocd context kube-00 || {
 # Deploy Istio
 #------------------------------------------------------------------------------
 
-kubectl --context kube-00 apply -f ./conf/istio.yaml
-sleep 3; ALIST=$(argocd app list)
+kubectl --context kube-00 apply -f ./conf/argocd-istio.yaml
+sleep 2; ALIST=$(argocd app list)
 
 # Base
 [ $(echo "${ALIST}" | grep istio-base | grep -c 'Synced  Healthy') -eq 2 ] || {
@@ -131,7 +131,7 @@ kubectl apply -f - --context kube-01
 # Deploy httpbin
 #------------------------------------------------------------------------------
 
-kubectl --context kube-00 apply -f ./conf/httpbin.yaml
+kubectl --context kube-00 apply -f ./conf/argocd-httpbin.yaml
 
 [ $(echo "${ALIST}" | grep httpbin | grep -c 'Synced  Healthy') -eq 2 ] || {
   argocd app sync kube-01-httpbin kube-02-httpbin

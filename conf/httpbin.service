@@ -2,7 +2,7 @@
 Description=chinaran/go-httpbin
 
 [Service]
-ExecStart=/usr/local/bin/go-httpbin
+ExecStart=/bin/bash -c "HOSTNAME=$$(hostname) go-httpbin"
 
 [Install]
 WantedBy=multi-user.target

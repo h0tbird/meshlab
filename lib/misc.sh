@@ -10,6 +10,9 @@
 function launch_vms {
   multipass launch --name $1 --cpus 1 --mem 1G --disk 8G --mount tmp/$1:/mnt/host --cloud-init - <<- EOF
 	#cloud-config
+	packages:
+	- golang-go
+	- net-tools
 	runcmd:
 	- |
 	  set -xo errexit

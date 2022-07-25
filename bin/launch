@@ -125,10 +125,10 @@ sleep 2; ALIST=$(argocd app list)
 # Enable endpoint discovery
 #------------------------------------------------------------------------------
 
-istioctl x create-remote-secret --context kube-01 --name=cluster1 | \
-kubectl apply -f - --context kube-02
-istioctl x create-remote-secret --context kube-02 --name=cluster2 | \
-kubectl apply -f - --context kube-01
+istioctl x create-remote-secret --context kube-01 --name=kube-01 | \
+kubectl --context kube-02 apply -f -
+istioctl x create-remote-secret --context kube-02 --name=kube-02 | \
+kubectl --context kube-01 apply -f -
 
 #------------------------------------------------------------------------------
 # Deploy httpbin
@@ -151,7 +151,7 @@ istioctl x workload entry configure \
   -n httpbin \
   -r 1-14-1 \
   --name httpbin \
-  --clusterID cluster1 \
+  --clusterID kube-01 \
   --autoregister \
   -o ./tmp/virt-01/vm-files
 

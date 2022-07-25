@@ -54,6 +54,14 @@ argocd app sync kube-01-istio-ewgw kube-02-istio-ewgw
 argocd app sync kube-01-httpbin kube-02-httpbin
 ```
 
+## Remote clusters
+
+List remote clusters:
+```
+istioctl --context kube-01 remote-clusters
+istioctl --context kube-02 remote-clusters
+```
+
 ## Calico
 
 Commands to manage Calico:

@@ -20,19 +20,19 @@ curl -s 192.168.64.1:5002/v2/_catalog | jq # quay.io
 curl -s 192.168.64.1:5003/v2/_catalog | jq # ghcr.io
 ```
 
-List image tags in pull-through registries:
+List tags for a given image:
 ```
 curl -s 192.168.64.1:5002/v2/argoproj/argocd/tags/list | jq
 ```
 
-Get manifest for a given image tag:
+Get the manifest for a given image and tag:
 ```
 curl -s http://192.168.64.1:5002/v2/argoproj/argocd/manifests/v2.4.7 | jq
 ```
 
-## Cluid-init
+## Cloud-init
 
-Tail cloud-init logs:
+Tail the cloud-init logs:
 ```
 multipass exec kube-00 -- tail -f /var/log/cloud-init-output.log
 multipass exec kube-01 -- tail -f /var/log/cloud-init-output.log
@@ -66,7 +66,7 @@ argocd app sync kube-01-httpbin kube-02-httpbin
 
 ## Remote clusters
 
-List remote clusters:
+List the remote clusters:
 ```
 istioctl --context kube-01 remote-clusters
 istioctl --context kube-02 remote-clusters
@@ -74,7 +74,7 @@ istioctl --context kube-02 remote-clusters
 
 ## Calico
 
-Commands to manage Calico:
+Query Calico:
 ```
 calicoctl get ipPool -o wide --allow-version-mismatch
 calicoctl get node -o wide --allow-version-mismatch
@@ -82,7 +82,7 @@ calicoctl get node -o wide --allow-version-mismatch
 
 ## Envoy config in VMs
 
-Inspect `config_dump`:
+Inspect the `config_dump`:
 ```
 multipass exec virt-01 -- curl -s localhost:15000/config_dump | istioctl pc listeners --file -
 multipass exec virt-01 -- curl -s localhost:15000/config_dump | istioctl pc routes --file -

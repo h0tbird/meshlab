@@ -92,13 +92,13 @@ multipass exec virt-01 -- curl -s localhost:15000/config_dump | istioctl pc secr
 
 Set debug log level on a given proxy:
 ```
-istioctl pc log sleep-85495d445c-k948x.httpbin --level debug
-k --context kube-01 -n httpbin logs -f sleep-85495d445c-k948x -c istio-proxy
+istioctl pc log sleep-xxx.httpbin --level debug
+k --context kube-01 -n httpbin logs -f sleep-xxx -c istio-proxy
 ```
 
 Access the WebUI of a given envoy proxy:
 ```
-istioctl dashboard envoy sleep-85495d445c-k948x.httpbin
+istioctl dashboard envoy sleep-xxx.httpbin
 ```
 
 Access the WebUI of `istiod`:
@@ -108,7 +108,7 @@ istioctl dashboard controlz deployment/istiod-1-14-2.istio-system
 
 Dump the `common_tls_context` for a given envoy cluster:
 ```
-k --context kube-01 -n httpbin exec -i sleep-7bfdfb457-xpd6n -- \
+k --context kube-01 -n httpbin exec -i sleep-xxx -- \
 curl -s localhost:15000/config_dump | jq '
   .configs[] |
   select(."@type"=="type.googleapis.com/envoy.admin.v3.ClustersConfigDump") |
@@ -197,8 +197,8 @@ Provide the path to the `keylog` file.
 
 Send requests to the service above:
 ```
-k --context kube-01 -n httpbin exec -it sleep-5f694bf9d6-vqbfv -- curl http://httpbin/get
-k --context kube-02 -n httpbin exec -it sleep-74456b78d-8hwd7 -- curl http://httpbin/get
+k --context kube-01 -n httpbin exec -it sleep-xxx -- curl http://httpbin/get
+k --context kube-02 -n httpbin exec -it sleep-xxx -- curl http://httpbin/get
 ```
 
 Same thing but using the VM:
@@ -217,7 +217,7 @@ step certificate inspect --bundle --servername istiod-1-14-2.istio-system.svc ht
 
 As a client, inspect the certificate provided by a workload:
 ```
-k -n httpbin exec -it sleep-66b495d847-jkbpg -c istio-proxy -- openssl s_client -showcerts httpbin:80
+k -n httpbin exec -it sleep-xxx -c istio-proxy -- openssl s_client -showcerts httpbin:80
 ```
 
 ## Workload endpoints

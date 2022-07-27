@@ -80,17 +80,15 @@ calicoctl get ipPool -o wide --allow-version-mismatch
 calicoctl get node -o wide --allow-version-mismatch
 ```
 
-## Envoy config in VMs
+## Envoy
 
-Inspect the `config_dump`:
+Inspect the `config_dump` of a VM:
 ```
 multipass exec virt-01 -- curl -s localhost:15000/config_dump | istioctl pc listeners --file -
 multipass exec virt-01 -- curl -s localhost:15000/config_dump | istioctl pc routes --file -
 multipass exec virt-01 -- curl -s localhost:15000/config_dump | istioctl pc clusters --file -
 multipass exec virt-01 -- curl -s localhost:15000/config_dump | istioctl pc secret --file -
 ```
-
-## Envoy
 
 Set debug log level on a given proxy:
 ```
@@ -124,7 +122,7 @@ curl -s localhost:15000/config_dump | jq '
 
 ## TLS v1.3 troubleshooting
 
-Dump crypto material:
+A place to dump the crypto material:
 ```
 k --context kube-01 -n httpbin patch deployment sleep --type merge -p '
 spec:
@@ -139,7 +137,7 @@ spec:
 '
 ```
 
-Write the required per-session secrets to a file:
+Write the required per-session TLS secrets to a file ([source](https://github.com/istio/istio/blob/5f90e4b9ae19800f4c539628ae038ec118835610/pilot/pkg/networking/core/v1alpha3/envoyfilter/cluster_patch_test.go#L241-L262)):
 ```
 k --context kube-01 apply -f - << EOF
 apiVersion: networking.istio.io/v1alpha3
@@ -173,17 +171,17 @@ EOF
 
 Start `tcpdump`:
 ```
-k --context kube-01 -n httpbin exec -it sleep-7bfdfb457-xpd6n -c istio-proxy -- sudo tcpdump -s0 -w /sniff/dump.pcap
+k --context kube-01 -n httpbin exec -it sleep-xxx -c istio-proxy -- sudo tcpdump -s0 -w /sniff/dump.pcap
 ```
 
 Send a few requests:
 ```
-k --context kube-01 -n httpbin exec -it sleep-7bfdfb457-xpd6n -- curl -s http://httpbin/get | jq -r '.envs."HOSTNAME"'
+k --context kube-01 -n httpbin exec -it sleep-xxx -- curl -s http://httpbin/get | jq -r '.envs."HOSTNAME"'
 ```
 
 Download everything:
 ```
-k --context kube-01 -n httpbin cp -c istio-proxy sleep-8496df9964-ckt9f:sniff ~/sniff
+k --context kube-01 -n httpbin cp -c istio-proxy sleep-xxx:sniff ~/sniff
 ```
 
 Open it with Wireshark:
@@ -191,7 +189,9 @@ Open it with Wireshark:
 open ~/sniff/dump.pcap
 ```
 
-Filter by `tls` and find a `Client Hello`, right click and... 
+Filter by `tls.handshake.type == 1` and follow the TLS stream of a `Client Hello` packet. 
+Right click a TLSv1.3 packet then `Protocol Preferences` --> `Transport Layer Security` --> `(Pre)-Master-Secret log filename`.
+Provide the path to the `keylog` file.
 
 ## Testing
 

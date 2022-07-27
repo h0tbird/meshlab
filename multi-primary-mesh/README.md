@@ -186,10 +186,10 @@ k --context kube-01 -n httpbin exec -it sleep-xxx -c istio-proxy -- sudo tcpdump
 
 Send a few requests to the endpoints listed above:
 ```
-k --context kube-01 -n httpbin exec -i sleep-xxx -- curl -s http://httpbin/get | jq -r '.envs."HOSTNAME"'
+k --context kube-01 -n httpbin exec -i sleep-xxx -- curl -s httpbin/get | jq -r '.envs."HOSTNAME"'
 ```
 
-Download everything:
+Stop `tcpdump` and download everything:
 ```
 k --context kube-01 -n httpbin cp -c istio-proxy sleep-xxx:sniff ~/sniff
 ```

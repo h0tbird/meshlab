@@ -230,7 +230,7 @@ k -n httpbin exec -it sleep-xxx -c istio-proxy -- openssl s_client -showcerts ht
 
 ## Workload endpoints
 
-List all the endpoints for a given cluster/workload:
+List all the endpoints for a given cluster and workload:
 ```
 istioctl --context kube-01 pc endpoint deploy/httpbin.httpbin | egrep '^END|httpbin'
 istioctl --context kube-02 pc endpoint deploy/httpbin.httpbin | egrep '^END|httpbin'

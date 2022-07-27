@@ -131,42 +131,67 @@ spec:
   template:
     metadata:
       annotations:
-        sidecar.istio.io/userVolume: "[{\"name\":\"istio-certs\", \"emptyDir\":{\"medium\":\"Memory\"}}]"
-        sidecar.istio.io/userVolumeMount: "[{\"name\":\"istio-certs\", \"mountPath\":\"/etc/istio-certs\"}]"
+        sidecar.istio.io/userVolume: "[{\"name\":\"sniff\", \"emptyDir\":{\"medium\":\"Memory\"}}]"
+        sidecar.istio.io/userVolumeMount: "[{\"name\":\"sniff\", \"mountPath\":\"/sniff\"}]"
         proxy.istio.io/config: |
           proxyMetadata:
-            OUTPUT_CERTS: /etc/istio-certs
+            OUTPUT_CERTS: /sniff
 '
 ```
 
-Retrieve it:
+Write the required per-session secrets to a file:
 ```
-k --context kube-01 -n httpbin cp -c istio-proxy sleep-7bfdfb457-xpd6n:etc/istio-certs ~/sniff-tls
+k --context kube-01 apply -f - << EOF
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: httpbin
+  namespace: httpbin
+spec:
+  workloadSelector:
+    labels:
+      app: sleep
+  configPatches:
+  - applyTo: CLUSTER
+    match:
+      context: SIDECAR_OUTBOUND
+      cluster:
+        service: "httpbin.httpbin.svc.cluster.local"
+        portNumber: 80
+    patch:
+      operation: MERGE
+      value:
+        transport_socket:
+          name: "envoy.transport_sockets.tls"
+          typed_config:
+            "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext"
+            common_tls_context:
+              key_log:
+                path: /sniff/keylog
+EOF
 ```
 
 Start `tcpdump`:
 ```
-k --context kube-01 -n httpbin exec -it sleep-7bfdfb457-xpd6n -c istio-proxy -- sudo tcpdump -s0 -w /dev/dump.pcap
+k --context kube-01 -n httpbin exec -it sleep-7bfdfb457-xpd6n -c istio-proxy -- sudo tcpdump -s0 -w /sniff/dump.pcap
 ```
 
-Terminate all TCP connections:
-```
-```
-
-Send a request:
+Send a few requests:
 ```
 k --context kube-01 -n httpbin exec -it sleep-7bfdfb457-xpd6n -- curl -s http://httpbin/get | jq -r '.envs."HOSTNAME"'
 ```
 
-Download the pcap file:
+Download everything:
 ```
-k --context kube-01 -n httpbin cp -c istio-proxy sleep-7bfdfb457-xpd6n:dev/dump.pcap ~/sniff-tls/dump.pcap
+k --context kube-01 -n httpbin cp -c istio-proxy sleep-8496df9964-ckt9f:sniff ~/sniff
 ```
 
-Open it:
+Open it with Wireshark:
 ```
-open ~/sniff-tls/dump.pcap
+open ~/sniff/dump.pcap
 ```
+
+Filter by `tls` and find a `Client Hello`, right click and... 
 
 ## Testing
 

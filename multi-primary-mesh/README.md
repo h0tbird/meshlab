@@ -122,7 +122,7 @@ curl -s localhost:15000/config_dump | jq '
 
 ## TLS v1.3 troubleshooting
 
-A place to dump the crypto material:
+Setup a place to dump the crypto material:
 ```
 k --context kube-01 -n httpbin patch deployment sleep --type merge -p '
 spec:

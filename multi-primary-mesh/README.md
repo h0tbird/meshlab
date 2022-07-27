@@ -184,7 +184,7 @@ Start `tcpdump`:
 k --context kube-01 -n httpbin exec -it sleep-xxx -c istio-proxy -- sudo tcpdump -s0 -w /sniff/dump.pcap
 ```
 
-Send a few requests:
+Send a few requests to the endpoints listed above:
 ```
 k --context kube-01 -n httpbin exec -it sleep-xxx -- curl -s http://httpbin/get | jq -r '.envs."HOSTNAME"'
 ```

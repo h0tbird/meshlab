@@ -169,6 +169,16 @@ spec:
 EOF
 ```
 
+Restart envoy to kill all TCP connections and force new TLS handshakes:
+```
+k --context kube-01 -n httpbin exec -it sleep-xxx -c istio-proxy -- curl -X POST localhost:15000/quitquitquit
+```
+
+Optionally, use this command to list all available endpoints:
+```
+istioctl --context kube-01 pc endpoint deploy/httpbin.httpbin | egrep '^END|httpbin'
+```
+
 Start `tcpdump`:
 ```
 k --context kube-01 -n httpbin exec -it sleep-xxx -c istio-proxy -- sudo tcpdump -s0 -w /sniff/dump.pcap

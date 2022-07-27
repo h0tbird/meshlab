@@ -90,12 +90,82 @@ multipass exec virt-01 -- curl -s localhost:15000/config_dump | istioctl pc clus
 multipass exec virt-01 -- curl -s localhost:15000/config_dump | istioctl pc secret --file -
 ```
 
-## Tcpdump
+## Envoy
 
-Tcpdump traffic to port `8080`:
+Set debug log level on a given proxy:
 ```
-k --context kube-01 -n httpbin exec -it httpbin-69d46696d6-c6p6m -c istio-proxy -- sudo tcpdump dst port 8080 -A
-k --context kube-02 -n httpbin exec -it httpbin-7f859459c6-lkfbr -c istio-proxy -- sudo tcpdump dst port 8080 -A
+istioctl pc log sleep-85495d445c-k948x.httpbin --level debug
+k --context kube-01 -n httpbin logs -f sleep-85495d445c-k948x -c istio-proxy
+```
+
+Access the WebUI of a given envoy proxy:
+```
+istioctl dashboard envoy sleep-85495d445c-k948x.httpbin
+```
+
+Access the WebUI of `istiod`:
+```
+istioctl dashboard controlz deployment/istiod-1-14-2.istio-system
+```
+
+Dump the `common_tls_context` for a given envoy cluster:
+```
+k --context kube-01 -n httpbin exec -i sleep-7bfdfb457-xpd6n -- \
+curl -s localhost:15000/config_dump | jq '
+  .configs[] |
+  select(."@type"=="type.googleapis.com/envoy.admin.v3.ClustersConfigDump") |
+  .dynamic_active_clusters[] |
+  select(.cluster.name=="outbound|80||httpbin.httpbin.svc.cluster.local") |
+  .cluster.transport_socket_matches[] |
+  select(.name=="tlsMode-istio") |
+  .transport_socket.typed_config.common_tls_context
+'
+```
+
+## TLS v1.3 troubleshooting
+
+Dump crypto material:
+```
+k --context kube-01 -n httpbin patch deployment sleep --type merge -p '
+spec:
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/userVolume: "[{\"name\":\"istio-certs\", \"emptyDir\":{\"medium\":\"Memory\"}}]"
+        sidecar.istio.io/userVolumeMount: "[{\"name\":\"istio-certs\", \"mountPath\":\"/etc/istio-certs\"}]"
+        proxy.istio.io/config: |
+          proxyMetadata:
+            OUTPUT_CERTS: /etc/istio-certs
+'
+```
+
+Retrieve it:
+```
+k --context kube-01 -n httpbin cp -c istio-proxy sleep-7bfdfb457-xpd6n:etc/istio-certs ~/sniff-tls
+```
+
+Start `tcpdump`:
+```
+k --context kube-01 -n httpbin exec -it sleep-7bfdfb457-xpd6n -c istio-proxy -- sudo tcpdump -s0 -w /dev/dump.pcap
+```
+
+Terminate all TCP connections:
+```
+```
+
+Send a request:
+```
+k --context kube-01 -n httpbin exec -it sleep-7bfdfb457-xpd6n -- curl -s http://httpbin/get | jq -r '.envs."HOSTNAME"'
+```
+
+Download the pcap file:
+```
+k --context kube-01 -n httpbin cp -c istio-proxy sleep-7bfdfb457-xpd6n:dev/dump.pcap ~/sniff-tls/dump.pcap
+```
+
+Open it:
+```
+open ~/sniff-tls/dump.pcap
 ```
 
 ## Testing

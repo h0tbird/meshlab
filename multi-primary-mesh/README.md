@@ -186,7 +186,7 @@ k --context kube-01 -n httpbin exec -it sleep-xxx -c istio-proxy -- sudo tcpdump
 
 Send a few requests to the endpoints listed above:
 ```
-k --context kube-01 -n httpbin exec -it sleep-xxx -- curl -s http://httpbin/get | jq -r '.envs."HOSTNAME"'
+k --context kube-01 -n httpbin exec -i sleep-xxx -- curl -s http://httpbin/get | jq -r '.envs."HOSTNAME"'
 ```
 
 Download everything:
@@ -200,20 +200,18 @@ open ~/sniff/dump.pcap
 ```
 
 Filter by `tls.handshake.type == 1` and follow the TLS stream of a `Client Hello` packet. 
-Right click a TLSv1.3 packet then `Protocol Preferences` --> `Transport Layer Security` --> `(Pre)-Master-Secret log filename`.
-Provide the path to the `keylog` file.
+Right click a `TLSv1.3` packet then `Protocol Preferences` --> `Transport Layer Security` --> `(Pre)-Master-Secret log filename` and provide the path to the `keylog` file.
 
 ## Testing
 
-Send requests to the service above:
+Send requests to service `httpbin`:
 ```
-k --context kube-01 -n httpbin exec -it sleep-xxx -- curl http://httpbin/get
-k --context kube-02 -n httpbin exec -it sleep-xxx -- curl http://httpbin/get
+k --context kube-01 -n httpbin exec -i sleep-xxx -- curl -s httpbin/get | jq -r '.envs."HOSTNAME"'
+k --context kube-02 -n httpbin exec -i sleep-xxx -- curl -s httpbin/get | jq -r '.envs."HOSTNAME"'
 ```
 
 Same thing but using the VM:
 ```
-multipass exec virt-01 -- curl httpbin/get
 for i in {1..6}; do multipass exec virt-01 -- curl -s httpbin/get | jq -r '.envs."HOSTNAME"'; done
 ```
 

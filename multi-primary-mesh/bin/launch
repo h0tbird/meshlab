@@ -155,6 +155,10 @@ istioctl x workload entry configure \
   --autoregister \
   -o ./tmp/virt-01/vm-files
 
+# Use the custom address defined in ISTIOD_CUSTOM_HOST
+grep -rl 'istiod-1-14-2.istio-system.svc' ./tmp | \
+xargs sed -i 's/istiod-1-14-2.istio-system.svc/istiod.kube-01/g'
+
 # Workaround for arm64 istio-sidecar.deb
 [ -f ./tmp/virt-01/istio-sidecar.deb ] || {
   gh run download -n istio-deb-arm64 -D ./tmp/virt-01 2472000863 -R resf/istio

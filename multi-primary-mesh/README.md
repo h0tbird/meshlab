@@ -120,6 +120,11 @@ curl -s localhost:15000/config_dump | jq '
 '
 ```
 
+Check the status-port:
+```
+curl -o /dev/null -Isw "%{http_code}" http://10.0.16.124:31123/healthz/ready
+```
+
 ## TLS v1.3 troubleshooting
 
 Setup a place to dump the crypto material:

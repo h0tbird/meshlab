@@ -120,6 +120,11 @@ curl -s localhost:15000/config_dump | jq '
 '
 ```
 
+List `LISTEN` ports:
+```
+k --context kube-01 -n istio-system exec istio-eastwestgateway-xxx -- netstat -tuanp | grep LISTEN | sort -u
+```
+
 Check the status-port:
 ```
 curl -o /dev/null -Isw "%{http_code}" http://10.0.16.124:31123/healthz/ready

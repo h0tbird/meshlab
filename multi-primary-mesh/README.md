@@ -181,7 +181,7 @@ EOF
 
 Restart envoy to kill all TCP connections and force new TLS handshakes:
 ```
-k --context kube-01 -n httpbin exec -it sleep-xxx -c istio-proxy -- curl -X POST localhost:15000/quitquitquit
+k --context kube-01 -n httpbin exec -it deployment/sleep -c istio-proxy -- curl -X POST localhost:15000/quitquitquit
 ```
 
 Optionally, use this command to list all available endpoints:
@@ -191,12 +191,12 @@ istioctl --context kube-01 pc endpoint deploy/httpbin.httpbin | egrep '^END|http
 
 Start `tcpdump`:
 ```
-k --context kube-01 -n httpbin exec -it sleep-xxx -c istio-proxy -- sudo tcpdump -s0 -w /sniff/dump.pcap
+k --context kube-01 -n httpbin exec -it deployment/sleep -c istio-proxy -- sudo tcpdump -s0 -w /sniff/dump.pcap
 ```
 
 Send a few requests to the endpoints listed above:
 ```
-k --context kube-01 -n httpbin exec -i sleep-xxx -- curl -s httpbin/get | jq -r '.envs."HOSTNAME"'
+k --context kube-01 -n httpbin exec -i deployment/sleep -- curl -s httpbin/get | jq -r '.envs."HOSTNAME"'
 ```
 
 Stop `tcpdump` and download everything:
@@ -216,8 +216,8 @@ Right click a `TLSv1.3` packet then `Protocol Preferences` --> `Transport Layer 
 
 Send requests to service `httpbin`:
 ```
-k --context kube-01 -n httpbin exec -i sleep-xxx -- curl -s httpbin/get | jq -r '.envs."HOSTNAME"'
-k --context kube-02 -n httpbin exec -i sleep-xxx -- curl -s httpbin/get | jq -r '.envs."HOSTNAME"'
+k --context kube-01 -n httpbin exec -i deployment/sleep -- curl -s httpbin/get | jq -r '.envs."HOSTNAME"'
+k --context kube-02 -n httpbin exec -i deployment/sleep -- curl -s httpbin/get | jq -r '.envs."HOSTNAME"'
 ```
 
 Same thing but using the VM:
@@ -235,7 +235,7 @@ step certificate inspect --bundle --servername istiod-1-14-2.istio-system.svc ht
 
 As a client, inspect the certificate provided by a workload:
 ```
-k -n httpbin exec -it sleep-xxx -c istio-proxy -- openssl s_client -showcerts httpbin:80
+k -n httpbin exec -it deployment/sleep -c istio-proxy -- openssl s_client -showcerts httpbin:80
 ```
 
 ## Workload endpoints

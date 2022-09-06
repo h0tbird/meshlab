@@ -85,7 +85,7 @@ function launch_k8s {
 	  #-------------
 	  
 	  curl -sfL https://get.k3s.io |
-	  INSTALL_K3S_EXEC="--cluster-domain $1.local --flannel-backend=none --cluster-cidr=10.42.0.0/16 --disable-network-policy --disable=traefik" \
+	  INSTALL_K3S_EXEC="--cluster-domain cluster.local --flannel-backend=none --cluster-cidr=10.42.0.0/16 --disable-network-policy --disable=traefik" \
 	  CONTAINERD_LOG_LEVEL="debug" \
 	  K3S_KUBECONFIG_MODE="644" sh -s -
 	  

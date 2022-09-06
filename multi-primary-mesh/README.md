@@ -106,6 +106,11 @@ Access the WebUI of `istiod`:
 istioctl dashboard controlz deployment/istiod-1-14-2.istio-system
 ```
 
+Dump the envoy config of an eastweast gateway:
+```
+k --context kube-01 -n istio-system exec -it deployment/istio-eastwestgateway -- curl -s localhost:15000/config_dump
+```
+
 Dump the `common_tls_context` for a given envoy cluster:
 ```
 k --context kube-01 -n httpbin exec -i sleep-xxx -- \

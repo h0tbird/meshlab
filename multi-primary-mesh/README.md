@@ -103,7 +103,7 @@ istioctl dashboard envoy sleep-xxx.httpbin
 
 Access the WebUI of `istiod`:
 ```
-istioctl dashboard controlz deployment/istiod-1-14-2.istio-system
+istioctl dashboard controlz deployment/istiod-1-15-0.istio-system
 ```
 
 Dump the envoy config of an eastweast gateway:
@@ -234,8 +234,8 @@ for i in {1..6}; do multipass exec virt-01 -- curl -s httpbin/get | jq -r '.envs
 
 Connect to the externally exposed `istiod` service and inspect the certificate bundle it presents:
 ```
-step certificate inspect --bundle --servername istiod-1-14-2.istio-system.svc https://192.168.64.3:15012 --roots ./tmp/istio-ca/root-cert.pem
-step certificate inspect --bundle --servername istiod-1-14-2.istio-system.svc https://192.168.64.3:15012 --insecure
+step certificate inspect --bundle --servername istiod-1-15-0.istio-system.svc https://192.168.64.3:15012 --roots ./tmp/istio-ca/root-cert.pem
+step certificate inspect --bundle --servername istiod-1-15-0.istio-system.svc https://192.168.64.3:15012 --insecure
 ```
 
 As a client, inspect the certificate provided by a workload:

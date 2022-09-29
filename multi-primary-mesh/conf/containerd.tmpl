@@ -5,6 +5,8 @@
   stream_server_address = "127.0.0.1"
   stream_server_port = "10010"
   enable_selinux = false
+  enable_unprivileged_ports = true
+  enable_unprivileged_icmp = true
   sandbox_image = "rancher/mirrored-pause:3.6"
 
 [plugins.cri.containerd]
@@ -15,7 +17,7 @@
   runtime_type = "io.containerd.runc.v2"
 
 [plugins.cri.containerd.runtimes.runc.options]
-	SystemdCgroup = false
+	SystemdCgroup = true
 
 [plugins.cri.registry.mirrors]
   [plugins.cri.registry.mirrors."docker.io"]

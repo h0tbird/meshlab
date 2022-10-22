@@ -93,31 +93,31 @@ sleep 2; ALIST=$(argocd app list)
 
 # Base
 [ $(echo "${ALIST}" | grep istio-base | grep -c 'Synced  Healthy') -eq 2 ] || {
-  argocd app sync kube-01-istio-base kube-02-istio-base
+  argocd app sync kube-01-istio-base kube-02-istio-base > /dev/null
   argocd app wait kube-01-istio-base kube-02-istio-base
 }
 
 # Cni
 [ $(echo "${ALIST}" | grep istio-cni | grep -c 'Synced  Healthy') -eq 2 ] || {
-  argocd app sync kube-01-istio-cni kube-02-istio-cni
+  argocd app sync kube-01-istio-cni kube-02-istio-cni > /dev/null
   argocd app wait kube-01-istio-cni kube-02-istio-cni
 }
 
 # Pilot
 [ $(echo "${ALIST}" | grep istio-pilot | grep -c 'Synced  Healthy') -eq 2 ] || {
- argocd app sync kube-01-istio-pilot kube-02-istio-pilot
+ argocd app sync kube-01-istio-pilot kube-02-istio-pilot > /dev/null
  argocd app wait kube-01-istio-pilot kube-02-istio-pilot
 }
 
 # IngressGateways
 [ $(echo "${ALIST}" | grep istio-igws | grep -c 'Synced  Healthy') -eq 2 ] || {
-  argocd app sync kube-01-istio-igws kube-02-istio-igws
+  argocd app sync kube-01-istio-igws kube-02-istio-igws > /dev/null
   argocd app wait kube-01-istio-igws kube-02-istio-igws
 }
 
 # East-West gateway
 [ $(echo "${ALIST}" | grep istio-ewgw | grep -c 'Synced  Healthy') -eq 2 ] || {
-  argocd app sync kube-01-istio-ewgw kube-02-istio-ewgw
+  argocd app sync kube-01-istio-ewgw kube-02-istio-ewgw > /dev/null
   argocd app wait kube-01-istio-ewgw kube-02-istio-ewgw
 }
 
@@ -161,6 +161,7 @@ xargs sed -i 's/istiod-1-15-0.istio-system.svc/istiod.kube-01/g'
 
 # Workaround for arm64 istio-sidecar.deb
 [ -f ./tmp/virt-01/istio-sidecar.deb ] || {
+  # https://github.com/istio/istio/issues/41595
   gh run download -n istio-deb-arm64 -D ./tmp/virt-01 2472000863 -R resf/istio
 }
 

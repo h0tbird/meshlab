@@ -61,7 +61,7 @@ multipass start virt-01 2>/dev/null || launch_vms virt-01
 #------------------------------------------------------------------------------
 
 KUBECONFIG=~/.kube/config:tmp/kube-00/config:tmp/kube-01/config:tmp/kube-02/config \
-kubectl config view --flatten > tmp/config && cp tmp/config ~/.kube/config
+kubectl config view --flatten > ./tmp/config && cp ./tmp/config ~/.kube/config
 
 #------------------------------------------------------------------------------
 # Setup ArgoCD
@@ -70,7 +70,7 @@ kubectl config view --flatten > tmp/config && cp tmp/config ~/.kube/config
 ARGOCD_PASS=$(kubectl --context kube-00 -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d)
 ARGOCD_IP=$(kubectl --context kube-00 -n argocd get svc argocd-server -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 
-argocd context kube-00 || {
+argocd context kube-00 2> /dev/null || {
 
   [[ -n "${ARGOCD_PASS}" && -n "${ARGOCD_IP}" ]] || exit 1
 

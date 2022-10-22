@@ -142,8 +142,9 @@ kubectl --context kube-01 apply -f -
 kubectl --context kube-00 apply -f ./conf/argocd-httpbin.yaml
 
 [ $(echo "${ALIST}" | grep httpbin | grep -c 'Synced  Healthy') -eq 2 ] || {
-  argocd app sync kube-01-httpbin kube-02-httpbin
-  argocd app wait kube-01-httpbin kube-02-httpbin
+  echo "argocd app sync kube-01-httpbin kube-02-httpbin"
+  argocd app sync kube-01-httpbin kube-02-httpbin > /dev/null
+  argocd app wait kube-01-httpbin kube-02-httpbin > /dev/null
 }
 
 #------------------------------------------------------------------------------

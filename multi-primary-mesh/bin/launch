@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 #------------------------------------------------------------------------------
 # [i] Source helper functions
@@ -52,10 +52,10 @@ docker start registry-ghcr.io || docker run -d -p 5003:5000 \
 # [i] Create clusters and VMs
 #------------------------------------------------------------------------------
 
-{ multipass start kube-00 2>/dev/null || launch_k8s kube-00; } &
-{ multipass start kube-01 2>/dev/null || launch_k8s kube-01; } &
-{ multipass start kube-02 2>/dev/null || launch_k8s kube-02; } &
-{ multipass start virt-01 2>/dev/null || launch_vms virt-01; } &
+{ sleep 00; multipass start kube-00 2>/dev/null || launch_k8s kube-00; } &
+{ sleep 05; multipass start kube-01 2>/dev/null || launch_k8s kube-01; } &
+{ sleep 10; multipass start kube-02 2>/dev/null || launch_k8s kube-02; } &
+{ sleep 15; multipass start virt-01 2>/dev/null || launch_vms virt-01; } &
 
 wait
 

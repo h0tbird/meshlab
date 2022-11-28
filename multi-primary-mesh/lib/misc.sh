@@ -155,6 +155,12 @@ function launch_k8s {
 	     kubectl -n argocd apply -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 	     kubectl -n argocd patch svc argocd-server -p '{"spec": {"type": "LoadBalancer"}}'
 	  } || true
+
+	  #-------------------------------
+	  # Wait for all pods to be ready
+	  #-------------------------------
+	  
+	  kubectl wait --for=condition=Ready --timeout=300s pods --all -A
 	EOF
 
   # Share the k8s config with the host

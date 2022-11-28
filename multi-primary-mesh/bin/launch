@@ -49,13 +49,15 @@ docker start registry-ghcr.io || docker run -d -p 5003:5000 \
 }
 
 #------------------------------------------------------------------------------
-# Create clusters and VMs
+# [i] Create clusters and VMs
 #------------------------------------------------------------------------------
 
-multipass start kube-00 2>/dev/null || launch_k8s kube-00
-multipass start kube-01 2>/dev/null || launch_k8s kube-01
-multipass start kube-02 2>/dev/null || launch_k8s kube-02
-multipass start virt-01 2>/dev/null || launch_vms virt-01
+{ multipass start kube-00 2>/dev/null || launch_k8s kube-00; } &
+{ multipass start kube-01 2>/dev/null || launch_k8s kube-01; } &
+{ multipass start kube-02 2>/dev/null || launch_k8s kube-02; } &
+{ multipass start virt-01 2>/dev/null || launch_vms virt-01; } &
+
+wait
 
 #------------------------------------------------------------------------------
 # [i] Setup KUBECONFIG

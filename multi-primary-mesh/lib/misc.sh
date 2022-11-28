@@ -1,3 +1,5 @@
+#!/bin/bash
+
 #------------------------------------------------------------------------------
 # Used to provision virt-01
 #------------------------------------------------------------------------------
@@ -8,7 +10,7 @@ function launch_vms {
   HTTPBIN_SYSTEMD=$(base64 -w0 conf/httpbin.service)
 
   # Setup the VM with cloud-config
-  multipass launch --name $1 --cpus 1 --mem 1G --disk 8G --mount tmp/$1:/mnt/host --cloud-init - <<- EOF
+  multipass launch --name "$1" --cpus 1 --mem 1G --disk 8G --mount "tmp/$1:/mnt/host" --cloud-init - <<- EOF
 	#cloud-config
 	
 	write_files:
@@ -56,7 +58,7 @@ function launch_k8s {
   ROOTCA_KEY=$(base64 -w0 ./tmp/istio-ca/root-key.pem)
 
   # Setup the VM with cloud-config
-  multipass launch --name $1 --cpus 2 --mem 2G --disk 8G --mount tmp/$1:/mnt/host --cloud-init - <<- EOF
+  multipass launch --name "$1" --cpus 2 --mem 2G --disk 8G --mount "tmp/$1:/mnt/host" --cloud-init - <<- EOF
 	#cloud-config
 	 
 	write_files:
@@ -156,5 +158,5 @@ function launch_k8s {
 	EOF
 
   # Share the k8s config with the host
-  multipass exec $1 -- cp config /mnt/host
+  multipass exec "$1" -- cp config /mnt/host
 }

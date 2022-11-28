@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 
 #------------------------------------------------------------------------------
-# Source helper functions
+# [i] Source helper functions
 #------------------------------------------------------------------------------
 
+# shellcheck source=/dev/null
 source lib/misc.sh
 
 #------------------------------------------------------------------------------
-# Pull through image cache
+# [i] Pull through image cache
 #------------------------------------------------------------------------------
 
 docker start registry-docker.io || docker run -d -p 5001:5000 \
@@ -29,7 +30,7 @@ docker start registry-ghcr.io || docker run -d -p 5003:5000 \
   registry:2
 
 #------------------------------------------------------------------------------
-# Create an Istio root CA
+# [i] Create an Istio root CA
 #------------------------------------------------------------------------------
 
 [ -d ./tmp/istio-ca ] || {
@@ -38,7 +39,7 @@ docker start registry-ghcr.io || docker run -d -p 5003:5000 \
     "Istio root CA" \
     "./tmp/istio-ca/root-cert.pem" \
     "./tmp/istio-ca/root-key.pem" \
-    --san *.example.com \
+    --san "*.example.com" \
     --not-after 87600h \
     --profile root-ca \
     --no-password \
@@ -57,14 +58,14 @@ multipass start kube-02 2>/dev/null || launch_k8s kube-02
 multipass start virt-01 2>/dev/null || launch_vms virt-01
 
 #------------------------------------------------------------------------------
-# Setup KUBECONFIG
+# [i] Setup KUBECONFIG
 #------------------------------------------------------------------------------
 
 KUBECONFIG=~/.kube/config:tmp/kube-00/config:tmp/kube-01/config:tmp/kube-02/config \
 kubectl config view --flatten > ./tmp/config && cp ./tmp/config ~/.kube/config
 
 #------------------------------------------------------------------------------
-# Setup ArgoCD
+# [i] Setup ArgoCD
 #------------------------------------------------------------------------------
 
 ARGOCD_PASS=$(kubectl --context kube-00 -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d)
@@ -74,60 +75,60 @@ argocd context kube-00 2> /dev/null || {
 
   [[ -n "${ARGOCD_PASS}" && -n "${ARGOCD_IP}" ]] || exit 1
 
-  argocd login ${ARGOCD_IP} \
+  argocd login "${ARGOCD_IP}" \
     --insecure \
     --name kube-00 \
     --username admin \
-    --password ${ARGOCD_PASS}
+    --password "${ARGOCD_PASS}"
 
   argocd cluster add -y kube-01
   argocd cluster add -y kube-02
 }
 
 #------------------------------------------------------------------------------
-# Deploy Istio
+# [i] Deploy Istio
 #------------------------------------------------------------------------------
 
 kubectl --context kube-00 apply -f ./conf/argocd-istio.yaml
 sleep 2; ALIST=$(argocd app list)
 
 # Base
-[ $(echo "${ALIST}" | grep istio-base | grep -c 'Synced  Healthy') -eq 2 ] || {
+[ "$(echo "${ALIST}" | grep istio-base | grep -c 'Synced  Healthy')" -eq 2 ] || {
   echo "argocd app sync kube-01-istio-base kube-02-istio-base"
   argocd app sync kube-01-istio-base kube-02-istio-base > /dev/null
   argocd app wait kube-01-istio-base kube-02-istio-base > /dev/null
 }
 
 # Cni
-[ $(echo "${ALIST}" | grep istio-cni | grep -c 'Synced  Healthy') -eq 2 ] || {
+[ "$(echo "${ALIST}" | grep istio-cni | grep -c 'Synced  Healthy')" -eq 2 ] || {
   echo "argocd app sync kube-01-istio-cni kube-02-istio-cni"
   argocd app sync kube-01-istio-cni kube-02-istio-cni > /dev/null
   argocd app wait kube-01-istio-cni kube-02-istio-cni > /dev/null
 }
 
 # Pilot
-[ $(echo "${ALIST}" | grep istio-pilot | grep -c 'Synced  Healthy') -eq 2 ] || {
+[ "$(echo "${ALIST}" | grep istio-pilot | grep -c 'Synced  Healthy')" -eq 2 ] || {
  echo "argocd app sync kube-01-istio-pilot kube-02-istio-pilot"
  argocd app sync kube-01-istio-pilot kube-02-istio-pilot > /dev/null
  argocd app wait kube-01-istio-pilot kube-02-istio-pilot > /dev/null
 }
 
 # IngressGateways
-[ $(echo "${ALIST}" | grep istio-igws | grep -c 'Synced  Healthy') -eq 2 ] || {
+[ "$(echo "${ALIST}" | grep istio-igws | grep -c 'Synced  Healthy')" -eq 2 ] || {
   echo "argocd app sync kube-01-istio-igws kube-02-istio-igws"
   argocd app sync kube-01-istio-igws kube-02-istio-igws > /dev/null
   argocd app wait kube-01-istio-igws kube-02-istio-igws > /dev/null
 }
 
 # East-West gateway
-[ $(echo "${ALIST}" | grep istio-ewgw | grep -c 'Synced  Healthy') -eq 2 ] || {
+[ "$(echo "${ALIST}" | grep istio-ewgw | grep -c 'Synced  Healthy')" -eq 2 ] || {
   echo "argocd app sync kube-01-istio-ewgw kube-02-istio-ewgw"
   argocd app sync kube-01-istio-ewgw kube-02-istio-ewgw > /dev/null
   argocd app wait kube-01-istio-ewgw kube-02-istio-ewgw > /dev/null
 }
 
 #------------------------------------------------------------------------------
-# Enable endpoint discovery
+# [i] Enable endpoint discovery
 #------------------------------------------------------------------------------
 
 istioctl x create-remote-secret --context kube-01 --name=kube-01 | \
@@ -136,12 +137,12 @@ istioctl x create-remote-secret --context kube-02 --name=kube-02 | \
 kubectl --context kube-01 apply -f -
 
 #------------------------------------------------------------------------------
-# Deploy httpbin
+# [i] Deploy httpbin
 #------------------------------------------------------------------------------
 
 kubectl --context kube-00 apply -f ./conf/argocd-httpbin.yaml
 
-[ $(echo "${ALIST}" | grep httpbin | grep -c 'Synced  Healthy') -eq 2 ] || {
+[ "$(echo "${ALIST}" | grep httpbin | grep -c 'Synced  Healthy')" -eq 2 ] || {
   echo "argocd app sync kube-01-httpbin kube-02-httpbin"
   argocd app sync kube-01-httpbin kube-02-httpbin > /dev/null
   argocd app wait kube-01-httpbin kube-02-httpbin > /dev/null
@@ -168,7 +169,7 @@ xargs sed -i 's/istiod-1-16-0.istio-system.svc/istiod.kube-01/g'
 # Download the istio-sidecar.deb
 [ -f ./tmp/virt-01/istio-sidecar.deb ] || {
   curl -sLo ./tmp/virt-01/istio-sidecar.deb \
-  https://storage.googleapis.com/istio-release/releases/1.16.0/deb/istio-sidecar-$(arch).deb
+  https://storage.googleapis.com/istio-release/releases/1.16.0/deb/istio-sidecar-"$(arch)".deb
 }
 
 # Setup the VM files

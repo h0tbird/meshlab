@@ -256,6 +256,11 @@ istioctl --context kube-01 pc endpoint deploy/httpbin.httpbin | egrep '^END|http
 istioctl --context kube-02 pc endpoint deploy/httpbin.httpbin | egrep '^END|httpbin'
 ```
 
+List all the metadata about a given endpoint IP:
+```
+k -n httpbin exec -it deployment/httpbin -c istio-proxy -- curl -X POST "localhost:15000/clusters" | grep '10.42.207.142'
+```
+
 ## Devel
 
 Provision only one VM:

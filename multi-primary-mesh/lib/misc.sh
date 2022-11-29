@@ -54,6 +54,7 @@ function launch_k8s {
   # Base64 encoded config files
   CONTAINERD_CONFIG=$(base64 -w0 conf/containerd.tmpl)
   CALICO_CONFIG=$(base64 -w0 conf/calico.yaml)
+  K3S_CONFIG=$(base64 -w0 conf/k3s.yaml)
   ROOTCA_CERT=$(base64 -w0 ./tmp/istio-ca/root-cert.pem)
   ROOTCA_KEY=$(base64 -w0 ./tmp/istio-ca/root-key.pem)
 
@@ -67,6 +68,9 @@ function launch_k8s {
 	  encoding: b64
 	- path: /etc/calico-installation.yaml
 	  content: ${CALICO_CONFIG}
+	  encoding: b64
+	- path: /etc/rancher/k3s/config.yaml
+	  content: ${K3S_CONFIG}
 	  encoding: b64
 	- path: /etc/certs/root-cert.pem
 	  content: ${ROOTCA_CERT}
@@ -87,9 +91,7 @@ function launch_k8s {
 	  #-------------
 	  
 	  curl -sfL https://get.k3s.io |
-	  INSTALL_K3S_EXEC="--cluster-domain cluster.local --flannel-backend=none --cluster-cidr=10.42.0.0/16 --disable-network-policy --disable=traefik" \
-	  CONTAINERD_LOG_LEVEL="debug" \
-	  K3S_KUBECONFIG_MODE="644" sh -s -
+	  INSTALL_K3S_EXEC="--disable-network-policy --disable=traefik" sh -s -
 	  
 	  #----------------
 	  # Install Calico
@@ -98,7 +100,14 @@ function launch_k8s {
 	  kubectl create -f https://projectcalico.docs.tigera.io/manifests/tigera-operator.yaml
 	  kubectl create -f /etc/calico-installation.yaml
 	  sleep 10; kubectl wait --for=condition=Ready nodes --all --timeout=60s
-	  kubectl label --overwrite node $1 topology.kubernetes.io/region=$1
+	  
+	  #----------------
+	  # Topology setup
+	  #----------------
+	  
+	  kubectl label --overwrite node $1 topology.kubernetes.io/region=milky-way
+	  kubectl label --overwrite node $1 topology.kubernetes.io/zone=solar-system
+	  kubectl label --overwrite node $1 topology.istio.io/subzone=$1
 	  
 	  #------------
 	  # Kubeconfig

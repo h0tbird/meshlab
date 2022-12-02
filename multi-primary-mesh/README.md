@@ -15,9 +15,9 @@ ArgoCD is used to deploy:
 
 List images in pull-through registries:
 ```bash
-curl -s 192.168.64.1:5001/v2/_catalog | jq # docker.io
-curl -s 192.168.64.1:5002/v2/_catalog | jq # quay.io
-curl -s 192.168.64.1:5003/v2/_catalog | jq # ghcr.io
+curl -s 127.0.0.1:5001/v2/_catalog | jq # docker.io
+curl -s 127.0.0.1:5002/v2/_catalog | jq # quay.io
+curl -s 127.0.0.1:5003/v2/_catalog | jq # ghcr.io
 ```
 
 List tags for a given image:

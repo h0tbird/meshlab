@@ -275,12 +275,22 @@ Add locality info:
 ```
 k --context kube-01 -n httpbin patch workloadentries httpbin-192.168.64.5-vm-network --type merge -p '{"spec":{"locality":"milky-way/solar-system/virt-01"}}'
 k --context kube-01 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"labels":{"istio-locality":"milky-way.solar-system.kube-01"}}}}}'
+k --context kube-01 -n httpbin label pod sleep-xxxx topology.istio.io/subzone=kube-01 topology.kubernetes.io/region=milky-way topology.kubernetes.io/zone=solar-system
+```
+
+```
+k --context kube-01 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"labels":{
+  "topology.kubernetes.io/region":"milky-way",
+  "topology.kubernetes.io/zone":"solar-system",
+  "topology.istio.io/subzone":"kube-01"
+}}}}}'
 ```
 
 Delete locality info:
 ```
 k --context kube-01 -n httpbin patch workloadentries httpbin-192.168.64.5-vm-network --type json -p '[{"op": "remove", "path": "/spec/locality"}]'
 k --context kube-01 -n httpbin patch deployment sleep --type json -p '[{"op": "remove", "path": "/spec/template/metadata/labels/istio-locality"}]'
+k --context kube-01 -n httpbin label pod sleep-xxxx topology.istio.io/subzone- topology.kubernetes.io/region- topology.kubernetes.io/zone-
 ```
 
 Set debug images:

@@ -268,3 +268,29 @@ Provision only one VM:
 source ./lib/misc.sh && launch_k8s kube-00
 source ./lib/misc.sh && launch_vms virt-01
 ```
+
+## Debug
+
+Add locality info:
+```
+k --context kube-01 -n httpbin patch workloadentries httpbin-192.168.64.5-vm-network --type merge -p '{"spec":{"locality":"milky-way/solar-system/kube-01"}}'
+k --context kube-01 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"labels":{"istio-locality":"milky-way.solar-system.kube-01"}}}}}'
+```
+
+Delete locality info:
+```
+k --context kube-01 -n httpbin patch workloadentries httpbin-192.168.64.5-vm-network --type json -p '[{"op": "remove", "path": "/spec/locality"}]'
+k --context kube-01 -n httpbin patch deployment sleep --type json -p '[{"op": "remove", "path": "/spec/template/metadata/labels/istio-locality"}]'
+```
+
+Set debug images:
+```
+k --context kube-01 -n istio-system set image deployment/istiod-1-16-0 discovery=docker.io/h0tbird/pilot:1.16.0
+k --context kube-01 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"docker.io/h0tbird/proxyv2:1.16.0"}}}}}'
+```
+
+Unset debug images:
+```
+k --context kube-01 -n istio-system set image deployment/istiod-1-16-0 discovery=docker.io/istio/pilot:1.16.0
+k --context kube-01 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"docker.io/istio/proxyv2:1.16.0"}}}}}'
+```

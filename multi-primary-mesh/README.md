@@ -273,7 +273,7 @@ source ./lib/misc.sh && launch_vms virt-01
 
 Add locality info:
 ```
-k --context kube-01 -n httpbin patch workloadentries httpbin-192.168.64.5-vm-network --type merge -p '{"spec":{"locality":"milky-way/solar-system/kube-01"}}'
+k --context kube-01 -n httpbin patch workloadentries httpbin-192.168.64.5-vm-network --type merge -p '{"spec":{"locality":"milky-way/solar-system/virt-01"}}'
 k --context kube-01 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"labels":{"istio-locality":"milky-way.solar-system.kube-01"}}}}}'
 ```
 

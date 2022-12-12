@@ -304,3 +304,10 @@ Unset debug images:
 k --context kube-01 -n istio-system set image deployment/istiod-1-16-0 discovery=docker.io/istio/pilot:1.16.0
 k --context kube-01 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"docker.io/istio/proxyv2:1.16.0"}}}}}'
 ```
+
+Debug:
+```
+k --context kube-01 -n httpbin exec -it deployments/sleep -c istio-proxy -- sudo bash -c 'echo 0 > /proc/sys/kernel/yama/ptrace_scope'
+k --context kube-01 -n istio-system exec -it deployments/istiod-1-16-0 -- dlv dap --listen=:40000 --log=true
+k --context kube-01 -n istio-system port-forward deployments/istiod-1-16-0 40000:40000
+```

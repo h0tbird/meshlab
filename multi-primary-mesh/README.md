@@ -227,13 +227,13 @@ Right click a `TLSv1.3` packet then `Protocol Preferences` --> `Transport Layer 
 
 Send requests to service `httpbin`:
 ```
-k --context kube-01 -n httpbin exec -i deployment/sleep -- curl -s httpbin/get | jq -r '.envs."HOSTNAME"'
-k --context kube-02 -n httpbin exec -i deployment/sleep -- curl -s httpbin/get | jq -r '.envs."HOSTNAME"'
+k --context kube-01 -n httpbin exec -i deployment/sleep -- curl -s httpbin/get | jq -r '.envs.HOSTNAME'
+k --context kube-02 -n httpbin exec -i deployment/sleep -- curl -s httpbin/get | jq -r '.envs.HOSTNAME'
 ```
 
 Same thing but using the VM:
 ```
-for i in {1..6}; do multipass exec virt-01 -- curl -s httpbin/get | jq -r '.envs."HOSTNAME"'; done
+for i in {1..20}; do multipass exec virt-01 -- curl -s httpbin/get | jq -r '.envs.HOSTNAME'; done | sort | uniq -c | sort -rn
 ```
 
 ## Certificates

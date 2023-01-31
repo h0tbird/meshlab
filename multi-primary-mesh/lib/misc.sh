@@ -10,7 +10,7 @@ function launch_vms {
   HTTPBIN_SYSTEMD=$(base64 -w0 conf/httpbin.service)
 
   # Setup the VM with cloud-config
-  multipass launch --name "$1" --cpus 1 --mem 1G --disk 8G --mount "tmp/$1:/mnt/host" --cloud-init - <<- EOF
+  multipass launch --name "$1" --cpus 1 --memory 1G --disk 8G --mount "tmp/$1:/mnt/host" --cloud-init - <<- EOF
 	#cloud-config
 	
 	write_files:
@@ -59,7 +59,7 @@ function launch_k8s {
   ROOTCA_KEY=$(base64 -w0 ./tmp/istio-ca/root-key.pem)
 
   # Setup the VM with cloud-config
-  multipass launch --name "$1" --cpus 2 --mem 4G --disk 10G --mount "tmp/$1:/mnt/host" --cloud-init - <<- EOF
+  multipass launch --name "$1" --cpus 2 --memory 4G --disk 10G --mount "tmp/$1:/mnt/host" --cloud-init - <<- EOF
 	#cloud-config
 	 
 	write_files:

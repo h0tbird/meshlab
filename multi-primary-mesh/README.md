@@ -109,7 +109,7 @@ istioctl dashboard envoy sleep-xxx.httpbin
 
 Access the WebUI of `istiod`:
 ```
-istioctl dashboard controlz deployment/istiod-1-16-0.istio-system
+istioctl dashboard controlz deployment/istiod-1-16-2.istio-system
 ```
 
 Dump the envoy config of an eastweast gateway:
@@ -240,8 +240,8 @@ for i in {1..20}; do multipass exec virt-01 -- curl -s httpbin/get | jq -r '.env
 
 Connect to the externally exposed `istiod` service and inspect the certificate bundle it presents:
 ```
-step certificate inspect --bundle --servername istiod-1-16-0.istio-system.svc https://192.168.64.3:15012 --roots ./tmp/istio-ca/root-cert.pem
-step certificate inspect --bundle --servername istiod-1-16-0.istio-system.svc https://192.168.64.3:15012 --insecure
+step certificate inspect --bundle --servername istiod-1-16-2.istio-system.svc https://192.168.64.3:15012 --roots ./tmp/istio-ca/root-cert.pem
+step certificate inspect --bundle --servername istiod-1-16-2.istio-system.svc https://192.168.64.3:15012 --insecure
 ```
 
 As a client, inspect the certificate provided by a workload:
@@ -301,19 +301,19 @@ k --context kube-01 -n httpbin label pod sleep-xxxx topology.istio.io/subzone- t
 
 Set debug images:
 ```
-k --context kube-01 -n istio-system set image deployment/istiod-1-16-0 discovery=docker.io/h0tbird/pilot:1.16.0
-k --context kube-01 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"docker.io/h0tbird/proxyv2:1.16.0"}}}}}'
+k --context kube-01 -n istio-system set image deployment/istiod-1-16-2 discovery=docker.io/h0tbird/pilot:1.16.2
+k --context kube-01 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"docker.io/h0tbird/proxyv2:1.16.2"}}}}}'
 ```
 
 Unset debug images:
 ```
-k --context kube-01 -n istio-system set image deployment/istiod-1-16-0 discovery=docker.io/istio/pilot:1.16.0
-k --context kube-01 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"docker.io/istio/proxyv2:1.16.0"}}}}}'
+k --context kube-01 -n istio-system set image deployment/istiod-1-16-2 discovery=docker.io/istio/pilot:1.16.2
+k --context kube-01 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"docker.io/istio/proxyv2:1.16.2"}}}}}'
 ```
 
 Debug:
 ```
 k --context kube-01 -n httpbin exec -it deployments/sleep -c istio-proxy -- sudo bash -c 'echo 0 > /proc/sys/kernel/yama/ptrace_scope'
-k --context kube-01 -n istio-system exec -it deployments/istiod-1-16-0 -- dlv dap --listen=:40000 --log=true
-k --context kube-01 -n istio-system port-forward deployments/istiod-1-16-0 40000:40000
+k --context kube-01 -n istio-system exec -it deployments/istiod-1-16-2 -- dlv dap --listen=:40000 --log=true
+k --context kube-01 -n istio-system port-forward deployments/istiod-1-16-2 40000:40000
 ```

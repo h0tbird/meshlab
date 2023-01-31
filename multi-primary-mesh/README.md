@@ -74,10 +74,16 @@ istioctl --context kube-02 remote-clusters
 
 ## Calico
 
-Query Calico:
+Get IP pool:
 ```
-calicoctl get ipPool -o wide --allow-version-mismatch
-calicoctl get node -o wide --allow-version-mismatch
+calicoctl --context kube-01 get ipPool -o wide --allow-version-mismatch
+calicoctl --context kube-02 get ipPool -o wide --allow-version-mismatch
+```
+
+Get node:
+```
+calicoctl --context kube-01 get node -o wide --allow-version-mismatch
+calicoctl --context kube-02 get node -o wide --allow-version-mismatch
 ```
 
 ## Envoy

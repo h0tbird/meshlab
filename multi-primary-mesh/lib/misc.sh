@@ -97,7 +97,7 @@ function launch_k8s {
 	  # Install Calico
 	  #----------------
 	  
-	  kubectl create -f https://projectcalico.docs.tigera.io/manifests/tigera-operator.yaml
+	  kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/tigera-operator.yaml
 	  kubectl create -f /etc/calico-installation.yaml
 	  sleep 10; kubectl wait --for=condition=Ready nodes --all --timeout=60s
 	  

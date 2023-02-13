@@ -43,6 +43,9 @@ curl -s http://192.168.64.1:5002/v2/argoproj/argocd/manifests/v2.4.7 | jq
 
 ## Cloud-init
 
+<details>
+  <summary>Click me</summary>
+
 `cloud-init` is a tool used to configure virtual machine instances in the cloud
 during their first boot. It simplifies the provisioning process, enabling quick
 setup of new environments with desired configurations. The following commands
@@ -64,6 +67,8 @@ multipass exec kube-01 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
 multipass exec kube-02 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
 multipass exec virt-01 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
 ```
+
+</details>
 
 ## ArgoCD
 

@@ -11,7 +11,7 @@ ArgoCD is used to deploy:
 - https://github.com/h0tbird/istio
 - https://github.com/h0tbird/httpbin
 
-## Local pull-through registries
+## Pull-through registries
 
 A pull-through registry is a proxy that sits between your local Docker
 installation and a remote Docker registry. It caches the images you pull from
@@ -53,7 +53,7 @@ instance's first boot.
 
 <details><summary>Click me</summary><p>
 
-Tail the cloud-init logs:
+Tail the `cloud-init` logs:
 ```
 multipass exec kube-00 -- tail -f /var/log/cloud-init-output.log
 multipass exec kube-01 -- tail -f /var/log/cloud-init-output.log
@@ -72,7 +72,13 @@ multipass exec virt-01 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
 
 ## ArgoCD
 
-<details><summary></summary><p>
+ArgoCD is a GitOps platform for Kubernetes applications that enables continuous
+delivery with declarative management and automation of deployments from Git
+repositories to multiple clusters. With its user-friendly interface, robust
+features, and deep Kubernetes integration, ArgoCD is a popular choice for
+automating application delivery.
+
+<details><summary>Click me</summary><p>
 
 List all applications:
 ```

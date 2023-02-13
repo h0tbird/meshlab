@@ -43,6 +43,13 @@ curl -s http://192.168.64.1:5002/v2/argoproj/argocd/manifests/v2.4.7 | jq
 
 ## Cloud-init
 
+`cloud-init` is a tool used to configure virtual machine instances in the cloud
+during their first boot. It simplifies the provisioning process, enabling quick
+setup of new environments with desired configurations. The following commands
+provide examples for monitoring and inspecting the cloud-init process on
+various nodes in the system, including logs and scripts run during the
+instance's first boot.
+
 Tail the cloud-init logs:
 ```
 multipass exec kube-00 -- tail -f /var/log/cloud-init-output.log

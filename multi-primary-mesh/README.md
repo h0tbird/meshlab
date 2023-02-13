@@ -13,8 +13,6 @@ ArgoCD is used to deploy:
 
 ## Local pull-through registries
 
-<details><summary></summary><p>
-
 A pull-through registry is a proxy that sits between your local Docker
 installation and a remote Docker registry. It caches the images you pull from
 the remote registry, and if another user on the same network tries to pull the
@@ -25,6 +23,8 @@ The Container Runtime Interface (CRI) in this demo is set up to use local
 pull-through registries for the remote registries `docker.io`, `quay.io` and
 `ghcr.io` on each cluster. Find below some examples for interacting with the
 local pull-through registries.
+
+<details><summary></summary><p>
 
 List all images in a registrie:
 ```bash
@@ -47,14 +47,14 @@ curl -s http://192.168.64.1:5002/v2/argoproj/argocd/manifests/v2.4.7 | jq
 
 ## Cloud-init
 
-<details><summary></summary><p>
-
 `cloud-init` is a tool used to configure virtual machine instances in the cloud
 during their first boot. It simplifies the provisioning process, enabling quick
 setup of new environments with desired configurations. The following commands
 provide examples for monitoring and inspecting the cloud-init process on
 various nodes in the system, including logs and scripts run during the
 instance's first boot.
+
+<details><summary></summary><p>
 
 Tail the cloud-init logs:
 ```

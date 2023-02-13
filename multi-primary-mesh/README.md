@@ -42,6 +42,22 @@ curl -s http://192.168.64.1:5002/v2/argoproj/argocd/manifests/v2.4.7 | jq
 
 </p></details>
 
+## Multipass
+Multipass from Canonical is a tool for launching, managing, and orchestrating
+Linux virtual machines on local computers, simplifying the process for
+development, testing, and other purposes. It provides a user-friendly
+command-line interface and integrates with other tools for automation and
+customization.
+
+<details><summary>Click me</summary><p>
+
+List all available instances:
+```
+multipass list
+```
+
+</p></details>
+
 ## Cloud-init
 
 `cloud-init` is a tool used to configure virtual machine instances in the cloud

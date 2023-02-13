@@ -13,6 +13,10 @@ ArgoCD is used to deploy:
 
 ## Local pull-through registries
 
+<details>
+  <summary>Click me</summary>
+
+
 A pull-through registry is a proxy that sits between your local Docker
 installation and a remote Docker registry. It caches the images you pull from
 the remote registry, and if another user on the same network tries to pull the
@@ -41,10 +45,13 @@ Get the manifest for a given image and tag:
 curl -s http://192.168.64.1:5002/v2/argoproj/argocd/manifests/v2.4.7 | jq
 ```
 
+</details>
+
 ## Cloud-init
 
 <details>
   <summary>Click me</summary>
+
 
 `cloud-init` is a tool used to configure virtual machine instances in the cloud
 during their first boot. It simplifies the provisioning process, enabling quick

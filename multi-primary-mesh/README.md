@@ -86,6 +86,30 @@ multipass exec virt-01 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
 
 </p></details>
 
+## Calico
+
+Project Calico is an open-source networking solution for containerized
+workloads that provides security, segmentation, and policy enforcement. It uses
+IP tables and BGP routing to deliver a secure, scalable network fabric for
+modern applications, integrating seamlessly with cloud-native platforms like
+Kubernetes.
+
+<details><summary>Click me</summary><p>
+
+Get IP pool:
+```
+calicoctl --context kube-01 get ipPool -o wide --allow-version-mismatch
+calicoctl --context kube-02 get ipPool -o wide --allow-version-mismatch
+```
+
+Get node:
+```
+calicoctl --context kube-01 get node -o wide --allow-version-mismatch
+calicoctl --context kube-02 get node -o wide --allow-version-mismatch
+```
+
+</p></details>
+
 ## ArgoCD
 
 ArgoCD is a GitOps platform for Kubernetes applications that enables continuous
@@ -113,30 +137,6 @@ argocd app sync kube-01-httpbin kube-02-httpbin
 
 </p></details>
 
-## Calico
-
-Project Calico is an open-source networking solution for containerized
-workloads that provides security, segmentation, and policy enforcement. It uses
-IP tables and BGP routing to deliver a secure, scalable network fabric for
-modern applications, integrating seamlessly with cloud-native platforms like
-Kubernetes.
-
-<details><summary>Click me</summary><p>
-
-Get IP pool:
-```
-calicoctl --context kube-01 get ipPool -o wide --allow-version-mismatch
-calicoctl --context kube-02 get ipPool -o wide --allow-version-mismatch
-```
-
-Get node:
-```
-calicoctl --context kube-01 get node -o wide --allow-version-mismatch
-calicoctl --context kube-02 get node -o wide --allow-version-mismatch
-```
-
-</p></details>
-
 ## Istio
 
 Istio is an open-source service mesh platform that provides traffic management,
@@ -157,6 +157,8 @@ istioctl --context kube-02 remote-clusters
 </p></details>
 
 ## Envoy
+
+<details><summary>Click me</summary><p>
 
 Inspect the `config_dump` of a VM:
 ```
@@ -210,6 +212,8 @@ Check the status-port:
 ```
 curl -o /dev/null -Isw "%{http_code}" http://10.0.16.124:31123/healthz/ready
 ```
+
+</p></details>
 
 ## TLS v1.3 troubleshooting
 

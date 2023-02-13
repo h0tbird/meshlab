@@ -113,6 +113,30 @@ argocd app sync kube-01-httpbin kube-02-httpbin
 
 </p></details>
 
+## Calico
+
+Project Calico is an open-source networking solution for containerized
+workloads that provides security, segmentation, and policy enforcement. It uses
+IP tables and BGP routing to deliver a secure, scalable network fabric for
+modern applications, integrating seamlessly with cloud-native platforms like
+Kubernetes.
+
+<details><summary>Click me</summary><p>
+
+Get IP pool:
+```
+calicoctl --context kube-01 get ipPool -o wide --allow-version-mismatch
+calicoctl --context kube-02 get ipPool -o wide --allow-version-mismatch
+```
+
+Get node:
+```
+calicoctl --context kube-01 get node -o wide --allow-version-mismatch
+calicoctl --context kube-02 get node -o wide --allow-version-mismatch
+```
+
+</p></details>
+
 ## Istio
 
 Istio is an open-source service mesh platform that provides traffic management,
@@ -131,20 +155,6 @@ istioctl --context kube-02 remote-clusters
 ```
 
 </p></details>
-
-## Calico
-
-Get IP pool:
-```
-calicoctl --context kube-01 get ipPool -o wide --allow-version-mismatch
-calicoctl --context kube-02 get ipPool -o wide --allow-version-mismatch
-```
-
-Get node:
-```
-calicoctl --context kube-01 get node -o wide --allow-version-mismatch
-calicoctl --context kube-02 get node -o wide --allow-version-mismatch
-```
 
 ## Envoy
 

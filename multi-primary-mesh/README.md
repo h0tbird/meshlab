@@ -21,9 +21,10 @@ than pulling it again from the remote registry.
 
 The Container Runtime Interface (CRI) in this demo is set up to use local
 pull-through registries for the remote registries `docker.io`, `quay.io` and
-`ghcr.io` on each cluster.
+`ghcr.io` on each cluster. Find below some examples for interacting with the
+local pull-through registries.
 
-List images in pull-through registries:
+List all images in a registrie:
 ```bash
 curl -s 127.0.0.1:5001/v2/_catalog | jq # docker.io
 curl -s 127.0.0.1:5002/v2/_catalog | jq # quay.io

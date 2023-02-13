@@ -113,13 +113,24 @@ argocd app sync kube-01-httpbin kube-02-httpbin
 
 </p></details>
 
-## Remote clusters
+## Istio
 
-List the remote clusters:
+Istio is an open-source service mesh platform that provides traffic management,
+policy enforcement, and telemetry collection for microservices applications. It
+helps in improving the reliability, security, and observability of
+service-to-service communication in a cloud-native environment. By integrating
+with popular platforms such as Kubernetes, Istio makes it easier to manage the
+complexities of microservices architecture.
+
+<details><summary>Click me</summary><p>
+
+Lists the remote clusters each `istiod` instance is connected to:
 ```
 istioctl --context kube-01 remote-clusters
 istioctl --context kube-02 remote-clusters
 ```
+
+</p></details>
 
 ## Calico
 

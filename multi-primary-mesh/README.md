@@ -158,6 +158,11 @@ istioctl --context kube-02 remote-clusters
 
 ## Envoy
 
+Envoy is an open-source proxy server designed for modern microservices
+architectures, providing features such as load balancing, traffic management,
+and service discovery. It runs standalone or integrated with a service mesh,
+making it a powerful tool for microservices communication.
+
 <details><summary>Click me</summary><p>
 
 Inspect the `config_dump` of a VM:

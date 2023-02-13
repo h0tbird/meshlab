@@ -13,7 +13,7 @@ ArgoCD is used to deploy:
 
 ## Local pull-through registries
 
-<details><summary>Click me</summary>
+<details><summary> </summary>
 <p>
 
 A pull-through registry is a proxy that sits between your local Docker
@@ -44,8 +44,7 @@ Get the manifest for a given image and tag:
 curl -s http://192.168.64.1:5002/v2/argoproj/argocd/manifests/v2.4.7 | jq
 ```
 
-</p>
-</details>
+</p></details>
 
 ## Cloud-init
 
@@ -74,8 +73,7 @@ multipass exec kube-02 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
 multipass exec virt-01 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
 ```
 
-</p>
-</details>
+</p></details>
 
 ## ArgoCD
 

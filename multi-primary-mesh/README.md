@@ -24,19 +24,19 @@ remote registries `docker.io`, `quay.io` and `ghcr.io` on each cluster.
 <details><summary>Click me</summary><p>
 
 List all images in a registry:
-```bash
+```console
 curl -s 127.0.0.1:5001/v2/_catalog | jq # docker.io
 curl -s 127.0.0.1:5002/v2/_catalog | jq # quay.io
 curl -s 127.0.0.1:5003/v2/_catalog | jq # ghcr.io
 ```
 
 List tags for a given image:
-```
+```console
 curl -s 192.168.64.1:5002/v2/argoproj/argocd/tags/list | jq
 ```
 
 Get the manifest for a given image and tag:
-```
+```console
 curl -s http://192.168.64.1:5002/v2/argoproj/argocd/manifests/v2.4.7 | jq
 ```
 
@@ -52,7 +52,7 @@ customization.
 <details><summary>Click me</summary><p>
 
 List all available instances:
-```
+```console
 multipass list
 ```
 
@@ -70,14 +70,14 @@ instance's first boot.
 <details><summary>Click me</summary><p>
 
 Tail the `cloud-init` logs:
-```
+```console
 multipass exec kube-00 -- tail -f /var/log/cloud-init-output.log
 multipass exec kube-01 -- tail -f /var/log/cloud-init-output.log
 multipass exec kube-02 -- tail -f /var/log/cloud-init-output.log
 ```
 
 Inspect the rendered `runcmd`:
-```
+```console
 multipass exec kube-00 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
 multipass exec kube-01 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
 multipass exec kube-02 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
@@ -97,13 +97,13 @@ Kubernetes.
 <details><summary>Click me</summary><p>
 
 Get IP pool:
-```
+```console
 calicoctl --context kube-01 get ipPool -o wide --allow-version-mismatch
 calicoctl --context kube-02 get ipPool -o wide --allow-version-mismatch
 ```
 
 Get node:
-```
+```console
 calicoctl --context kube-01 get node -o wide --allow-version-mismatch
 calicoctl --context kube-02 get node -o wide --allow-version-mismatch
 ```
@@ -121,12 +121,12 @@ automating application delivery.
 <details><summary>Click me</summary><p>
 
 List all applications:
-```
+```console
 argocd app list
 ```
 
 Manually sync applications:
-```
+```console
 argocd app sync kube-01-istio-base kube-02-istio-base
 argocd app sync kube-01-istio-cni kube-02-istio-cni
 argocd app sync kube-01-istio-pilot kube-02-istio-pilot
@@ -149,7 +149,7 @@ complexities of microservices architecture.
 <details><summary>Click me</summary><p>
 
 Lists the remote clusters each `istiod` instance is connected to:
-```
+```console
 istioctl --context kube-01 remote-clusters
 istioctl --context kube-02 remote-clusters
 ```
@@ -161,7 +161,7 @@ istioctl --context kube-02 remote-clusters
 <details><summary>Click me</summary><p>
 
 Inspect the `config_dump` of a VM:
-```
+```console
 multipass exec virt-01 -- curl -s localhost:15000/config_dump | istioctl pc listeners --file -
 multipass exec virt-01 -- curl -s localhost:15000/config_dump | istioctl pc routes --file -
 multipass exec virt-01 -- curl -s localhost:15000/config_dump | istioctl pc clusters --file -
@@ -169,28 +169,28 @@ multipass exec virt-01 -- curl -s localhost:15000/config_dump | istioctl pc secr
 ```
 
 Set debug log level on a given proxy:
-```
+```console
 istioctl pc log sleep-xxx.httpbin --level debug
 k --context kube-01 -n httpbin logs -f sleep-xxx -c istio-proxy
 ```
 
 Access the WebUI of a given envoy proxy:
-```
+```console
 istioctl dashboard envoy sleep-xxx.httpbin
 ```
 
 Access the WebUI of `istiod`:
-```
+```console
 istioctl dashboard controlz deployment/istiod-1-16-2.istio-system
 ```
 
 Dump the envoy config of an eastweast gateway:
-```
+```console
 k --context kube-01 -n istio-system exec -it deployment/istio-eastwestgateway -- curl -s localhost:15000/config_dump
 ```
 
 Dump the `common_tls_context` for a given envoy cluster:
-```
+```console
 k --context kube-01 -n httpbin exec -i sleep-xxx -- \
 curl -s localhost:15000/config_dump | jq '
   .configs[] |
@@ -204,12 +204,12 @@ curl -s localhost:15000/config_dump | jq '
 ```
 
 List `LISTEN` ports:
-```
+```console
 k --context kube-01 -n istio-system exec istio-eastwestgateway-xxx -- netstat -tuanp | grep LISTEN | sort -u
 ```
 
 Check the status-port:
-```
+```console
 curl -o /dev/null -Isw "%{http_code}" http://10.0.16.124:31123/healthz/ready
 ```
 

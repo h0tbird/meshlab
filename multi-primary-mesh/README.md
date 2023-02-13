@@ -13,8 +13,7 @@ ArgoCD is used to deploy:
 
 ## Local pull-through registries
 
-<details><summary> </summary>
-<p>
+<details><summary></summary><p>
 
 A pull-through registry is a proxy that sits between your local Docker
 installation and a remote Docker registry. It caches the images you pull from

@@ -173,7 +173,11 @@ complexities of microservices architecture.
 Lists the remote clusters each `istiod` instance is connected to:
 ```console
 istioctl --context kube-01 remote-clusters
-istioctl --context kube-02 remote-clusters
+```
+
+Access the WebUI of `istiod`:
+```console
+istioctl --context kube-01 dashboard controlz deployment/istiod-1-16-2.istio-system
 ```
 
 </p></details>
@@ -204,11 +208,6 @@ k --context kube-01 -n httpbin logs -f sleep-xxx -c istio-proxy
 Access the WebUI of a given envoy proxy:
 ```console
 istioctl dashboard envoy sleep-xxx.httpbin
-```
-
-Access the WebUI of `istiod`:
-```console
-istioctl dashboard controlz deployment/istiod-1-16-2.istio-system
 ```
 
 Dump the envoy config of an eastweast gateway:

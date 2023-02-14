@@ -74,7 +74,7 @@ multipass list
 ```
 
 Display information about all instances:
-```
+```console
 multipass info --all
 ```
 

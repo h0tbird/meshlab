@@ -73,6 +73,11 @@ List all available instances:
 multipass list
 ```
 
+Display information about all instances:
+```
+multipass info --all
+```
+
 </p></details>
 
 ## Cloud-init

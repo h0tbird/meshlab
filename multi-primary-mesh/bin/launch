@@ -11,6 +11,8 @@ source lib/misc.sh
 # [i] Pull through image cache
 #------------------------------------------------------------------------------
 
+echo -e "\n---[ Pull-through registries ]-----------------------------------\n"
+
 docker start registry-docker.io || docker run -d -p 5001:5000 \
   -e REGISTRY_PROXY_REMOTEURL=https://registry-1.docker.io \
   --restart always \
@@ -33,6 +35,8 @@ docker start registry-ghcr.io || docker run -d -p 5003:5000 \
 # [i] Create an Istio root CA
 #------------------------------------------------------------------------------
 
+echo -e "\n---[ Istio root CA ]---------------------------------------------\n"
+
 [ -d ./tmp/istio-ca ] || {
   mkdir -p ./tmp/istio-ca
   step certificate create \
@@ -52,10 +56,12 @@ docker start registry-ghcr.io || docker run -d -p 5003:5000 \
 # [i] Create clusters and VMs
 #------------------------------------------------------------------------------
 
-{ sleep 00; multipass start kube-00 2>/dev/null || launch_k8s kube-00; } &
-{ sleep 05; multipass start kube-01 2>/dev/null || launch_k8s kube-01; } &
-{ sleep 10; multipass start kube-02 2>/dev/null || launch_k8s kube-02; } &
-{ sleep 15; multipass start virt-01 2>/dev/null || launch_vms virt-01; } &
+echo -e "\n---[ Multipass VMs ]---------------------------------------------\n"
+
+{ multipass start kube-00 2>/dev/null || (sleep 00; launch_k8s kube-00) } &
+{ multipass start kube-01 2>/dev/null || (sleep 05; launch_k8s kube-01) } &
+{ multipass start kube-02 2>/dev/null || (sleep 10; launch_k8s kube-02) } &
+{ multipass start virt-01 2>/dev/null || (sleep 15; launch_vms virt-01) } &
 
 wait
 
@@ -63,12 +69,16 @@ wait
 # [i] Setup KUBECONFIG
 #------------------------------------------------------------------------------
 
+echo -e "\n---[ KUBECONFIG ]------------------------------------------------\n"
+
 KUBECONFIG=~/.kube/config:tmp/kube-00/config:tmp/kube-01/config:tmp/kube-02/config \
 kubectl config view --flatten > ./tmp/config && cp ./tmp/config ~/.kube/config
 
 #------------------------------------------------------------------------------
 # [i] Setup ArgoCD
 #------------------------------------------------------------------------------
+
+echo -e "\n---[ ArgoCD ]----------------------------------------------------\n"
 
 ARGOCD_PASS=$(kubectl --context kube-00 -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d)
 ARGOCD_IP=$(kubectl --context kube-00 -n argocd get svc argocd-server -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
@@ -90,6 +100,8 @@ argocd context kube-00 2> /dev/null || {
 #------------------------------------------------------------------------------
 # [i] Deploy Istio
 #------------------------------------------------------------------------------
+
+echo -e "\n---[ Istio ]-----------------------------------------------------\n"
 
 kubectl --context kube-00 apply -f ./conf/argocd-istio.yaml
 sleep 2; ALIST=$(argocd app list)
@@ -133,6 +145,8 @@ sleep 2; ALIST=$(argocd app list)
 # [i] Enable endpoint discovery
 #------------------------------------------------------------------------------
 
+echo -e "\n---[ Istio remote secrets ]--------------------------------------\n"
+
 istioctl x create-remote-secret --context kube-01 --name=kube-01 | \
 kubectl --context kube-02 apply -f -
 istioctl x create-remote-secret --context kube-02 --name=kube-02 | \
@@ -141,6 +155,8 @@ kubectl --context kube-01 apply -f -
 #------------------------------------------------------------------------------
 # [i] Deploy httpbin
 #------------------------------------------------------------------------------
+
+echo -e "\n---[ httpbin ]---------------------------------------------------\n"
 
 kubectl --context kube-00 apply -f ./conf/argocd-httpbin.yaml
 
@@ -153,6 +169,8 @@ kubectl --context kube-00 apply -f ./conf/argocd-httpbin.yaml
 #------------------------------------------------------------------------------
 # Setup a non-k8s workload
 #------------------------------------------------------------------------------
+
+echo -e "\n---[ VM setup ]--------------------------------------------------\n"
 
 # Generate the VM files
 istioctl x workload entry configure \
@@ -179,10 +197,11 @@ cp ./conf/vm-setup ./tmp/virt-01
 multipass exec virt-01 -- sudo /mnt/host/vm-setup
 
 #------------------------------------------------------------------------------
-#
+# Echo ArgoCD info
 #------------------------------------------------------------------------------
 
-echo
+echo -e "\n---[ Info ]------------------------------------------------------\n"
+
 echo "ArgoCD WebUI: https://${ARGOCD_IP}"
 echo "ArgoCD User: admin"
 echo "ArgoCD Pass: ${ARGOCD_PASS}"

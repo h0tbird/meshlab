@@ -31,8 +31,8 @@ function launch_vms {
 	  # Install step
 	  #--------------
 	  
-	  wget -qO- https://github.com/smallstep/cli/releases/download/v0.21.0/step_linux_0.21.0_$(arch).tar.gz |
-	  tar zxv --strip-components=2 -C /usr/bin/ step_0.21.0/bin/step
+	  wget -qO- https://github.com/smallstep/cli/releases/download/v0.23.2/step_linux_0.23.2_$(arch).tar.gz |
+	  tar zxv --strip-components=2 -C /usr/bin/ step_0.23.2/bin/step
 	  
 	  #-----------------
 	  # Install httpbin

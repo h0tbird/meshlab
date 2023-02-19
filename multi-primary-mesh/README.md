@@ -45,9 +45,9 @@ curl -s http://192.168.64.1:5002/v2/argoproj/argocd/manifests/v2.4.7 | jq
 ## Step CLI
 
 `step` is an easy-to-use CLI tool for building, operating, and automating
-Public Key Infrastructure (PKI) systems and workflows. This demo uses `step`
-as a standalone, general-purpose PKI toolkit: You can use it for many common
-crypto and X.509 operations.
+Public Key Infrastructure (PKI) systems and workflows. This lab uses `step` as
+a standalone, general-purpose PKI toolkit to generate a unified trust for both
+clusters with a common root.
 
 <details><summary>Click me</summary><p>
 

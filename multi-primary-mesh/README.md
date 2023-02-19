@@ -18,7 +18,7 @@ installation and a remote Docker registry. It caches the images you pull from
 the remote registry, and if another user on the same network tries to pull the
 same image, the pull-through registry will serve it to them directly, rather
 than pulling it again from the remote registry. The Container Runtime Interface
-(CRI) in this demo is set up to use local pull-through registries for the
+(CRI) in this lab is set up to use local pull-through registries for the
 remote registries `docker.io`, `quay.io` and `ghcr.io` on each cluster.
 
 <details><summary>Click me</summary><p>

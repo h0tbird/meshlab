@@ -353,7 +353,7 @@ step certificate inspect --bundle --servername istiod-1-17-0.istio-system.svc ht
 step certificate inspect --bundle --servername istiod-1-17-0.istio-system.svc https://192.168.64.3:15012 --insecure
 ```
 
-Inspect the certificate provided by a workload
+Inspect the certificate provided by a given workload:
 ```
 istioctl --context kube-01 pc secret sleep-xxxxxxxxxx-yyyyy.httpbin -o json | jq -r '.dynamicActiveSecrets[0].secret.tlsCertificate.certificateChain.inlineBytes' | base64 -d | step certificate inspect --bundle -
 ```

@@ -241,7 +241,14 @@ curl -o /dev/null -Isw "%{http_code}" http://10.0.16.124:31123/healthz/ready
 
 </p></details>
 
-## TLS v1.3 troubleshooting
+## TLS 1.3
+
+TLS 1.3 is the latest version of the TLS protocol. TLS, which is used by HTTPS
+and other network protocols for encryption, is the modern version of SSL. TLS
+1.3 dropped support for older, less secure cryptographic features, and it
+speeds up TLS handshakes, among other improvements.
+
+<details><summary>Click me</summary><p>
 
 Setup a place to dump the crypto material:
 ```
@@ -322,6 +329,8 @@ open ~/sniff/dump.pcap
 
 Filter by `tls.handshake.type == 1` and follow the TLS stream of a `Client Hello` packet. 
 Right click a `TLSv1.3` packet then `Protocol Preferences` --> `Transport Layer Security` --> `(Pre)-Master-Secret log filename` and provide the path to the `keylog` file.
+
+</p></details>
 
 ## Testing
 

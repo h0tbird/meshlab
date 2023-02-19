@@ -353,9 +353,14 @@ step certificate inspect --bundle --servername istiod-1-17-0.istio-system.svc ht
 step certificate inspect --bundle --servername istiod-1-17-0.istio-system.svc https://192.168.64.3:15012 --insecure
 ```
 
-As a client, inspect the certificate provided by a workload:
+Inspect the certificate provided by a workload
 ```
-k -n httpbin exec -it deployment/sleep -c istio-proxy -- openssl s_client -showcerts httpbin:80
+istioctl --context kube-01 pc secret sleep-xxxxxxxxxx-yyyyy.httpbin -o json | jq -r '.dynamicActiveSecrets[0].secret.tlsCertificate.certificateChain.inlineBytes' | base64 -d | step certificate inspect --bundle -
+```
+
+Similar as above but this time as a client:
+```
+k --context kube-01 -n httpbin exec -it deployment/sleep -c istio-proxy -- openssl s_client -showcerts httpbin:80
 ```
 
 Get the spiffe ID for a given workload:

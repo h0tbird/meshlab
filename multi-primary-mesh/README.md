@@ -367,13 +367,12 @@ k --context kube-01 -n httpbin exec -it deployment/sleep -c istio-proxy -- opens
 
 List all the endpoints for a given cluster and workload:
 ```
-istioctl --context kube-01 pc endpoint deploy/httpbin.httpbin | egrep '^END|httpbin'
-istioctl --context kube-02 pc endpoint deploy/httpbin.httpbin | egrep '^END|httpbin'
+istioctl --context kube-01 -n httpbin pc endpoint deploy/httpbin | grep -E '^END|httpbin'
 ```
 
 List all the metadata about a given endpoint IP:
 ```
-k -n httpbin exec -it deployment/httpbin -c istio-proxy -- curl -X POST "localhost:15000/clusters" | grep '10.42.207.142'
+k --context kube-01 -n httpbin exec -it deployment/httpbin -c istio-proxy -- curl -X POST "localhost:15000/clusters" | grep '10.42.207.144'
 ```
 
 ## Devel

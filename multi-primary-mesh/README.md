@@ -363,11 +363,6 @@ Similar as above but this time as a client:
 k --context kube-01 -n httpbin exec -it deployment/sleep -c istio-proxy -- openssl s_client -showcerts httpbin:80
 ```
 
-Get the spiffe ID for a given workload:
-```
-k --context kube-01 -n httpbin exec -it deployment/sleep -c istio-proxy -- cat /sniff/cert-chain.pem | step certificate inspect --bundle - | grep spiffe
-```
-
 ## Workload endpoints
 
 List all the endpoints for a given cluster and workload:

@@ -269,6 +269,25 @@ k --context kube-01 -n httpbin exec -it deployment/httpbin -c istio-proxy -- cur
 
 </p></details>
 
+## Testing
+
+The tests in this section should validate all functionalities.
+
+<details><summary>Click me</summary><p>
+
+Send requests to service `httpbin`:
+```console
+k --context kube-01 -n httpbin exec -i deployment/sleep -- curl -s httpbin/get | jq -r '.envs.HOSTNAME'
+k --context kube-02 -n httpbin exec -i deployment/sleep -- curl -s httpbin/get | jq -r '.envs.HOSTNAME'
+```
+
+Same thing but using the VM:
+```console
+for i in {1..20}; do multipass exec virt-01 -- curl -s httpbin/get | jq -r '.envs.HOSTNAME'; done | sort | uniq -c | sort -rn
+```
+
+</p></details>
+
 ## TLS 1.3
 
 TLS 1.3 is the latest version of the TLS protocol. TLS, which is used by HTTPS
@@ -359,19 +378,6 @@ Filter by `tls.handshake.type == 1` and follow the TLS stream of a `Client Hello
 Right click a `TLSv1.3` packet then `Protocol Preferences` --> `Transport Layer Security` --> `(Pre)-Master-Secret log filename` and provide the path to the `keylog` file.
 
 </p></details>
-
-## Testing
-
-Send requests to service `httpbin`:
-```
-k --context kube-01 -n httpbin exec -i deployment/sleep -- curl -s httpbin/get | jq -r '.envs.HOSTNAME'
-k --context kube-02 -n httpbin exec -i deployment/sleep -- curl -s httpbin/get | jq -r '.envs.HOSTNAME'
-```
-
-Same thing but using the VM:
-```
-for i in {1..20}; do multipass exec virt-01 -- curl -s httpbin/get | jq -r '.envs.HOSTNAME'; done | sort | uniq -c | sort -rn
-```
 
 ## Certificates
 

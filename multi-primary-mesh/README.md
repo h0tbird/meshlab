@@ -252,13 +252,18 @@ microservices architectures.
 
 <details><summary>Click me</summary><p>
 
-List all the endpoints for a given cluster and workload:
+Patch the `workloadentries` object with locality metadata (bug?):
+```console
+k --context kube-01 -n httpbin patch workloadentries httpbin-192.168.64.5-vm-network --type merge -p '{"spec":{"locality":"milky-way/solar-system/virt-01"}}'
 ```
+
+List all the endpoints for a given cluster and workload:
+```console
 istioctl --context kube-01 -n httpbin pc endpoint deploy/httpbin | grep -E '^END|httpbin'
 ```
 
 Retrieve topology metadata, assigned priority and weight:
-```
+```console
 k --context kube-01 -n httpbin exec -it deployment/httpbin -c istio-proxy -- curl -X POST "localhost:15000/clusters" | grep '^outbound|80||httpbin' | grep -E 'zone|region|::priority|::weight' | sort | sed -e '/:zone:/s/$/\n/'
 ```
 

@@ -307,6 +307,11 @@ Retrieve topology metadata, assigned priority and weight:
 k --context kube-01 -n httpbin exec -it deployment/httpbin -c istio-proxy -- curl -X POST "localhost:15000/clusters" | grep '^outbound|80||httpbin' | grep -E 'zone|region|::priority|::weight' | sort | sed -e '/:zone:/s/$/\n/'
 ```
 
+Same as above but targeting the VM:
+```
+multipass exec virt-01 -- curl -s localhost:15000/clusters | grep '^outbound|80||httpbin' | grep -E 'zone|region|::priority|::weight' | sort | sed -e '/:zone:/s/$/\n/'
+```
+
 </p></details>
 
 ## Testing

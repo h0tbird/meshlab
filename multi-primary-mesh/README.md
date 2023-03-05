@@ -126,14 +126,23 @@ with ARM architectures.
 `klipper-lb` uses a host port for each `Service` of type `LoadBalancer` and
 sets up iptables to forward the request to the cluster IP. The regular k8s
 scheduler will find a free host port. If there are no free host ports, the
-`Service` will stay in pending.
+`Service` will stay in pending. There is one `DaemonSet` per `Service` of type
+`LoadBalancer` and each `Pod` has one container per exposed `Service` port.
 
 <details><summary>Click me</summary><p>
 
-There is one `DaemonSet` per `Service` of type `LoadBalancer`. Each `Pod` has
-one container per exposed `Service` port:
+List the containers fronting the exposed `argocd-server` ports:
 ```console
+k --context kube-00 -n kube-system get ds -l svccontroller.k3s.cattle.io/svcname=argocd-server -o yaml | yq '.items[].spec.template.spec.containers[].name'
+```
+
+List the containers fronting the exposed `istio-eastwestgateway` ports:
+```
 k --context kube-01 -n kube-system get ds -l svccontroller.k3s.cattle.io/svcname=istio-eastwestgateway -o yaml | yq '.items[].spec.template.spec.containers[].name'
+```
+
+List the containers fronting the exposed `istio-ingressgateway` ports:
+```
 k --context kube-01 -n kube-system get ds -l svccontroller.k3s.cattle.io/svcname=istio-ingressgateway -o yaml | yq '.items[].spec.template.spec.containers[].name'
 ```
 
@@ -329,7 +338,7 @@ speeds up TLS handshakes, among other improvements.
 <details><summary>Click me</summary><p>
 
 Setup a place to dump the crypto material:
-```
+```console
 k --context kube-01 -n httpbin patch deployment sleep --type merge -p '
 spec:
   template:
@@ -344,7 +353,7 @@ spec:
 ```
 
 Write the required per-session TLS secrets to a file ([source](https://github.com/istio/istio/blob/5f90e4b9ae19800f4c539628ae038ec118835610/pilot/pkg/networking/core/v1alpha3/envoyfilter/cluster_patch_test.go#L241-L262)):
-```
+```console
 k --context kube-01 apply -f - << EOF
 apiVersion: networking.istio.io/v1alpha3
 kind: EnvoyFilter
@@ -376,32 +385,32 @@ EOF
 ```
 
 Restart envoy to kill all TCP connections and force new TLS handshakes:
-```
+```console
 k --context kube-01 -n httpbin exec -it deployment/sleep -c istio-proxy -- curl -X POST localhost:15000/quitquitquit
 ```
 
 Optionally, use this command to list all available endpoints:
-```
+```console
 istioctl --context kube-01 pc endpoint deploy/httpbin.httpbin | egrep '^END|httpbin'
 ```
 
 Start `tcpdump`:
-```
+```console
 k --context kube-01 -n httpbin exec -it deployment/sleep -c istio-proxy -- sudo tcpdump -s0 -w /sniff/dump.pcap
 ```
 
 Send a few requests to the endpoints listed above:
-```
+```console
 k --context kube-01 -n httpbin exec -i deployment/sleep -- curl -s httpbin/get | jq -r '.envs."HOSTNAME"'
 ```
 
 Stop `tcpdump` and download everything:
-```
+```console
 k --context kube-01 -n httpbin cp -c istio-proxy sleep-xxx:sniff ~/sniff
 ```
 
 Open it with Wireshark:
-```
+```console
 open ~/sniff/dump.pcap
 ```
 
@@ -413,25 +422,25 @@ Right click a `TLSv1.3` packet then `Protocol Preferences` --> `Transport Layer 
 ## Certificates
 
 Connect to the externally exposed `istiod` service and inspect the certificate bundle it presents:
-```
+```console
 step certificate inspect --bundle --servername istiod-1-17-1.istio-system.svc https://192.168.64.3:15012 --roots ./tmp/istio-ca/root-cert.pem
 step certificate inspect --bundle --servername istiod-1-17-1.istio-system.svc https://192.168.64.3:15012 --insecure
 ```
 
 Inspect the certificate provided by a given workload:
-```
+```console
 istioctl --context kube-01 pc secret sleep-xxxxxxxxxx-yyyyy.httpbin -o json | jq -r '.dynamicActiveSecrets[0].secret.tlsCertificate.certificateChain.inlineBytes' | base64 -d | step certificate inspect --bundle -
 ```
 
 Similar as above but this time as a client:
-```
+```console
 k --context kube-01 -n httpbin exec -it deployment/sleep -c istio-proxy -- openssl s_client -showcerts httpbin:80
 ```
 
 ## Devel
 
 Provision only one VM:
-```
+```console
 source ./lib/misc.sh && launch_k8s kube-00
 source ./lib/misc.sh && launch_vms virt-01
 ```
@@ -439,13 +448,13 @@ source ./lib/misc.sh && launch_vms virt-01
 ## Debug
 
 Add locality info:
-```
+```console
 k --context kube-01 -n httpbin patch workloadentries httpbin-192.168.64.5-vm-network --type merge -p '{"spec":{"locality":"milky-way/solar-system/virt-01"}}'
 k --context kube-01 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"labels":{"istio-locality":"milky-way.solar-system.kube-01"}}}}}'
 k --context kube-01 -n httpbin label pod sleep-xxxx topology.istio.io/subzone=kube-01 topology.kubernetes.io/region=milky-way topology.kubernetes.io/zone=solar-system
 ```
 
-```
+```console
 k --context kube-01 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"labels":{
   "topology.kubernetes.io/region":"milky-way",
   "topology.kubernetes.io/zone":"solar-system",
@@ -454,26 +463,26 @@ k --context kube-01 -n httpbin patch deployment sleep --type merge -p '{"spec":{
 ```
 
 Delete locality info:
-```
+```console
 k --context kube-01 -n httpbin patch workloadentries httpbin-192.168.64.5-vm-network --type json -p '[{"op": "remove", "path": "/spec/locality"}]'
 k --context kube-01 -n httpbin patch deployment sleep --type json -p '[{"op": "remove", "path": "/spec/template/metadata/labels/istio-locality"}]'
 k --context kube-01 -n httpbin label pod sleep-xxxx topology.istio.io/subzone- topology.kubernetes.io/region- topology.kubernetes.io/zone-
 ```
 
 Set debug images:
-```
+```console
 k --context kube-01 -n istio-system set image deployment/istiod-1-17-1 discovery=docker.io/h0tbird/pilot:1.17.1
 k --context kube-01 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"docker.io/h0tbird/proxyv2:1.17.1"}}}}}'
 ```
 
 Unset debug images:
-```
+```console
 k --context kube-01 -n istio-system set image deployment/istiod-1-17-1 discovery=docker.io/istio/pilot:1.17.1
 k --context kube-01 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"docker.io/istio/proxyv2:1.17.1"}}}}}'
 ```
 
 Debug:
-```
+```console
 k --context kube-01 -n httpbin exec -it deployments/sleep -c istio-proxy -- sudo bash -c 'echo 0 > /proc/sys/kernel/yama/ptrace_scope'
 k --context kube-01 -n istio-system exec -it deployments/istiod-1-17-1 -- dlv dap --listen=:40000 --log=true
 k --context kube-01 -n istio-system port-forward deployments/istiod-1-17-1 40000:40000

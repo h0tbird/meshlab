@@ -108,6 +108,26 @@ multipass exec virt-01 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
 
 </p></details>
 
+## k3s
+
+## klipper-lb
+
+`klipper-lb` uses a host port for each service of type `LoadBalancer` and
+sets up iptables to forward the request to the cluster IP. The regular k8s
+scheduler will find a free host port. If there are no free host ports, the
+service load balancer will stay in pending.
+
+<details><summary>Click me</summary><p>
+
+There is one `DaemonSet` per `Service` of type `LoadBalancer` and inside each
+`Pod` there is one container per each exposed `Service` port:
+```console
+k --context kube-01 -n kube-system get ds -l svccontroller.k3s.cattle.io/svcname=istio-eastwestgateway -o yaml | yq '.items[].spec.template.spec.containers[].name'
+k --context kube-01 -n kube-system get ds -l svccontroller.k3s.cattle.io/svcname=istio-ingressgateway -o yaml | yq '.items[].spec.template.spec.containers[].name'
+```
+
+</p></details>
+
 ## Calico
 
 Project Calico is an open-source networking solution for containerized

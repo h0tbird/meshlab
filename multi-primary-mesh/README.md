@@ -241,6 +241,29 @@ curl -o /dev/null -Isw "%{http_code}" http://10.0.16.124:31123/healthz/ready
 
 </p></details>
 
+## Locality load balancing
+
+Istio's Locality Load Balancing (LLB) is a feature that helps distribute
+traffic across different geographic locations in a way that minimizes latency
+and maximizes availability. It routes traffic to the closest available instance
+of the service, reducing network hops and improving performance, while also
+providing fault tolerance and resilience. LLB is important for managing
+microservices architectures.
+
+<details><summary>Click me</summary><p>
+
+List all the endpoints for a given cluster and workload:
+```
+istioctl --context kube-01 -n httpbin pc endpoint deploy/httpbin | grep -E '^END|httpbin'
+```
+
+Retrieve topology metadata, assigned priority and weight:
+```
+k --context kube-01 -n httpbin exec -it deployment/httpbin -c istio-proxy -- curl -X POST "localhost:15000/clusters" | grep '^outbound|80||httpbin' | grep -E 'zone|region|::priority|::weight' | sort | sed -e '/:zone:/s/$/\n/'
+```
+
+</p></details>
+
 ## TLS 1.3
 
 TLS 1.3 is the latest version of the TLS protocol. TLS, which is used by HTTPS
@@ -361,18 +384,6 @@ istioctl --context kube-01 pc secret sleep-xxxxxxxxxx-yyyyy.httpbin -o json | jq
 Similar as above but this time as a client:
 ```
 k --context kube-01 -n httpbin exec -it deployment/sleep -c istio-proxy -- openssl s_client -showcerts httpbin:80
-```
-
-## Workload endpoints
-
-List all the endpoints for a given cluster and workload:
-```
-istioctl --context kube-01 -n httpbin pc endpoint deploy/httpbin | grep -E '^END|httpbin'
-```
-
-List all the metadata about a given endpoint IP:
-```
-k --context kube-01 -n httpbin exec -it deployment/httpbin -c istio-proxy -- curl -X POST "localhost:15000/clusters" | grep '10.42.207.144'
 ```
 
 ## Devel

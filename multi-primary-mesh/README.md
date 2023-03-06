@@ -222,6 +222,34 @@ k --context kube-01 -n kube-system get ds -l svccontroller.k3s.cattle.io/svcname
 
 </p></details>
 
+## CoreDNS
+
+<details><summary>Click me</summary><p>
+
+Create a DNS record for `httpbin.demo.com`:
+```console
+k --context kube-01 -n kube-system create configmap coredns-custom --from-literal=demo.server='demo.com {
+  hosts {
+    ttl 60
+    192.168.64.3 httpbin.demo.com
+    fallthrough
+  }
+}'
+```
+
+Create a DNS record for `httpbin.demo.com`:
+```console
+k --context kube-02 -n kube-system create configmap coredns-custom --from-literal=demo.server='demo.com {
+  hosts {
+    ttl 60
+    192.168.64.4 httpbin.demo.com
+    fallthrough
+  }
+}'
+```
+
+</p></details>
+
 ## Envoy
 
 Envoy is an open-source proxy server designed for modern microservices
@@ -299,7 +327,7 @@ k --context kube-01 -n httpbin patch workloadentries httpbin-192.168.64.5-vm-net
 
 List all the endpoints for a given cluster and workload:
 ```console
-istioctl --context kube-01 -n httpbin pc endpoint deploy/httpbin | grep -E '^END|httpbin'
+for i in 01 02; do echo; istioctl --context kube-${i} -n httpbin pc endpoint deploy/httpbin | grep -E '^END|httpbin'; done
 ```
 
 Retrieve topology metadata, assigned priority and weight:

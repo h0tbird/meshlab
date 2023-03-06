@@ -236,6 +236,12 @@ k --context kube-01 -n kube-system get ds -l svccontroller.k3s.cattle.io/svcname
 
 ## CoreDNS
 
+CoreDNS is a flexible, extensible DNS server that can be easily configured to
+provide custom DNS resolutions in Kubernetes clusters. It allows for dynamic
+updates, service discovery, and integration with external data sources, making
+it a popular choice for service discovery and network management in
+cloud-native environments.
+
 <details><summary>Click me</summary><p>
 
 Create a DNS record for `httpbin.demo.com`:

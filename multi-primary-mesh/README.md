@@ -172,6 +172,18 @@ argocd app sync kube-01-httpbin kube-02-httpbin
 
 </p></details>
 
+## cert-manager
+
+Cert-manager is an open-source software that helps automate the management and
+issuance of TLS/SSL certificates in Kubernetes clusters. It integrates with
+various certificate authorities (CAs) and can automatically renew certificates
+before they expire, ensuring secure communication between services running in
+the cluster.
+
+<details><summary>Click me</summary><p>
+
+</p></details>
+
 ## Istio
 
 Istio is an open-source service mesh platform that provides traffic management,

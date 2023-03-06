@@ -75,7 +75,7 @@ KUBECONFIG=~/.kube/config:tmp/kube-00/config:tmp/kube-01/config:tmp/kube-02/conf
 kubectl config view --flatten > ./tmp/config && cp ./tmp/config ~/.kube/config
 
 #------------------------------------------------------------------------------
-# [i] Setup ArgoCD
+# [i] Setup the ArgoCD client and add clusters
 #------------------------------------------------------------------------------
 
 echo -e "\n---[ ArgoCD ]----------------------------------------------------\n"
@@ -97,6 +97,22 @@ argocd context kube-00 2> /dev/null || {
   argocd cluster add -y kube-02
 }
 
+sleep 2; ALIST=$(argocd app list)
+
+#------------------------------------------------------------------------------
+# [i] Deploy cert-manager
+#------------------------------------------------------------------------------
+
+echo -e "\n---[ cert-manager ]----------------------------------------------\n"
+
+kubectl --context kube-00 apply -f ./conf/argocd-cert-manager.yaml
+
+[ "$(echo "${ALIST}" | grep cert-manager | grep -c 'Synced  Healthy')" -eq 2 ] || {
+  echo "argocd app sync kube-01-cert-manager kube-02-cert-manager"
+  argocd app sync kube-01-cert-manager kube-02-cert-manager > /dev/null
+  argocd app wait kube-01-cert-manager kube-02-cert-manager > /dev/null
+}
+
 #------------------------------------------------------------------------------
 # [i] Deploy Istio
 #------------------------------------------------------------------------------
@@ -104,7 +120,6 @@ argocd context kube-00 2> /dev/null || {
 echo -e "\n---[ Istio ]-----------------------------------------------------\n"
 
 kubectl --context kube-00 apply -f ./conf/argocd-istio.yaml
-sleep 2; ALIST=$(argocd app list)
 
 # Base
 [ "$(echo "${ALIST}" | grep istio-base | grep -c 'Synced  Healthy')" -eq 2 ] || {

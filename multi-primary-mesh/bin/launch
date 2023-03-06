@@ -153,7 +153,7 @@ istioctl x create-remote-secret --context kube-02 --name=kube-02 | \
 kubectl --context kube-01 apply -f -
 
 #------------------------------------------------------------------------------
-# Setup a CoreDNS server for demo.com
+# [i] Setup a CoreDNS server for demo.com
 #------------------------------------------------------------------------------
 
 echo -e "\n---[ CoreDNS ]---------------------------------------------------\n"

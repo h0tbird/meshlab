@@ -153,6 +153,27 @@ istioctl x create-remote-secret --context kube-02 --name=kube-02 | \
 kubectl --context kube-01 apply -f -
 
 #------------------------------------------------------------------------------
+# Setup a CoreDNS server for demo.com
+#------------------------------------------------------------------------------
+
+echo -e "\n---[ CoreDNS ]---------------------------------------------------\n"
+
+for i in kube-01 kube-02; do
+
+IP=$(multipass list --format json | jq -r ".list[] | select(.name==\"${i}\") | .ipv4[0]")
+
+kubectl --context "${i}" -n kube-system create cm coredns-custom \
+--dry-run=client -o yaml --from-literal=demo.server="demo.com {
+  hosts {
+    ttl 60
+    ${IP} httpbin.demo.com
+    fallthrough
+  }
+}" | kubectl --context "${i}" -n kube-system apply -f -
+
+done
+
+#------------------------------------------------------------------------------
 # [i] Deploy httpbin
 #------------------------------------------------------------------------------
 

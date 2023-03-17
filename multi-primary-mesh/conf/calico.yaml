@@ -14,7 +14,7 @@ spec:
       nodeSelector: all()
 ---
 apiVersion: operator.tigera.io/v1
-kind: APIServer 
-metadata: 
-  name: default 
+kind: APIServer
+metadata:
+  name: default
 spec: {}

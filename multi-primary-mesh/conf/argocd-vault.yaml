@@ -25,6 +25,12 @@ spec:
     repoURL: https://helm.releases.hashicorp.com
     targetRevision: 0.23.0
     chart: vault
+    helm:
+      values: |
+        server:
+          dev:
+            enabled: true
+            devRootToken: root
   destination:
     server: https://kubernetes.default.svc
     namespace: vault

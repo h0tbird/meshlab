@@ -31,6 +31,8 @@ spec:
           dev:
             enabled: true
             devRootToken: root
+          service:
+            type: LoadBalancer
   destination:
     server: https://kubernetes.default.svc
     namespace: vault

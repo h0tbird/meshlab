@@ -52,8 +52,7 @@ function launch_vms {
 function launch_k8s {
 
   # Base64 encoded config files
-  CONTAINERD_CONFIG=$(base64 -w0 conf/containerd.tmpl)
-  CALICO_CONFIG=$(base64 -w0 conf/calico.yaml)
+  #CONTAINERD_CONFIG=$(base64 -w0 conf/containerd.tmpl)
   K3S_CONFIG=$(base64 -w0 conf/k3s.yaml)
   ROOTCA_CERT=$(base64 -w0 ./tmp/istio-ca/root-cert.pem)
   ROOTCA_KEY=$(base64 -w0 ./tmp/istio-ca/root-key.pem)
@@ -63,12 +62,9 @@ function launch_k8s {
 	#cloud-config
 	 
 	write_files:
-	- path: /var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl
-	  content: ${CONTAINERD_CONFIG}
-	  encoding: b64
-	- path: /etc/calico-installation.yaml
-	  content: ${CALICO_CONFIG}
-	  encoding: b64
+	#- path: /var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl
+	#  content: ${CONTAINERD_CONFIG}
+	#  encoding: b64
 	- path: /etc/rancher/k3s/config.yaml
 	  content: ${K3S_CONFIG}
 	  encoding: b64
@@ -90,16 +86,8 @@ function launch_k8s {
 	  # Install k3s
 	  #-------------
 	  
-	  curl -sfL https://get.k3s.io |
-	  INSTALL_K3S_EXEC="--disable-network-policy --disable=traefik" sh -s -
-	  
-	  #----------------
-	  # Install Calico
-	  #----------------
-	  
-	  kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/tigera-operator.yaml
-	  kubectl create -f /etc/calico-installation.yaml
-	  sleep 10; kubectl wait --for=condition=Ready nodes --all --timeout=60s
+	  curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--disable=traefik" sh -s -
+	  sleep 5; kubectl wait --for=condition=Ready nodes --all --timeout=60s
 	  
 	  #----------------
 	  # Topology setup
@@ -169,7 +157,7 @@ function launch_k8s {
 	  # Wait for all pods to be ready
 	  #-------------------------------
 	  
-	  kubectl wait --for=condition=Ready --timeout=300s pods --all -A
+	  sleep 5; kubectl wait --for=condition=Ready --timeout=300s pods --all -A
 	EOF
 
   # Share the k8s config with the host

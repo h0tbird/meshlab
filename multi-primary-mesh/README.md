@@ -117,30 +117,25 @@ with ARM architectures.
 
 <details><summary>Click me</summary><p>
 
-
-
 </p></details>
 
-## Calico
+## Flannel
 
-Project Calico is an open-source networking solution for containerized
-workloads that provides security, segmentation, and policy enforcement. It uses
-IP tables and BGP routing to deliver a secure, scalable network fabric for
-modern applications, integrating seamlessly with cloud-native platforms like
-Kubernetes.
+Flannel is a lightweight provider of layer 3 network fabric that implements the
+Kubernetes Container Network Interface (CNI). Flannel allocates a subnet lease
+to each host out of a larger, preconfigured address space. Packets are forwarded
+using one of several backend mechanisms including VXLAN and `host-gw`.
 
 <details><summary>Click me</summary><p>
 
-Get IP pool:
+CNI conf dir:
 ```console
-calicoctl --context kube-01 get ipPool -o wide --allow-version-mismatch
-calicoctl --context kube-02 get ipPool -o wide --allow-version-mismatch
+ll /var/lib/rancher/k3s/agent/etc/cni/net.d
 ```
 
-Get node:
+CNI bin dir:
 ```console
-calicoctl --context kube-01 get node -o wide --allow-version-mismatch
-calicoctl --context kube-02 get node -o wide --allow-version-mismatch
+ll /var/lib/rancher/k3s/data/current/bin
 ```
 
 </p></details>

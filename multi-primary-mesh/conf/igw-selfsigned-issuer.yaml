@@ -13,7 +13,7 @@ metadata:
   name: demo-com
   namespace: istio-system
 spec:
-  issuerRef: 
+  issuerRef:
     kind: Issuer
     name: igw-selfsigned-issuer
   secretName: demo-com

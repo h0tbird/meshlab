@@ -52,7 +52,7 @@ function launch_vms {
 function launch_k8s {
 
   # Base64 encoded config files
-  #CONTAINERD_CONFIG=$(base64 -w0 conf/containerd.tmpl)
+  REG_CONFIG=$(base64 -w0 conf/registries.yaml)
   K3S_CONFIG=$(base64 -w0 conf/k3s.yaml)
   ROOTCA_CERT=$(base64 -w0 ./tmp/istio-ca/root-cert.pem)
   ROOTCA_KEY=$(base64 -w0 ./tmp/istio-ca/root-key.pem)
@@ -62,9 +62,9 @@ function launch_k8s {
 	#cloud-config
 	 
 	write_files:
-	#- path: /var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl
-	#  content: ${CONTAINERD_CONFIG}
-	#  encoding: b64
+	- path: /etc/rancher/k3s/registries.yaml
+	  content: ${REG_CONFIG}
+	  encoding: b64
 	- path: /etc/rancher/k3s/config.yaml
 	  content: ${K3S_CONFIG}
 	  encoding: b64

@@ -59,7 +59,7 @@ function launch_k8s {
   ROOTCA_KEY=$(base64 -w0 ./tmp/istio-ca/root-key.pem)
 
   # Setup the VM with cloud-config
-  multipass launch --name "$1" --cpus 2 --memory 4G --disk 10G --mount "tmp/$1:/mnt/host" --cloud-init - <<- EOF
+  multipass launch --name "$1" --cpus 2 --memory 5G --disk 10G --mount "tmp/$1:/mnt/host" --cloud-init - <<- EOF
 	#cloud-config
 	 
 	write_files:

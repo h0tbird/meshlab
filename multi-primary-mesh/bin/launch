@@ -62,13 +62,13 @@ echo -e "\n---[ Multipass VMs ]---------------------------------------------\n"
 { multipass start kube-01 2>/dev/null || (sleep 05; launch_k8s kube-01) } &
 { multipass start kube-02 2>/dev/null || (sleep 10; launch_k8s kube-02) } &
 
+wait
+
 declare -A IP=(
   [kube-00]="$(multipass info kube-00 | grep IPv4 | awk '{print $2}')"
   [kube-01]="$(multipass info kube-01 | grep IPv4 | awk '{print $2}')"
   [kube-02]="$(multipass info kube-02 | grep IPv4 | awk '{print $2}')"
 )
-
-wait
 
 #------------------------------------------------------------------------------
 # [i] Setup KUBECONFIG

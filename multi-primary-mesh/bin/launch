@@ -100,6 +100,8 @@ argocd context kube-00 2> /dev/null || {
   argocd cluster add -y kube-02
 }
 
+kubectl --context kube-00 apply -f ./conf/argocd-cm.yaml
+
 sleep 2; ALIST=$(argocd app list)
 
 #------------------------------------------------------------------------------

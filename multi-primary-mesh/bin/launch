@@ -62,11 +62,11 @@ echo -e "\n---[ Multipass VMs ]---------------------------------------------\n"
 { multipass start kube-01 2>/dev/null || (sleep 05; launch_k8s kube-01) } &
 { multipass start kube-02 2>/dev/null || (sleep 10; launch_k8s kube-02) } &
 
-# declare -A IP=(
-#   [kube-00]="$(multipass info kube-00 | grep IPv4 | awk '{print $2}')"
-#   [kube-01]="$(multipass info kube-01 | grep IPv4 | awk '{print $2}')"
-#   [kube-02]="$(multipass info kube-02 | grep IPv4 | awk '{print $2}')"
-# )
+declare -A IP=(
+  [kube-00]="$(multipass info kube-00 | grep IPv4 | awk '{print $2}')"
+  [kube-01]="$(multipass info kube-01 | grep IPv4 | awk '{print $2}')"
+  [kube-02]="$(multipass info kube-02 | grep IPv4 | awk '{print $2}')"
+)
 
 wait
 
@@ -201,18 +201,14 @@ kubectl --context kube-01 apply -f -
 
 echo -e "\n---[ CoreDNS ]---------------------------------------------------\n"
 
-IP0=$(multipass info kube-00 | grep IPv4 | awk '{print $2}')
-
 for i in kube-01 kube-02; do
-
-IPX=$(multipass info "${i}" | grep IPv4 | awk '{print $2}')
 
 kubectl --context "${i}" -n kube-system create cm coredns-custom \
 --dry-run=client -o yaml --from-literal=demo.server="demo.lab {
   hosts {
     ttl 60
-    ${IP0} vault.demo.lab
-    ${IPX} httpbin.demo.lab
+    ${IP[kube-00]} vault.demo.lab
+    ${IP["${i}"]} httpbin.demo.lab
     fallthrough
   }
 }" | kubectl --context "${i}" -n kube-system apply -f -

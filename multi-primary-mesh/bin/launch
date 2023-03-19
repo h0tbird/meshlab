@@ -8,7 +8,7 @@
 source lib/misc.sh
 
 #------------------------------------------------------------------------------
-# [i] Pull through image cache
+# [i] Pull-through image cache
 #------------------------------------------------------------------------------
 
 echo -e "\n---[ Pull-through registries ]-----------------------------------\n"
@@ -43,7 +43,7 @@ echo -e "\n---[ Istio root CA ]---------------------------------------------\n"
     "Istio root CA" \
     "./tmp/istio-ca/root-cert.pem" \
     "./tmp/istio-ca/root-key.pem" \
-    --san "*.example.com" \
+    --san "*.demo.lab" \
     --not-after 87600h \
     --profile root-ca \
     --no-password \

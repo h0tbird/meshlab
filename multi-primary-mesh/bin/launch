@@ -109,7 +109,7 @@ sleep 2; ALIST=$(argocd app list)
 # [i] Deploy vault
 #------------------------------------------------------------------------------
 
-echo -e "\n---[ vault ]-----------------------------------------------------\n"
+echo -e "\n---[ Deploy Vault ]----------------------------------------------\n"
 
 kubectl --context kube-00 apply -f ./conf/argocd-vault.yaml
 
@@ -122,7 +122,16 @@ kubectl --context kube-00 apply -f ./conf/argocd-vault.yaml
 # [?] Populate vault
 #------------------------------------------------------------------------------
 
-# TODO
+echo -e "\n---[ Populate Vault ]--------------------------------------------\n"
+
+export VAULT_ADDR="http://${IP[kube-00]}:8200"
+export VAULT_TOKEN=root
+
+# Wait for Vault to be ready
+while ! vault status > /dev/null 2>&1; do sleep 1; done
+
+# TODO: Populate vault with a root CA
+vault status
 
 #------------------------------------------------------------------------------
 # [i] Deploy cert-manager

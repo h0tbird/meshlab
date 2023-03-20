@@ -106,6 +106,26 @@ kubectl --context kube-00 apply -f ./conf/argocd-cm.yaml
 sleep 2; ALIST=$(argocd app list)
 
 #------------------------------------------------------------------------------
+# [i] Setup CoreDNS server DNS entries for demo.lab
+#------------------------------------------------------------------------------
+
+echo -e "\n---[ CoreDNS ]---------------------------------------------------\n"
+
+for i in kube-01 kube-02; do
+
+kubectl --context "${i}" -n kube-system create cm coredns-custom \
+--dry-run=client -o yaml --from-literal=demo.server="demo.lab {
+  hosts {
+    ttl 60
+    ${IP[kube-00]} vault.demo.lab
+    ${IP["${i}"]} httpbin.demo.lab
+    fallthrough
+  }
+}" | kubectl --context "${i}" -n kube-system apply -f -
+
+done
+
+#------------------------------------------------------------------------------
 # [i] Deploy vault
 #------------------------------------------------------------------------------
 
@@ -163,10 +183,27 @@ kubectl --context kube-00 apply -f ./conf/argocd-cert-manager.yaml
 }
 
 #------------------------------------------------------------------------------
-# [?] Create a Vault issuer and ICA certificates
+# [?] Create Istio ICA certificates
 #------------------------------------------------------------------------------
 
-# TODO
+echo -e "\n---[ Istio ICA ]-------------------------------------------------\n"
+
+# # TODO: Move this to a file or ArgoCD
+# kubectl --context kube-00 apply -f - << EOF
+# apiVersion: cert-manager.io/v1
+# kind: Issuer
+# metadata:
+#   name: vault-ica
+#   namespace: istio-system
+# spec:
+#   vault:
+#     path: stamp/red-balloon/root/sign-intermediate
+#     server: vault.demo.lab:8200
+#     auth:
+#       tokenSecretRef:
+#         name: vault-ica-token
+#         key: token
+# EOF
 
 #------------------------------------------------------------------------------
 # [i] Deploy Istio
@@ -221,26 +258,6 @@ istioctl x create-remote-secret --context kube-01 --name=kube-01 | \
 kubectl --context kube-02 apply -f -
 istioctl x create-remote-secret --context kube-02 --name=kube-02 | \
 kubectl --context kube-01 apply -f -
-
-#------------------------------------------------------------------------------
-# [i] Setup a CoreDNS server for demo.lab
-#------------------------------------------------------------------------------
-
-echo -e "\n---[ CoreDNS ]---------------------------------------------------\n"
-
-for i in kube-01 kube-02; do
-
-kubectl --context "${i}" -n kube-system create cm coredns-custom \
---dry-run=client -o yaml --from-literal=demo.server="demo.lab {
-  hosts {
-    ttl 60
-    ${IP[kube-00]} vault.demo.lab
-    ${IP["${i}"]} httpbin.demo.lab
-    fallthrough
-  }
-}" | kubectl --context "${i}" -n kube-system apply -f -
-
-done
 
 #------------------------------------------------------------------------------
 # [i] Deploy the httpbin service

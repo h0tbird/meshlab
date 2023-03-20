@@ -188,22 +188,40 @@ kubectl --context kube-00 apply -f ./conf/argocd-cert-manager.yaml
 
 echo -e "\n---[ Istio ICA ]-------------------------------------------------\n"
 
-# # TODO: Move this to a file or ArgoCD
-# kubectl --context kube-00 apply -f - << EOF
-# apiVersion: cert-manager.io/v1
-# kind: Issuer
-# metadata:
-#   name: vault-ica
-#   namespace: istio-system
-# spec:
-#   vault:
-#     path: stamp/red-balloon/root/sign-intermediate
-#     server: vault.demo.lab:8200
-#     auth:
-#       tokenSecretRef:
-#         name: vault-ica-token
-#         key: token
-# EOF
+for i in kube-01 kube-02; do
+
+# TODO: Move this to a file or ArgoCD
+kubectl --context ${i} apply -f - << EOF
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: vault-ica-approle
+  namespace: istio-system
+data:
+  secretId: c2VjcmV0
+EOF
+
+kubectl --context ${i} apply -f - << EOF
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: vault-ica
+  namespace: istio-system
+spec:
+  vault:
+    path: stamp/red-balloon/root/sign-intermediate
+    server: vault.demo.lab:8200
+    auth:
+      appRole:
+        path: auth/approle
+        roleId: "ID..."
+        secretRef:
+          name: vault-ica-approle
+          key: secretId
+EOF
+
+done
 
 #------------------------------------------------------------------------------
 # [i] Deploy Istio

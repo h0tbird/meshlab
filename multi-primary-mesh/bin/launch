@@ -131,11 +131,18 @@ while ! vault status > /dev/null 2>&1; do sleep 1; done
 
 # Root CA for the red-balloon stamp (kube-01 and kube-02)
 vault secrets list | grep -q 'stamp/red-balloon' || {
+
   vault secrets enable --path stamp/red-balloon \
   -description 'PKI for the red-balloon stamp' pki
+
   vault secrets tune -max-lease-ttl=87600h stamp/red-balloon
+
   vault write -field=certificate stamp/red-balloon/root/generate/internal \
   common_name="red-balloon" ttl=87600h > /dev/null
+
+  vault write stamp/red-balloon/config/urls \
+     issuing_certificates="${VAULT_ADDR}/v1/stamp/red-balloon/ca" \
+     crl_distribution_points="${VAULT_ADDR}/v1/stamp/red-balloon/crl"
 }
 
 # Create a role for requesting intermediate CAs

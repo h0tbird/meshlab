@@ -119,7 +119,7 @@ kubectl --context kube-00 apply -f ./conf/argocd-vault.yaml
 }
 
 #------------------------------------------------------------------------------
-# [?] Populate vault
+# [i] Populate vault
 #------------------------------------------------------------------------------
 
 echo -e "\n---[ Populate Vault ]--------------------------------------------\n"
@@ -127,11 +127,15 @@ echo -e "\n---[ Populate Vault ]--------------------------------------------\n"
 export VAULT_ADDR="http://${IP[kube-00]}:8200"
 export VAULT_TOKEN=root
 
-# Wait for Vault to be ready
 while ! vault status > /dev/null 2>&1; do sleep 1; done
 
-# TODO: Populate vault with a root CA
-vault status
+# One root CA for red-balloon (kube-01 and kube-02)
+vault secrets list | grep -q 'stamp/red-balloon' || {
+  vault secrets enable --path stamp/red-balloon pki
+  vault secrets tune -max-lease-ttl=87600h stamp/red-balloon
+  vault write -field=certificate stamp/red-balloon/root/generate/internal \
+    common_name="red-balloon" ttl=87600h > /dev/null
+}
 
 #------------------------------------------------------------------------------
 # [i] Deploy cert-manager

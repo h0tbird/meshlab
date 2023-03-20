@@ -129,13 +129,17 @@ export VAULT_TOKEN=root
 
 while ! vault status > /dev/null 2>&1; do sleep 1; done
 
-# One root CA for red-balloon (kube-01 and kube-02)
+# Root CA for the red-balloon stamp (kube-01 and kube-02)
 vault secrets list | grep -q 'stamp/red-balloon' || {
-  vault secrets enable --path stamp/red-balloon pki
+  vault secrets enable --path stamp/red-balloon \
+  -description 'PKI for the red-balloon stamp' pki
   vault secrets tune -max-lease-ttl=87600h stamp/red-balloon
   vault write -field=certificate stamp/red-balloon/root/generate/internal \
-    common_name="red-balloon" ttl=87600h > /dev/null
+  common_name="red-balloon" ttl=87600h > /dev/null
 }
+
+# Create a role for requesting intermediate CAs
+vault write stamp/red-balloon/roles/ica allow_any_name=true
 
 #------------------------------------------------------------------------------
 # [i] Deploy cert-manager
@@ -287,6 +291,6 @@ kubectl --context kube-00 apply -f ./conf/argocd-httpbin.yaml
 
 echo -e "\n---[ Info ]------------------------------------------------------\n"
 
-echo "ArgoCD WebUI: https://${ARGOCD_IP}"
+echo "ArgoCD WebUI: https://${IP[kube-00]}"
 echo "ArgoCD User: admin"
 echo "ArgoCD Pass: ${ARGOCD_PASS}"

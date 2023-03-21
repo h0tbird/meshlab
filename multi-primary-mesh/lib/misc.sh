@@ -56,7 +56,7 @@ function launch_k8s {
   K3S_CONFIG=$(base64 -w0 conf/k3s.yaml)
 
   # Setup the VM with cloud-config
-  multipass launch --name "$1" --cpus 2 --memory 5G --disk 10G --mount "tmp/$1:/mnt/host" --cloud-init - <<- EOF
+  multipass launch --name "$1" --cpus 2 --memory 5G --disk 10G --cloud-init - <<- EOF
 	#cloud-config
 	 
 	write_files:
@@ -111,6 +111,6 @@ function launch_k8s {
 	  sleep 5; kubectl wait --for=condition=Ready --timeout=300s pods --all -A
 	EOF
 
-  # Share the k8s config with the host
-  multipass exec "$1" -- cp config /mnt/host
+  # Transfer the k8s config to the host
+  multipass transfer "$1:/home/ubuntu/config" "tmp/$1"
 }

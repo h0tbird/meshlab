@@ -187,8 +187,15 @@ kubectl --context kube-00 apply -f ./conf/argocd-cert-manager.yaml
 
 echo -e "\n---[ Istio ICA ]-------------------------------------------------\n"
 
-ROLE_ID=$(vault read -format json auth/approle/role/red-balloon-cert-manager/role-id | jq -r '.data.role_id')
-SECRET_ID_B64=$(vault write -format json -f auth/approle/role/red-balloon-cert-manager/secret-id | jq -r '.data.secret_id' | base64 -w0)
+ROLE_ID=$(vault read \
+-format json \
+auth/approle/role/red-balloon-cert-manager/role-id | \
+jq -r '.data.role_id')
+
+SECRET_ID_B64=$(vault write \
+-format json \
+-f auth/approle/role/red-balloon-cert-manager/secret-id | \
+jq -r '.data.secret_id' | base64 -w0)
 
 for CLUSTER in kube-01 kube-02; do
 

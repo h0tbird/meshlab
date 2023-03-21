@@ -35,22 +35,22 @@ docker start registry-ghcr.io || docker run -d -p 5003:5000 \
 # [i] Create an Istio root CA
 #------------------------------------------------------------------------------
 
-echo -e "\n---[ Istio root CA ]---------------------------------------------\n"
-
-[ -d ./tmp/istio-ca ] || {
-  mkdir -p ./tmp/istio-ca
-  step certificate create \
-    "Istio root CA" \
-    "./tmp/istio-ca/root-cert.pem" \
-    "./tmp/istio-ca/root-key.pem" \
-    --san "*.demo.lab" \
-    --not-after 87600h \
-    --profile root-ca \
-    --no-password \
-    --insecure \
-    --kty RSA \
-    --force
-}
+# echo -e "\n---[ Istio root CA ]---------------------------------------------\n"
+# 
+# [ -d ./tmp/istio-ca ] || {
+#   mkdir -p ./tmp/istio-ca
+#   step certificate create \
+#     "Istio root CA" \
+#     "./tmp/istio-ca/root-cert.pem" \
+#     "./tmp/istio-ca/root-key.pem" \
+#     --san "*.demo.lab" \
+#     --not-after 87600h \
+#     --profile root-ca \
+#     --no-password \
+#     --insecure \
+#     --kty RSA \
+#     --force
+# }
 
 #------------------------------------------------------------------------------
 # [i] Create clusters

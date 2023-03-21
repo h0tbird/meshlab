@@ -167,7 +167,7 @@ vault secrets list | grep -q 'stamp/red-balloon' || {
 
 # Create a policy for cert-manager to issue intermediate CAs
 vault policy list | grep -q 'red-balloon-cert-manager' || {
-vault policy write red-balloon-cert-manager - <<EOF
+vault policy write red-balloon-cert-manager - << EOF
 path "stamp/red-balloon/root/sign-intermediate" {
   capabilities = ["create", "read", "update"]
 }
@@ -182,7 +182,9 @@ EOF
 
 # Create an AppRole for cert-manager to issue intermediate CAs
 vault auth list | grep -q 'approle' || {
+
   vault auth enable approle
+
   vault write auth/approle/role/red-balloon-cert-manager \
     secret_id_ttl=0 \
     token_num_uses=0 \
@@ -191,12 +193,6 @@ vault auth list | grep -q 'approle' || {
     secret_id_num_uses=0 \
     token_policies=red-balloon-cert-manager
 }
-
-ROLE_ID=$(vault read -format json auth/approle/role/red-balloon-cert-manager/role-id | jq -r '.data.role_id')
-SECRET_ID_B64=$(vault write -format json -f auth/approle/role/red-balloon-cert-manager/secret-id | jq -r '.data.secret_id' | base64 -w0)
-
-# Create a role for requesting intermediate CAs
-vault write stamp/red-balloon/roles/ica allow_any_name=true
 
 #------------------------------------------------------------------------------
 # [i] Deploy cert-manager
@@ -218,9 +214,11 @@ kubectl --context kube-00 apply -f ./conf/argocd-cert-manager.yaml
 
 echo -e "\n---[ Istio ICA ]-------------------------------------------------\n"
 
+ROLE_ID=$(vault read -format json auth/approle/role/red-balloon-cert-manager/role-id | jq -r '.data.role_id')
+SECRET_ID_B64=$(vault write -format json -f auth/approle/role/red-balloon-cert-manager/secret-id | jq -r '.data.secret_id' | base64 -w0)
+
 for CLUSTER in kube-01 kube-02; do
 
-# TODO: Move this to a file or ArgoCD
 kubectl --context ${CLUSTER} apply -f - << EOF
 apiVersion: v1
 kind: Secret

@@ -111,17 +111,17 @@ sleep 2; ALIST=$(argocd app list)
 
 echo -e "\n---[ CoreDNS ]---------------------------------------------------\n"
 
-for i in kube-01 kube-02; do
+for CLUSTER in kube-01 kube-02; do
 
-kubectl --context "${i}" -n kube-system create cm coredns-custom \
+kubectl --context "${CLUSTER}" -n kube-system create cm coredns-custom \
 --dry-run=client -o yaml --from-literal=demo.server="demo.lab {
   hosts {
     ttl 60
     ${IP[kube-00]} vault.demo.lab
-    ${IP["${i}"]} httpbin.demo.lab
+    ${IP[${CLUSTER}]} httpbin.demo.lab
     fallthrough
   }
-}" | kubectl --context "${i}" -n kube-system apply -f -
+}" | kubectl --context "${CLUSTER}" -n kube-system apply -f -
 
 done
 
@@ -218,6 +218,9 @@ ROLE_ID=$(vault read -format json auth/approle/role/red-balloon-cert-manager/rol
 SECRET_ID_B64=$(vault write -format json -f auth/approle/role/red-balloon-cert-manager/secret-id | jq -r '.data.secret_id' | base64 -w0)
 
 for CLUSTER in kube-01 kube-02; do
+
+kubectl create namespace istio-system --dry-run=client \
+-o yaml | kubectl --context ${CLUSTER} apply -f -
 
 kubectl --context ${CLUSTER} apply -f - << EOF
 apiVersion: v1

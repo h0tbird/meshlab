@@ -168,6 +168,9 @@ vault secrets list | grep -q 'stamp/red-balloon' || {
 # Create a policy for cert-manager to issue intermediate CAs
 vault policy list | grep -q 'red-balloon-cert-manager' || {
 vault policy write red-balloon-cert-manager - <<EOF
+path "stamp/red-balloon/root/sign-intermediate" {
+  capabilities = ["create", "read", "update"]
+}
 path "stamp/red-balloon/intermediate/set-signed" {
   capabilities = ["create", "update"]
 }
@@ -215,10 +218,10 @@ kubectl --context kube-00 apply -f ./conf/argocd-cert-manager.yaml
 
 echo -e "\n---[ Istio ICA ]-------------------------------------------------\n"
 
-for i in kube-01 kube-02; do
+for CLUSTER in kube-01 kube-02; do
 
 # TODO: Move this to a file or ArgoCD
-kubectl --context ${i} apply -f - << EOF
+kubectl --context ${CLUSTER} apply -f - << EOF
 apiVersion: v1
 kind: Secret
 type: Opaque
@@ -229,7 +232,7 @@ data:
   secretId: ${SECRET_ID_B64}
 EOF
 
-kubectl --context ${i} apply -f - << EOF
+kubectl --context ${CLUSTER} apply -f - << EOF
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
@@ -246,6 +249,23 @@ spec:
         secretRef:
           name: vault-ica-approle
           key: secretId
+EOF
+
+kubectl --context ${CLUSTER} apply -f - << EOF
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: istio-cluster-ica
+  namespace: istio-system
+spec:
+  secretName: cacerts
+  commonName: "istio-${CLUSTER}-ica"
+  isCA: true
+  duration: 43800h
+  renewBefore: 8760h
+  issuerRef:
+    name: vault-ica
+    kind: Issuer
 EOF
 
 done

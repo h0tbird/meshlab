@@ -165,6 +165,20 @@ vault secrets list | grep -q 'stamp/red-balloon' || {
      crl_distribution_points="${VAULT_ADDR}/v1/stamp/red-balloon/crl"
 }
 
+# Create an AppRole for cert-manager to issue intermediate CAs
+vault auth list | grep -q 'approle' || {
+  vault auth enable approle
+  vault write auth/approle/role/red-balloon-cert-manager \
+    secret_id_ttl=0 \
+    token_num_uses=0 \
+    token_ttl=0 \
+    token_max_ttl=0 \
+    secret_id_num_uses=0
+}
+
+ROLE_ID=$(vault read -format json auth/approle/role/red-balloon-cert-manager/role-id | jq -r '.data.role_id')
+SECRET_ID_B64=$(vault write -format json -f auth/approle/role/red-balloon-cert-manager/secret-id | jq -r '.data.secret_id' | base64 -w0)
+
 # Create a role for requesting intermediate CAs
 vault write stamp/red-balloon/roles/ica allow_any_name=true
 
@@ -199,7 +213,7 @@ metadata:
   name: vault-ica-approle
   namespace: istio-system
 data:
-  secretId: c2VjcmV0
+  secretId: ${SECRET_ID_B64}
 EOF
 
 kubectl --context ${i} apply -f - << EOF
@@ -211,11 +225,11 @@ metadata:
 spec:
   vault:
     path: stamp/red-balloon/root/sign-intermediate
-    server: vault.demo.lab:8200
+    server: http://vault.demo.lab:8200
     auth:
       appRole:
-        path: auth/approle
-        roleId: "ID..."
+        path: approle/role/red-balloon-cert-manager
+        roleId: ${ROLE_ID}
         secretRef:
           name: vault-ica-approle
           key: secretId

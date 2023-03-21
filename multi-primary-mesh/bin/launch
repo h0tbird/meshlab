@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+##-----------------------------------------------------------------------------
+## TODO Create a cli tool that will be installed via brew and will be used to
+## create the VMs and install a controller. VMs will be created by multipass
+## using remote custom images pre-created with packer.
+##-----------------------------------------------------------------------------
+
 #------------------------------------------------------------------------------
 # [i] Source helper functions
 #------------------------------------------------------------------------------
@@ -83,6 +89,12 @@ argocd context kube-00 2> /dev/null || {
 kubectl --context kube-00 apply -f ./conf/argocd-cm.yaml
 
 sleep 2; ALIST=$(argocd app list)
+
+##-----------------------------------------------------------------------------
+## TODO Deploy a controller to kube-00 that will take care of everything below
+## by reconciling a Stamp CRDs that will be created after deploying the
+## controller.
+##-----------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------
 # [i] Setup CoreDNS server DNS entries for demo.lab

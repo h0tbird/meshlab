@@ -32,27 +32,6 @@ docker start registry-ghcr.io || docker run -d -p 5003:5000 \
   registry:2
 
 #------------------------------------------------------------------------------
-# [i] Create an Istio root CA
-#------------------------------------------------------------------------------
-
-# echo -e "\n---[ Istio root CA ]---------------------------------------------\n"
-# 
-# [ -d ./tmp/istio-ca ] || {
-#   mkdir -p ./tmp/istio-ca
-#   step certificate create \
-#     "Istio root CA" \
-#     "./tmp/istio-ca/root-cert.pem" \
-#     "./tmp/istio-ca/root-key.pem" \
-#     --san "*.demo.lab" \
-#     --not-after 87600h \
-#     --profile root-ca \
-#     --no-password \
-#     --insecure \
-#     --kty RSA \
-#     --force
-# }
-
-#------------------------------------------------------------------------------
 # [i] Create clusters
 #------------------------------------------------------------------------------
 
@@ -151,15 +130,11 @@ while ! vault status > /dev/null 2>&1; do sleep 1; done
 
 # Root CA for the red-balloon stamp (kube-01 and kube-02)
 vault secrets list | grep -q 'stamp/red-balloon' || {
-
   vault secrets enable --path stamp/red-balloon \
   -description 'PKI for the red-balloon stamp' pki
-
   vault secrets tune -max-lease-ttl=87600h stamp/red-balloon
-
   vault write -field=certificate stamp/red-balloon/root/generate/internal \
   common_name="red-balloon" ttl=87600h > /dev/null
-
   vault write stamp/red-balloon/config/urls \
      issuing_certificates="${VAULT_ADDR}/v1/stamp/red-balloon/ca" \
      crl_distribution_points="${VAULT_ADDR}/v1/stamp/red-balloon/crl"
@@ -182,9 +157,7 @@ EOF
 
 # Create an AppRole for cert-manager to issue intermediate CAs
 vault auth list | grep -q 'approle' || {
-
   vault auth enable approle
-
   vault write auth/approle/role/red-balloon-cert-manager \
     secret_id_ttl=0 \
     token_num_uses=0 \

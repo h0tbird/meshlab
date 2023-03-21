@@ -165,6 +165,18 @@ vault secrets list | grep -q 'stamp/red-balloon' || {
      crl_distribution_points="${VAULT_ADDR}/v1/stamp/red-balloon/crl"
 }
 
+# Create a policy for cert-manager to issue intermediate CAs
+vault policy list | grep -q 'red-balloon-cert-manager' || {
+vault policy write red-balloon-cert-manager - <<EOF
+path "stamp/red-balloon/intermediate/set-signed" {
+  capabilities = ["create", "update"]
+}
+path "stamp/red-balloon/roles/ica" {
+  capabilities = ["read"]
+}
+EOF
+}
+
 # Create an AppRole for cert-manager to issue intermediate CAs
 vault auth list | grep -q 'approle' || {
   vault auth enable approle
@@ -173,7 +185,8 @@ vault auth list | grep -q 'approle' || {
     token_num_uses=0 \
     token_ttl=0 \
     token_max_ttl=0 \
-    secret_id_num_uses=0
+    secret_id_num_uses=0 \
+    token_policies=red-balloon-cert-manager
 }
 
 ROLE_ID=$(vault read -format json auth/approle/role/red-balloon-cert-manager/role-id | jq -r '.data.role_id')
@@ -228,7 +241,7 @@ spec:
     server: http://vault.demo.lab:8200
     auth:
       appRole:
-        path: approle/role/red-balloon-cert-manager
+        path: approle
         roleId: ${ROLE_ID}
         secretRef:
           name: vault-ica-approle

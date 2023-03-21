@@ -108,7 +108,7 @@ function launch_k8s {
 	  # Wait for all pods to be ready
 	  #-------------------------------
 	  
-	  sleep 5; kubectl wait --for=condition=Ready --timeout=300s pods --all -A
+	  sleep 5; kubectl wait --for=condition=Ready --timeout=360s pods --all -A
 	EOF
 
   # Transfer the k8s config to the host

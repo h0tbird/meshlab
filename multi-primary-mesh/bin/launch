@@ -376,7 +376,7 @@ kubectl --context ${CLUSTER} apply -f - << EOF
 apiVersion: networking.istio.io/v1beta1
 kind: Gateway
 metadata:
-  name: ingress-443-all
+  name: ingress-gateway
   namespace: istio-system
 spec:
   selector:

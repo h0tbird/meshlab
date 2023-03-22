@@ -25,19 +25,19 @@ source lib/misc.sh
 
 echo -e "\n---[ Pull-through registries ]-----------------------------------\n"
 
-docker start registry-docker.io || docker run -d -p 5011:5000 \
+docker start registry-docker.io 2>/dev/null || docker run -d -p 5011:5000 \
   -e REGISTRY_PROXY_REMOTEURL=https://registry-1.docker.io \
   --restart always \
   --name registry-docker.io \
   registry:2
 
-docker start registry-quay.io || docker run -d -p 5012:5000 \
+docker start registry-quay.io 2>/dev/null || docker run -d -p 5012:5000 \
   -e REGISTRY_PROXY_REMOTEURL=https://quay.io \
   --restart always \
   --name registry-quay.io \
   registry:2
 
-docker start registry-ghcr.io || docker run -d -p 5013:5000 \
+docker start registry-ghcr.io 2>/dev/null || docker run -d -p 5013:5000 \
   -e REGISTRY_PROXY_REMOTEURL=https://ghcr.io \
   --restart always \
   --name registry-ghcr.io \

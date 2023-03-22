@@ -14,7 +14,7 @@
 set -euo pipefail
 
 # Change to the execution directory
-cd "$(dirname "$0")"/.. || exit 1
+cd "$(dirname "$0")"/..
 
 # shellcheck source=/dev/null
 source lib/misc.sh
@@ -282,7 +282,7 @@ done
 # [i] Istio-Ingressgateway certificates
 #------------------------------------------------------------------------------
 
-echo -e "\n---[ Istio-Ingressgateway certificates ]-------------------------------------------------\n"
+echo -e "\n---[ Istio-Ingressgateway certificates ]-------------------------\n"
 
 for CLUSTER in kube-01 kube-02; do
 
@@ -317,38 +317,6 @@ spec:
   issuerRef:
     name: ingressgateway
     kind: Issuer
-EOF
-
-done
-
-#------------------------------------------------------------------------------
-# [i] Istio-Ingressgateway
-#------------------------------------------------------------------------------
-
-echo -e "\n---[ Istio Ingressgateway config ]-------------------------------------------------\n"
-
-
-for CLUSTER in kube-01 kube-02; do
-
-kubectl --context ${CLUSTER} apply -f - << EOF
-apiVersion: networking.istio.io/v1beta1
-kind: Gateway
-metadata:
-  name: moda-ingress-gateway
-  namespace: istio-system
-spec:
-  selector:
-    istio: ingressgateway
-  servers:
-  - port:
-      number: 443
-      name: https
-      protocol: HTTPS
-    hosts:
-    - "*"
-    tls:
-      mode: SIMPLE
-      credentialName: istio-ingressgateway-certs
 EOF
 
 done
@@ -395,6 +363,37 @@ kubectl --context kube-00 apply -f ./conf/argocd-istio.yaml
   argocd app sync kube-01-istio-ewgw kube-02-istio-ewgw > /dev/null
   argocd app wait kube-01-istio-ewgw kube-02-istio-ewgw > /dev/null
 }
+
+#------------------------------------------------------------------------------
+# [i] Istio Gateway
+#------------------------------------------------------------------------------
+
+echo -e "\n---[ Catch-all Istio Gateway ]-----------------------------------\n"
+
+for CLUSTER in kube-01 kube-02; do
+
+kubectl --context ${CLUSTER} apply -f - << EOF
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: ingress-443-all
+  namespace: istio-system
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    hosts:
+    - "*"
+    tls:
+      mode: SIMPLE
+      credentialName: istio-ingressgateway-certs
+EOF
+
+done
 
 #------------------------------------------------------------------------------
 # [i] Enable Istio endpoint discovery

@@ -205,7 +205,7 @@ kubectl --context kube-00 apply -f ./conf/argocd-cert-manager.yaml
 }
 
 #------------------------------------------------------------------------------
-# [?] Create Istio ICA certificates
+# [i] Create Istio ICA certificates
 #------------------------------------------------------------------------------
 
 echo -e "\n---[ Istio ICA ]-------------------------------------------------\n"
@@ -279,10 +279,10 @@ EOF
 done
 
 #------------------------------------------------------------------------------
-# [i] Istio-Ingressgateway certificates
+# [i] cert-manager CA Issuer and test certificate
 #------------------------------------------------------------------------------
 
-echo -e "\n---[ Istio-Ingressgateway certificates ]-------------------------\n"
+echo -e "\n---[ cert-manager CA Issuer ]------------------------------------\n"
 
 for CLUSTER in kube-01 kube-02; do
 

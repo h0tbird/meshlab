@@ -127,6 +127,7 @@ kubectl --context kube-00 apply -f ./conf/argocd-vault.yaml
 [ "$(echo "${ALIST}" | grep vault | grep -c 'Synced  Healthy')" -eq 1 ] || {
   echo "argocd app sync vault"
   argocd app sync vault > /dev/null
+  argocd app wait vault > /dev/null
 }
 
 #------------------------------------------------------------------------------
@@ -138,7 +139,7 @@ echo -e "\n---[ Populate Vault ]--------------------------------------------\n"
 export VAULT_ADDR="http://${IP[kube-00]}:8200"
 export VAULT_TOKEN=root
 
-while ! vault status > /dev/null 2>&1; do sleep 1; done
+while ! vault status &>/dev/null; do sleep 1; done
 
 # Root CA for the red-balloon stamp (kube-01 and kube-02)
 vault secrets list | grep -q 'stamp/red-balloon' || {
@@ -199,15 +200,17 @@ kubectl --context kube-00 apply -f ./conf/argocd-cert-manager.yaml
 
 echo -e "\n---[ Istio ICA ]-------------------------------------------------\n"
 
-ROLE_ID=$(vault read \
--format json \
-auth/approle/role/red-balloon-cert-manager/role-id | \
-jq -r '.data.role_id')
+ROLE_ID=$(
+  vault read -format json \
+  auth/approle/role/red-balloon-cert-manager/role-id | \
+  jq -r '.data.role_id'
+)
 
-SECRET_ID_B64=$(vault write \
--format json \
--f auth/approle/role/red-balloon-cert-manager/secret-id | \
-jq -r '.data.secret_id' | base64 -w0)
+SECRET_ID_B64=$(
+  vault write -format json \
+  -f auth/approle/role/red-balloon-cert-manager/secret-id | \
+  jq -r '.data.secret_id' | base64 -w0
+)
 
 for CLUSTER in kube-01 kube-02; do
 

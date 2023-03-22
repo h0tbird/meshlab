@@ -7,12 +7,14 @@
 ##-----------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------
-# [i] Source helper functions
+# [i] Initializations
 #------------------------------------------------------------------------------
-set -xeuo pipefail
 
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-cd "$SCRIPT_DIR/.." || exit 1
+# Strict mode
+set -euo pipefail
+
+# Change to the execution directory
+cd "$(cd "$(dirname "$0")" && pwd)"/.. || exit 1
 
 # shellcheck source=/dev/null
 source lib/misc.sh

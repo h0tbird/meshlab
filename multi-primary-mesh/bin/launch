@@ -277,6 +277,81 @@ EOF
 done
 
 #------------------------------------------------------------------------------
+# [i] Istio-Ingressgateway certificates
+#------------------------------------------------------------------------------
+
+echo -e "\n---[ Istio-Ingressgateway certificates ]-------------------------------------------------\n"
+
+for CLUSTER in kube-01 kube-02; do
+
+kubectl --context ${CLUSTER} apply -f - << EOF
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: ingressgateway
+  namespace: istio-system
+spec:
+  ca:
+    secretName: cacerts
+EOF
+
+kubectl --context ${CLUSTER} apply -f - << EOF
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: ingressgateway
+  namespace: istio-system
+spec:
+  secretName: istio-ingressgateway-certs
+  commonName: "istio-${CLUSTER}-ingressgateway"
+  duration: 43800h
+  renewBefore: 8760h
+  dnsNames:
+  - "*.demo.lab"
+  - "*.alt.lab"
+  - "test.something.lab"
+  privateKey:
+    rotationPolicy: Always
+  issuerRef:
+    name: ingressgateway
+    kind: Issuer
+EOF
+
+done
+
+#------------------------------------------------------------------------------
+# [i] Istio-Ingressgateway
+#------------------------------------------------------------------------------
+
+echo -e "\n---[ Istio Ingressgateway config ]-------------------------------------------------\n"
+
+
+for CLUSTER in kube-01 kube-02; do
+
+kubectl --context ${CLUSTER} apply -f - << EOF
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: moda-ingress-gateway
+  namespace: istio-system
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    hosts:
+    - "*"
+    tls:
+      mode: SIMPLE
+      credentialName: istio-ingressgateway-certs
+EOF
+
+done
+
+#------------------------------------------------------------------------------
 # [i] Deploy Istio
 #------------------------------------------------------------------------------
 

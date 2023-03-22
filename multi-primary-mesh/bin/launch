@@ -10,11 +10,11 @@
 # [i] Initializations
 #------------------------------------------------------------------------------
 
-# Strict mode
+# Bash strict mode
 set -euo pipefail
 
 # Change to the execution directory
-cd "$(cd "$(dirname "$0")" && pwd)"/.. || exit 1
+cd "$(dirname "$0")"/.. || exit 1
 
 # shellcheck source=/dev/null
 source lib/misc.sh

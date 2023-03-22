@@ -55,6 +55,9 @@ function launch_k8s {
   REG_CONFIG=$(base64 -w0 conf/registries.yaml)
   K3S_CONFIG=$(base64 -w0 conf/k3s.yaml)
 
+  mkdir -p "tmp/$1"
+
+
   # Setup the VM with cloud-config
   multipass launch --name "$1" --cpus 2 --memory 5G --disk 10G --cloud-init - <<- EOF
 	#cloud-config
@@ -110,7 +113,4 @@ function launch_k8s {
 	  
 	  sleep 5; kubectl wait --for=condition=Ready --timeout=360s pods --all -A
 	EOF
-
-  # Transfer the k8s config to the host
-  multipass transfer "$1:/home/ubuntu/config" "tmp/$1"
 }

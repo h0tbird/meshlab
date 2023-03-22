@@ -9,6 +9,10 @@
 #------------------------------------------------------------------------------
 # [i] Source helper functions
 #------------------------------------------------------------------------------
+set -xeuo pipefail
+
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+cd "$SCRIPT_DIR/.." || exit 1
 
 # shellcheck source=/dev/null
 source lib/misc.sh
@@ -19,19 +23,19 @@ source lib/misc.sh
 
 echo -e "\n---[ Pull-through registries ]-----------------------------------\n"
 
-docker start registry-docker.io || docker run -d -p 5001:5000 \
+docker start registry-docker.io || docker run -d -p 5011:5000 \
   -e REGISTRY_PROXY_REMOTEURL=https://registry-1.docker.io \
   --restart always \
   --name registry-docker.io \
   registry:2
 
-docker start registry-quay.io || docker run -d -p 5002:5000 \
+docker start registry-quay.io || docker run -d -p 5012:5000 \
   -e REGISTRY_PROXY_REMOTEURL=https://quay.io \
   --restart always \
   --name registry-quay.io \
   registry:2
 
-docker start registry-ghcr.io || docker run -d -p 5003:5000 \
+docker start registry-ghcr.io || docker run -d -p 5013:5000 \
   -e REGISTRY_PROXY_REMOTEURL=https://ghcr.io \
   --restart always \
   --name registry-ghcr.io \
@@ -48,6 +52,10 @@ echo -e "\n---[ Multipass VMs ]---------------------------------------------\n"
 { multipass start kube-02 2>/dev/null || (sleep 10; launch_k8s kube-02) } &
 
 wait
+
+multipass transfer "kube-00:/home/ubuntu/config" "tmp/kube-00"
+multipass transfer "kube-01:/home/ubuntu/config" "tmp/kube-01"
+multipass transfer "kube-02:/home/ubuntu/config" "tmp/kube-02"
 
 declare -A IP=(
   [kube-00]="$(multipass info kube-00 | grep IPv4 | awk '{print $2}')"
@@ -259,6 +267,8 @@ spec:
   isCA: true
   duration: 43800h
   renewBefore: 8760h
+  privateKey:
+    rotationPolicy: Always
   issuerRef:
     name: vault-ica
     kind: Issuer

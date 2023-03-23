@@ -453,13 +453,18 @@ Right click a `TLSv1.3` packet then `Protocol Preferences` --> `Transport Layer 
 
 Connect to the externally exposed `istiod` service and inspect the certificate bundle it presents:
 ```console
-step certificate inspect --bundle --servername istiod-1-17-1.istio-system.svc https://192.168.64.3:15012 --roots ./tmp/istio-ca/root-cert.pem
+step certificate inspect --bundle --servername istiod-1-17-1.istio-system.svc https://192.168.64.3:15012 --roots /path/to/root-ca.pem
 step certificate inspect --bundle --servername istiod-1-17-1.istio-system.svc https://192.168.64.3:15012 --insecure
 ```
 
-Inspect the certificate provided by a given workload:
+Inspect the certificate chain provided by a given workload:
 ```console
-istioctl --context kube-01 pc secret sleep-xxxxxxxxxx-yyyyy.httpbin -o json | jq -r '.dynamicActiveSecrets[0].secret.tlsCertificate.certificateChain.inlineBytes' | base64 -d | step certificate inspect --bundle -
+istioctl --context kube-02 pc secret httpbin-xxxxxxxxxx-yyyyy.httpbin -o json | jq -r '.dynamicActiveSecrets[] | select(.name=="default") | .secret.tlsCertificate.certificateChain.inlineBytes' | base64 -d | step certificate inspect --bundle
+```
+
+Inspect the certificate root CA present in a given workload:
+```
+istioctl --context kube-02 pc secret sleep-xxxxxxxxxx-yyyyy.httpbin -o json | jq -r '.dynamicActiveSecrets[] | select(.name=="ROOTCA") | .secret.validationContext.trustedCa.inlineBytes' | base64 -d | step certificate inspect --bundle
 ```
 
 Similar as above but this time as a client:

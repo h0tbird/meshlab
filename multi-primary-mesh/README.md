@@ -221,7 +221,7 @@ cmctl status certificate --context kube-01 --namespace istio-system istio-cluste
 cmctl status certificate --context kube-01 --namespace istio-system ingressgateway
 ```
 
-Mark cert-manager Certificate resources for manual renewal:
+Mark cert-manager `Certificate` resources for manual renewal:
 ```console
 cmctl renew --context kube-01 --namespace istio-system istio-cluster-ica
 ```

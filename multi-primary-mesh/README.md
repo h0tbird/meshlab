@@ -317,22 +317,22 @@ microservices architectures.
 
 <details><summary>Click me</summary><p>
 
-Patch the `workloadentries` object with locality metadata (bug?):
+`httpbin` priority and weight from the point of view of the `istio-ingressgateway`:
+```
+watch "istioctl --context kube-01 -n istio-system pc endpoint deploy/istio-ingressgateway | grep -E '^END|httpbin'; echo; k --context kube-01 -n istio-system exec -it deployment/istio-ingressgateway -- curl -X POST localhost:15000/clusters | grep '^outbound|80||httpbin' | grep -E 'zone|region|::priority|::weight' | sort | sed -e '/:zone:/s/$/\n/'"
+```
+
+`httpbin` workloads, priority and weight from the point of view of the `sleep` pod:
+```console
+ watch "k --context kube-01 -n httpbin get po -o wide; echo; istioctl --context kube-01 -n httpbin pc endpoint deploy/sleep | grep -E '^END|httpbin'; echo; k --context kube-01 -n httpbin exec -it deployment/sleep -c istio-proxy -- curl -X POST localhost:15000/clusters | grep '^outbound|80||httpbin' | grep -E 'zone|region|::priority|::weight' | sort | sed -e '/:zone:/s/$/\n/'"
+```
+
+`VM`: patch the `workloadentries` object with locality metadata (bug?):
 ```console
 k --context kube-01 -n httpbin patch workloadentries httpbin-192.168.64.5-vm-network --type merge -p '{"spec":{"locality":"milky-way/solar-system/virt-01"}}'
 ```
 
-List all the endpoints for a given cluster and workload:
-```console
-for i in 01 02; do echo; istioctl --context kube-${i} -n httpbin pc endpoint deploy/httpbin | grep -E '^END|httpbin'; done
-```
-
-Retrieve topology metadata, assigned priority and weight:
-```console
-k --context kube-01 -n httpbin exec -it deployment/httpbin -c istio-proxy -- curl -X POST "localhost:15000/clusters" | grep '^outbound|80||httpbin' | grep -E 'zone|region|::priority|::weight' | sort | sed -e '/:zone:/s/$/\n/'
-```
-
-Same as above but targeting the meshed VM:
+`VM`: retrieve topology metadata, assigned priority and weight:
 ```console
 multipass exec virt-01 -- curl -s localhost:15000/clusters | grep '^outbound|80||httpbin' | grep -E 'zone|region|::priority|::weight' | sort | sed -e '/:zone:/s/$/\n/'
 ```

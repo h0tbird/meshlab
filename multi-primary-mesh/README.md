@@ -451,6 +451,10 @@ Right click a `TLSv1.3` packet then `Protocol Preferences` --> `Transport Layer 
 
 ## Certificates
 
+Find below a collection of commands to troubleshoot certificate issues.
+
+<details><summary>Click me</summary><p>
+
 Connect to the externally exposed `istiod` service and inspect the certificate bundle it presents:
 ```console
 step certificate inspect --bundle --servername istiod-1-17-1.istio-system.svc https://192.168.64.3:15012 --roots /path/to/root-ca.pem
@@ -463,7 +467,7 @@ istioctl --context kube-02 pc secret httpbin-xxxxxxxxxx-yyyyy.httpbin -o json | 
 ```
 
 Inspect the certificate root CA present in a given workload:
-```
+```console
 istioctl --context kube-02 pc secret sleep-xxxxxxxxxx-yyyyy.httpbin -o json | jq -r '.dynamicActiveSecrets[] | select(.name=="ROOTCA") | .secret.validationContext.trustedCa.inlineBytes' | base64 -d | step certificate inspect --bundle
 ```
 
@@ -471,6 +475,8 @@ Similar as above but this time as a client:
 ```console
 k --context kube-01 -n httpbin exec -it deployment/sleep -c istio-proxy -- openssl s_client -showcerts httpbin:80
 ```
+
+</p></details>
 
 ## Devel
 

@@ -151,6 +151,50 @@ argocd app sync kube-01-httpbin kube-02-httpbin
 
 </p></details>
 
+## CoreDNS
+
+CoreDNS is a flexible, extensible DNS server that can be easily configured to
+provide custom DNS resolutions in Kubernetes clusters. It allows for dynamic
+updates, service discovery, and integration with external data sources, making
+it a popular choice for service discovery and network management in
+cloud-native environments.
+
+<details><summary>Click me</summary><p>
+
+Create a DNS record for `httpbin.demo.com`:
+```console
+k --context kube-01 -n kube-system create configmap coredns-custom --from-literal=demo.server='demo.com {
+  hosts {
+    ttl 60
+    192.168.64.3 httpbin.demo.com
+    fallthrough
+  }
+}'
+```
+
+Create a DNS record for `httpbin.demo.com`:
+```console
+k --context kube-02 -n kube-system create configmap coredns-custom --from-literal=demo.server='demo.com {
+  hosts {
+    ttl 60
+    192.168.64.4 httpbin.demo.com
+    fallthrough
+  }
+}'
+```
+
+</p></details>
+
+## Vault
+
+Blah, blah, blah...
+
+<details><summary>Click me</summary><p>
+
+Blah, blah, blah...
+
+</p></details>
+
 ## cert-manager
 
 Cert-manager is an open-source software that helps automate the management and
@@ -209,40 +253,6 @@ k --context kube-01 -n kube-system get ds -l svccontroller.k3s.cattle.io/svcname
 List the containers fronting the exposed `istio-ingressgateway` ports:
 ```console
 k --context kube-01 -n kube-system get ds -l svccontroller.k3s.cattle.io/svcname=istio-ingressgateway -o yaml | yq '.items[].spec.template.spec.containers[].name'
-```
-
-</p></details>
-
-## CoreDNS
-
-CoreDNS is a flexible, extensible DNS server that can be easily configured to
-provide custom DNS resolutions in Kubernetes clusters. It allows for dynamic
-updates, service discovery, and integration with external data sources, making
-it a popular choice for service discovery and network management in
-cloud-native environments.
-
-<details><summary>Click me</summary><p>
-
-Create a DNS record for `httpbin.demo.com`:
-```console
-k --context kube-01 -n kube-system create configmap coredns-custom --from-literal=demo.server='demo.com {
-  hosts {
-    ttl 60
-    192.168.64.3 httpbin.demo.com
-    fallthrough
-  }
-}'
-```
-
-Create a DNS record for `httpbin.demo.com`:
-```console
-k --context kube-02 -n kube-system create configmap coredns-custom --from-literal=demo.server='demo.com {
-  hosts {
-    ttl 60
-    192.168.64.4 httpbin.demo.com
-    fallthrough
-  }
-}'
 ```
 
 </p></details>

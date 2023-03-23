@@ -205,6 +205,22 @@ the cluster.
 
 <details><summary>Click me</summary><p>
 
+This check attempts to perform a dry-run create of a cert-manager v1alpha2
+`Certificate` resource in order to verify that CRDs are installed and all the
+required webhooks are reachable by the K8S API server. We use v1alpha2 API to
+ensure that the API server has also connected to the cert-manager conversion
+webhook:
+```console
+cmctl check api --context kube-01
+```
+
+Get details about the current status of a cert-manager Certificate resource,
+including information on related resources like `CertificateRequest` or `Order`:
+```console
+cmctl status certificate --context kube-01 --namespace istio-system istio-cluster-ica
+cmctl status certificate --context kube-01 --namespace istio-system ingressgateway
+```
+
 </p></details>
 
 ## Istio

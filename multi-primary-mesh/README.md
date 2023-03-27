@@ -349,7 +349,7 @@ microservices architectures.
 <details><summary>Click me</summary><p>
 
 `httpbin` priority and weight from the point of view of the `istio-ingressgateway`:
-```
+```console
 watch "istioctl --context kube-01 -n istio-system pc endpoint deploy/istio-ingressgateway | grep -E '^END|httpbin'; echo; k --context kube-01 -n istio-system exec -it deployment/istio-ingressgateway -- curl -X POST localhost:15000/clusters | grep '^outbound|80||httpbin' | grep -E 'zone|region|::priority|::weight' | sort | sed -e '/:zone:/s/$/\n/'"
 ```
 

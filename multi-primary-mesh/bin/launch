@@ -19,6 +19,14 @@ cd "$(dirname "$0")"/..
 # shellcheck source=/dev/null
 source lib/misc.sh
 
+# Global variables
+STAMP="red-ballon"
+
+# declare -A STAMP=(
+#   [name]="blue"
+#   [clusters]=(blue-1 blue-2)
+# )
+
 #------------------------------------------------------------------------------
 # [i] Pull-through image cache
 #------------------------------------------------------------------------------
@@ -54,10 +62,6 @@ echo -e "\n---[ Multipass VMs ]---------------------------------------------\n"
 { multipass start kube-02 2>/dev/null || (sleep 10; launch_k8s kube-02) } &
 
 wait
-
-multipass transfer "kube-00:/home/ubuntu/config" "tmp/kube-00"
-multipass transfer "kube-01:/home/ubuntu/config" "tmp/kube-01"
-multipass transfer "kube-02:/home/ubuntu/config" "tmp/kube-02"
 
 declare -A IP=(
   [kube-00]="$(multipass info kube-00 | grep IPv4 | awk '{print $2}')"
@@ -151,28 +155,28 @@ export VAULT_TOKEN=root
 
 while ! vault status &>/dev/null; do sleep 1; done
 
-# Root CA for the red-balloon stamp (kube-01 and kube-02)
-vault secrets list | grep -q 'stamp/red-balloon' || {
-  vault secrets enable --path stamp/red-balloon \
-  -description 'PKI for the red-balloon stamp' pki
-  vault secrets tune -max-lease-ttl=87600h stamp/red-balloon
-  vault write -field=certificate stamp/red-balloon/root/generate/internal \
-  common_name="red-balloon" ttl=87600h > /dev/null
-  vault write stamp/red-balloon/config/urls \
-     issuing_certificates="${VAULT_ADDR}/v1/stamp/red-balloon/ca" \
-     crl_distribution_points="${VAULT_ADDR}/v1/stamp/red-balloon/crl"
+# Root CA for the stamp (kube-01 and kube-02)
+vault secrets list | grep -q "stamp/${STAMP}" || {
+  vault secrets enable --path "stamp/${STAMP}" \
+  -description "PKI for the ${STAMP} stamp" pki
+  vault secrets tune -max-lease-ttl=87600h "stamp/${STAMP}"
+  vault write -field=certificate "stamp/${STAMP}/root/generate/internal" \
+  common_name="${STAMP}" ttl=87600h > /dev/null
+  vault write "stamp/${STAMP}/config/urls" \
+     issuing_certificates="${VAULT_ADDR}/v1/stamp/${STAMP}/ca" \
+     crl_distribution_points="${VAULT_ADDR}/v1/stamp/${STAMP}/crl"
 }
 
 # Create a policy for cert-manager to issue intermediate CAs
-vault policy list | grep -q 'red-balloon-cert-manager' || {
-vault policy write red-balloon-cert-manager - << EOF
-path "stamp/red-balloon/root/sign-intermediate" {
+vault policy list | grep -q "${STAMP}-cert-manager" || {
+vault policy write "${STAMP}-cert-manager" - << EOF
+path "stamp/${STAMP}/root/sign-intermediate" {
   capabilities = ["create", "read", "update"]
 }
-path "stamp/red-balloon/intermediate/set-signed" {
+path "stamp/${STAMP}/intermediate/set-signed" {
   capabilities = ["create", "update"]
 }
-path "stamp/red-balloon/roles/ica" {
+path "stamp/${STAMP}/roles/ica" {
   capabilities = ["read"]
 }
 EOF
@@ -181,13 +185,13 @@ EOF
 # Create an AppRole for cert-manager to issue intermediate CAs
 vault auth list | grep -q 'approle' || {
   vault auth enable approle
-  vault write auth/approle/role/red-balloon-cert-manager \
+  vault write "auth/approle/role/${STAMP}-cert-manager" \
     secret_id_ttl=0 \
     token_num_uses=0 \
     token_ttl=0 \
     token_max_ttl=0 \
     secret_id_num_uses=0 \
-    token_policies=red-balloon-cert-manager
+    token_policies="${STAMP}-cert-manager"
 }
 
 #------------------------------------------------------------------------------
@@ -212,13 +216,13 @@ echo -e "\n---[ Istio ICA ]-------------------------------------------------\n"
 
 ROLE_ID=$(
   vault read -format json \
-  auth/approle/role/red-balloon-cert-manager/role-id | \
+  auth/approle/role/${STAMP}-cert-manager/role-id | \
   jq -r '.data.role_id'
 )
 
 SECRET_ID_B64=$(
   vault write -format json \
-  -f auth/approle/role/red-balloon-cert-manager/secret-id | \
+  -f auth/approle/role/${STAMP}-cert-manager/secret-id | \
   jq -r '.data.secret_id' | base64 -w0
 )
 
@@ -246,7 +250,7 @@ metadata:
   namespace: istio-system
 spec:
   vault:
-    path: stamp/red-balloon/root/sign-intermediate
+    path: stamp/${STAMP}/root/sign-intermediate
     server: http://vault.demo.lab:8200
     auth:
       appRole:
@@ -265,7 +269,7 @@ metadata:
   namespace: istio-system
 spec:
   secretName: cacerts
-  commonName: "istio-${CLUSTER}-ica"
+  commonName: "${CLUSTER}"
   isCA: true
   duration: 43800h
   renewBefore: 8760h

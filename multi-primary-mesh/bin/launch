@@ -97,8 +97,8 @@ argocd context kube-00 2> /dev/null || {
     --username admin \
     --password "${ARGOCD_PASS}"
 
-  argocd cluster add -y kube-01
-  argocd cluster add -y kube-02
+  argocd cluster add -y "${CLUS1}"
+  argocd cluster add -y "${CLUS2}"
 }
 
 kubectl --context kube-00 apply -f ./conf/argocd-cm.yaml
@@ -156,7 +156,7 @@ export VAULT_TOKEN=root
 
 while ! vault status &>/dev/null; do sleep 1; done
 
-# Root CA for the stamp (kube-01 and kube-02)
+# Root CA for the stamp
 vault secrets list | grep -q "stamp/${STAMP[name]}" || {
   vault secrets enable --path "stamp/${STAMP[name]}" \
   -description "PKI for the ${STAMP[name]} stamp" pki
@@ -204,9 +204,9 @@ echo -e "\n---[ cert-manager ]----------------------------------------------\n"
 kubectl --context kube-00 apply -f ./conf/argocd-cert-manager.yaml
 
 [ "$(echo "${ALIST}" | grep cert-manager | grep -c 'Synced  Healthy')" -eq 2 ] || {
-  echo "argocd app sync kube-01-cert-manager kube-02-cert-manager"
-  argocd app sync kube-01-cert-manager kube-02-cert-manager > /dev/null
-  argocd app wait kube-01-cert-manager kube-02-cert-manager > /dev/null
+  echo "argocd app sync ${CLUS1}-cert-manager ${CLUS2}-cert-manager"
+  argocd app sync "${CLUS1}-cert-manager" "${CLUS2}-cert-manager" > /dev/null
+  argocd app wait "${CLUS1}-cert-manager" "${CLUS2}-cert-manager" > /dev/null
 }
 
 #------------------------------------------------------------------------------
@@ -289,9 +289,9 @@ done
 
 echo -e "\n---[ cert-manager CA Issuer ]------------------------------------\n"
 
-for CLUSTER in kube-01 kube-02; do
+for CLUSTER in ${STAMP[clusters]}; do
 
-kubectl --context ${CLUSTER} apply -f - << EOF
+kubectl --context "${CLUSTER}" apply -f - << EOF
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
@@ -302,7 +302,7 @@ spec:
     secretName: cacerts
 EOF
 
-kubectl --context ${CLUSTER} apply -f - << EOF
+kubectl --context "${CLUSTER}" apply -f - << EOF
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
@@ -332,8 +332,8 @@ done
 
 echo -e "\n---[ Waiting for certs ]-----------------------------------------\n"
 
-k --context kube-01 wait --for=condition=Ready certificate -A --all &
-k --context kube-02 wait --for=condition=Ready certificate -A --all &
+k --context "${CLUS1}" wait --for=condition=Ready certificate -A --all &
+k --context "${CLUS2}" wait --for=condition=Ready certificate -A --all &
 
 wait
 
@@ -347,37 +347,37 @@ kubectl --context kube-00 apply -f ./conf/argocd-istio.yaml
 
 # Base
 [ "$(echo "${ALIST}" | grep istio-base | grep -c 'Synced  Healthy')" -eq 2 ] || {
-  echo "argocd app sync kube-01-istio-base kube-02-istio-base"
-  argocd app sync kube-01-istio-base kube-02-istio-base > /dev/null
-  argocd app wait kube-01-istio-base kube-02-istio-base > /dev/null
+  echo "argocd app sync ${CLUS1}-istio-base ${CLUS2}-istio-base"
+  argocd app sync "${CLUS1}-istio-base" "${CLUS2}-istio-base" > /dev/null
+  argocd app wait "${CLUS1}-istio-base" "${CLUS2}-istio-base" > /dev/null
 }
 
 # Cni
 [ "$(echo "${ALIST}" | grep istio-cni | grep -c 'Synced  Healthy')" -eq 2 ] || {
-  echo "argocd app sync kube-01-istio-cni kube-02-istio-cni"
-  argocd app sync kube-01-istio-cni kube-02-istio-cni > /dev/null
-  argocd app wait kube-01-istio-cni kube-02-istio-cni > /dev/null
+  echo "argocd app sync ${CLUS1}-istio-cni ${CLUS2}-istio-cni"
+  argocd app sync "${CLUS1}-istio-cni" "${CLUS2}-istio-cni" > /dev/null
+  argocd app wait "${CLUS1}-istio-cni" "${CLUS2}-istio-cni" > /dev/null
 }
 
 # Pilot
 [ "$(echo "${ALIST}" | grep istio-pilot | grep -c 'Synced  Healthy')" -eq 2 ] || {
- echo "argocd app sync kube-01-istio-pilot kube-02-istio-pilot"
- argocd app sync kube-01-istio-pilot kube-02-istio-pilot > /dev/null
- argocd app wait kube-01-istio-pilot kube-02-istio-pilot > /dev/null
+ echo "argocd app sync ${CLUS1}-istio-pilot ${CLUS2}-istio-pilot"
+ argocd app sync "${CLUS1}-istio-pilot" "${CLUS2}-istio-pilot" > /dev/null
+ argocd app wait "${CLUS1}-istio-pilot" "${CLUS2}-istio-pilot" > /dev/null
 }
 
 # IngressGateways
 [ "$(echo "${ALIST}" | grep istio-igws | grep -c 'Synced  Healthy')" -eq 2 ] || {
-  echo "argocd app sync kube-01-istio-igws kube-02-istio-igws"
-  argocd app sync kube-01-istio-igws kube-02-istio-igws > /dev/null
-  argocd app wait kube-01-istio-igws kube-02-istio-igws > /dev/null
+  echo "argocd app sync ${CLUS1}-istio-igws ${CLUS2}-istio-igws"
+  argocd app sync "${CLUS1}-istio-igws" "${CLUS2}-istio-igws" > /dev/null
+  argocd app wait "${CLUS1}-istio-igws" "${CLUS2}-istio-igws" > /dev/null
 }
 
 # East-West gateway
 [ "$(echo "${ALIST}" | grep istio-ewgw | grep -c 'Synced  Healthy')" -eq 2 ] || {
-  echo "argocd app sync kube-01-istio-ewgw kube-02-istio-ewgw"
-  argocd app sync kube-01-istio-ewgw kube-02-istio-ewgw > /dev/null
-  argocd app wait kube-01-istio-ewgw kube-02-istio-ewgw > /dev/null
+  echo "argocd app sync ${CLUS1}-istio-ewgw ${CLUS2}-istio-ewgw"
+  argocd app sync "${CLUS1}-istio-ewgw" "${CLUS2}-istio-ewgw" > /dev/null
+  argocd app wait "${CLUS1}-istio-ewgw" "${CLUS2}-istio-ewgw" > /dev/null
 }
 
 #------------------------------------------------------------------------------
@@ -386,9 +386,9 @@ kubectl --context kube-00 apply -f ./conf/argocd-istio.yaml
 
 echo -e "\n---[ Catch-all Istio Gateway ]-----------------------------------\n"
 
-for CLUSTER in kube-01 kube-02; do
+for CLUSTER in ${STAMP[clusters]}; do
 
-kubectl --context ${CLUSTER} apply -f - << EOF
+kubectl --context "${CLUSTER}" apply -f - << EOF
 apiVersion: networking.istio.io/v1beta1
 kind: Gateway
 metadata:
@@ -417,10 +417,10 @@ done
 
 echo -e "\n---[ Istio remote secrets ]--------------------------------------\n"
 
-istioctl x create-remote-secret --context kube-01 --name=kube-01 | \
-kubectl --context kube-02 apply -f -
-istioctl x create-remote-secret --context kube-02 --name=kube-02 | \
-kubectl --context kube-01 apply -f -
+istioctl x create-remote-secret --context "${CLUS1}" --name="${CLUS1}" | \
+kubectl --context "${CLUS2}" apply -f -
+istioctl x create-remote-secret --context "${CLUS2}" --name="${CLUS2}" | \
+kubectl --context "${CLUS1}" apply -f -
 
 #------------------------------------------------------------------------------
 # [i] Deploy the httpbin service
@@ -431,9 +431,9 @@ echo -e "\n---[ httpbin ]---------------------------------------------------\n"
 kubectl --context kube-00 apply -f ./conf/argocd-httpbin.yaml
 
 [ "$(echo "${ALIST}" | grep httpbin | grep -c 'Synced  Healthy')" -eq 2 ] || {
-  echo "argocd app sync kube-01-httpbin kube-02-httpbin"
-  argocd app sync kube-01-httpbin kube-02-httpbin > /dev/null
-  argocd app wait kube-01-httpbin kube-02-httpbin > /dev/null
+  echo "argocd app sync ${CLUS1}-httpbin ${CLUS2}-httpbin"
+  argocd app sync "${CLUS1}-httpbin" "${CLUS2}-httpbin" > /dev/null
+  argocd app wait "${CLUS1}-httpbin" "${CLUS2}-httpbin" > /dev/null
 }
 
 #------------------------------------------------------------------------------

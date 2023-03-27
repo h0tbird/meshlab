@@ -20,12 +20,13 @@ cd "$(dirname "$0")"/..
 source lib/misc.sh
 
 # Global variables
-STAMP="red-ballon"
+CLUS1="kube-01"
+CLUS2="kube-02"
 
-# declare -A STAMP=(
-#   [name]="blue"
-#   [clusters]=(blue-1 blue-2)
-# )
+declare -A STAMP=(
+  [name]="red-ballon"
+  [clusters]="${CLUS1} ${CLUS2}"
+)
 
 #------------------------------------------------------------------------------
 # [i] Pull-through image cache
@@ -116,7 +117,7 @@ sleep 2; ALIST=$(argocd app list)
 
 echo -e "\n---[ CoreDNS ]---------------------------------------------------\n"
 
-for CLUSTER in kube-01 kube-02; do
+for CLUSTER in ${STAMP[clusters]}; do
 
 kubectl --context "${CLUSTER}" -n kube-system create cm coredns-custom \
 --dry-run=client -o yaml --from-literal=demo.server="demo.lab {
@@ -156,27 +157,27 @@ export VAULT_TOKEN=root
 while ! vault status &>/dev/null; do sleep 1; done
 
 # Root CA for the stamp (kube-01 and kube-02)
-vault secrets list | grep -q "stamp/${STAMP}" || {
-  vault secrets enable --path "stamp/${STAMP}" \
-  -description "PKI for the ${STAMP} stamp" pki
-  vault secrets tune -max-lease-ttl=87600h "stamp/${STAMP}"
-  vault write -field=certificate "stamp/${STAMP}/root/generate/internal" \
-  common_name="${STAMP}" ttl=87600h > /dev/null
-  vault write "stamp/${STAMP}/config/urls" \
-     issuing_certificates="${VAULT_ADDR}/v1/stamp/${STAMP}/ca" \
-     crl_distribution_points="${VAULT_ADDR}/v1/stamp/${STAMP}/crl"
+vault secrets list | grep -q "stamp/${STAMP[name]}" || {
+  vault secrets enable --path "stamp/${STAMP[name]}" \
+  -description "PKI for the ${STAMP[name]} stamp" pki
+  vault secrets tune -max-lease-ttl=87600h "stamp/${STAMP[name]}"
+  vault write -field=certificate "stamp/${STAMP[name]}/root/generate/internal" \
+  common_name="${STAMP[name]}" ttl=87600h > /dev/null
+  vault write "stamp/${STAMP[name]}/config/urls" \
+     issuing_certificates="${VAULT_ADDR}/v1/stamp/${STAMP[name]}/ca" \
+     crl_distribution_points="${VAULT_ADDR}/v1/stamp/${STAMP[name]}/crl"
 }
 
 # Create a policy for cert-manager to issue intermediate CAs
-vault policy list | grep -q "${STAMP}-cert-manager" || {
-vault policy write "${STAMP}-cert-manager" - << EOF
-path "stamp/${STAMP}/root/sign-intermediate" {
+vault policy list | grep -q "${STAMP[name]}-cert-manager" || {
+vault policy write "${STAMP[name]}-cert-manager" - << EOF
+path "stamp/${STAMP[name]}/root/sign-intermediate" {
   capabilities = ["create", "read", "update"]
 }
-path "stamp/${STAMP}/intermediate/set-signed" {
+path "stamp/${STAMP[name]}/intermediate/set-signed" {
   capabilities = ["create", "update"]
 }
-path "stamp/${STAMP}/roles/ica" {
+path "stamp/${STAMP[name]}/roles/ica" {
   capabilities = ["read"]
 }
 EOF
@@ -185,13 +186,13 @@ EOF
 # Create an AppRole for cert-manager to issue intermediate CAs
 vault auth list | grep -q 'approle' || {
   vault auth enable approle
-  vault write "auth/approle/role/${STAMP}-cert-manager" \
+  vault write "auth/approle/role/${STAMP[name]}-cert-manager" \
     secret_id_ttl=0 \
     token_num_uses=0 \
     token_ttl=0 \
     token_max_ttl=0 \
     secret_id_num_uses=0 \
-    token_policies="${STAMP}-cert-manager"
+    token_policies="${STAMP[name]}-cert-manager"
 }
 
 #------------------------------------------------------------------------------
@@ -216,22 +217,22 @@ echo -e "\n---[ Istio ICA ]-------------------------------------------------\n"
 
 ROLE_ID=$(
   vault read -format json \
-  auth/approle/role/${STAMP}-cert-manager/role-id | \
+  "auth/approle/role/${STAMP[name]}-cert-manager/role-id" | \
   jq -r '.data.role_id'
 )
 
 SECRET_ID_B64=$(
   vault write -format json \
-  -f auth/approle/role/${STAMP}-cert-manager/secret-id | \
+  -f "auth/approle/role/${STAMP[name]}-cert-manager/secret-id" | \
   jq -r '.data.secret_id' | base64 -w0
 )
 
-for CLUSTER in kube-01 kube-02; do
+for CLUSTER in ${STAMP[clusters]}; do
 
 kubectl create namespace istio-system --dry-run=client \
--o yaml | kubectl --context ${CLUSTER} apply -f -
+-o yaml | kubectl --context "${CLUSTER}" apply -f -
 
-kubectl --context ${CLUSTER} apply -f - << EOF
+kubectl --context "${CLUSTER}" apply -f - << EOF
 apiVersion: v1
 kind: Secret
 type: Opaque
@@ -242,7 +243,7 @@ data:
   secretId: ${SECRET_ID_B64}
 EOF
 
-kubectl --context ${CLUSTER} apply -f - << EOF
+kubectl --context "${CLUSTER}" apply -f - << EOF
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
@@ -250,7 +251,7 @@ metadata:
   namespace: istio-system
 spec:
   vault:
-    path: stamp/${STAMP}/root/sign-intermediate
+    path: stamp/${STAMP[name]}/root/sign-intermediate
     server: http://vault.demo.lab:8200
     auth:
       appRole:
@@ -261,7 +262,7 @@ spec:
           key: secretId
 EOF
 
-kubectl --context ${CLUSTER} apply -f - << EOF
+kubectl --context "${CLUSTER}" apply -f - << EOF
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:

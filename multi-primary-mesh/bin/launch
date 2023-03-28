@@ -85,16 +85,16 @@ kubectl config view --flatten > ./tmp/config && cp ./tmp/config ~/.kube/config
 echo -e "\n---[ ArgoCD ]----------------------------------------------------\n"
 
 ARGOCD_PASS=$(
-  kubectl --context kube-00 -n argocd \
+  kubectl --context ${CLUS0} -n argocd \
   get secret argocd-initial-admin-secret \
   -o jsonpath='{.data.password}' | base64 -d
 )
 
-argocd context kube-00 2> /dev/null || {
+argocd context ${CLUS0} 2> /dev/null || {
 
-  argocd login "${IP[kube-00]}" \
+  argocd login "${IP[${CLUS0}]}" \
     --insecure \
-    --name kube-00 \
+    --name ${CLUS0} \
     --username admin \
     --password "${ARGOCD_PASS}"
 
@@ -102,12 +102,12 @@ argocd context kube-00 2> /dev/null || {
   argocd cluster add -y "${CLUS2}"
 }
 
-kubectl --context kube-00 apply -f ./conf/argocd-cm.yaml
+kubectl --context ${CLUS0} apply -f ./conf/argocd-cm.yaml
 
 sleep 2; ALIST=$(argocd app list)
 
 ##-----------------------------------------------------------------------------
-## TODO Deploy a controller to kube-00 that will take care of everything below
+## TODO Deploy a controller to ${CLUS0} that will take care of everything below
 ## by reconciling a Stamp CRDs that will be created after deploying the
 ## controller.
 ##-----------------------------------------------------------------------------
@@ -124,7 +124,7 @@ kubectl --context "${CLUSTER}" -n kube-system create cm coredns-custom \
 --dry-run=client -o yaml --from-literal=demo.server="demo.lab {
   hosts {
     ttl 60
-    ${IP[kube-00]} vault.demo.lab
+    ${IP[${CLUS0}]} vault.demo.lab
     ${IP[${CLUSTER}]} httpbin.demo.lab
     fallthrough
   }
@@ -138,7 +138,7 @@ done
 
 echo -e "\n---[ Deploy Vault ]----------------------------------------------\n"
 
-kubectl --context kube-00 apply -f ./conf/argocd-vault.yaml
+kubectl --context ${CLUS0} apply -f ./conf/argocd-vault.yaml
 
 [ "$(echo "${ALIST}" | grep vault | grep -c 'Synced  Healthy')" -eq 1 ] || {
   echo "argocd app sync vault"
@@ -152,7 +152,7 @@ kubectl --context kube-00 apply -f ./conf/argocd-vault.yaml
 
 echo -e "\n---[ Populate Vault ]--------------------------------------------\n"
 
-export VAULT_ADDR="http://${IP[kube-00]}:8200"
+export VAULT_ADDR="http://${IP[${CLUS0}]}:8200"
 export VAULT_TOKEN=root
 
 while ! vault status &>/dev/null; do sleep 1; done
@@ -202,7 +202,7 @@ vault auth list | grep -q 'approle' || {
 
 echo -e "\n---[ cert-manager ]----------------------------------------------\n"
 
-kubectl --context kube-00 apply -f ./conf/argocd-cert-manager.yaml
+kubectl --context ${CLUS0} apply -f ./conf/argocd-cert-manager.yaml
 
 [ "$(echo "${ALIST}" | grep cert-manager | grep -c 'Synced  Healthy')" -eq 2 ] || {
   echo "argocd app sync ${CLUS1}-cert-manager ${CLUS2}-cert-manager"
@@ -344,7 +344,7 @@ wait
 
 echo -e "\n---[ Istio ]-----------------------------------------------------\n"
 
-kubectl --context kube-00 apply -f ./conf/argocd-istio.yaml
+kubectl --context ${CLUS0} apply -f ./conf/argocd-istio.yaml
 
 # Base
 [ "$(echo "${ALIST}" | grep istio-base | grep -c 'Synced  Healthy')" -eq 2 ] || {
@@ -429,7 +429,7 @@ kubectl --context "${CLUS1}" apply -f -
 
 echo -e "\n---[ httpbin ]---------------------------------------------------\n"
 
-kubectl --context kube-00 apply -f ./conf/argocd-httpbin.yaml
+kubectl --context ${CLUS0} apply -f ./conf/argocd-httpbin.yaml
 
 [ "$(echo "${ALIST}" | grep httpbin | grep -c 'Synced  Healthy')" -eq 2 ] || {
   echo "argocd app sync ${CLUS1}-httpbin ${CLUS2}-httpbin"
@@ -450,17 +450,17 @@ kubectl --context kube-00 apply -f ./conf/argocd-httpbin.yaml
 
   # Generate the VM files
   istioctl x workload entry configure \
-    --context kube-01 \
+    --context ${CLUS1} \
     -n httpbin \
     -r 1-17-1 \
     --name httpbin \
-    --clusterID kube-01 \
+    --clusterID ${CLUS1} \
     --autoregister \
     -o ./tmp/virt-01/vm-files
 
   # Use the custom address defined in ISTIOD_CUSTOM_HOST
   grep -rl 'istiod-1-17-1.istio-system.svc' ./tmp | \
-  xargs sed -i 's/istiod-1-17-1.istio-system.svc/istiod.kube-01/g'
+  xargs sed -i "s/istiod-1-17-1.istio-system.svc/istiod.${CLUS1}/g"
 
   # Download the istio-sidecar.deb
   [ -f ./tmp/virt-01/istio-sidecar.deb ] || {
@@ -479,6 +479,6 @@ kubectl --context kube-00 apply -f ./conf/argocd-httpbin.yaml
 
 echo -e "\n---[ Info ]------------------------------------------------------\n"
 
-echo "ArgoCD WebUI: https://${IP[kube-00]}"
+echo "ArgoCD WebUI: https://${IP[${CLUS0}]}"
 echo "ArgoCD User: admin"
 echo "ArgoCD Pass: ${ARGOCD_PASS}"

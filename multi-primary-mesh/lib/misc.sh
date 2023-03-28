@@ -46,7 +46,7 @@ function launch_vms {
 }
 
 #------------------------------------------------------------------------------
-# Used to provision kube-00, kube-01 and kube-02
+# Used to provision ${CLUS0}, ${CLUS1} and ${CLUS2}
 #------------------------------------------------------------------------------
 
 function launch_k8s {

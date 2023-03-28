@@ -130,7 +130,7 @@ done
 
 echo -e "\n---[ Deploy Vault ]----------------------------------------------\n"
 
-kubectl --context "${CLUS0}" apply -f ./conf/argocd-vault.yaml
+kubectl --context "${CLUS0}" apply -f ./conf/argocd/vault --recursive
 
 [ "$(echo "${ALIST}" | grep vault | grep -c 'Synced  Healthy')" -eq 1 ] || {
   echo "argocd app sync vault"
@@ -194,7 +194,7 @@ vault auth list | grep -q 'approle' || {
 
 echo -e "\n---[ cert-manager ]----------------------------------------------\n"
 
-kubectl --context "${CLUS0}" apply -f ./conf/argocd-cert-manager.yaml
+kubectl --context "${CLUS0}" apply -f ./conf/argocd/cert-manager --recursive
 
 [ "$(echo "${ALIST}" | grep cert-manager | grep -c 'Synced  Healthy')" -eq 2 ] || {
   echo "argocd app sync ${CLUS1}-cert-manager ${CLUS2}-cert-manager"

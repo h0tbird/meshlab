@@ -98,7 +98,7 @@ function launch_k8s {
 	  # Install ArgoCD
 	  #----------------
 	  
-	  [ "\$(hostname)" = "kube-00" ] && {
+	  [ "\$(hostname)" = "${CLUS0}" ] && {
 	     kubectl create ns argocd
 	     kubectl -n argocd apply -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 	     kubectl -n argocd patch svc argocd-server -p '{"spec": {"type": "LoadBalancer"}}'

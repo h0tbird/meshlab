@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+set -x
+
+# shellcheck source=/dev/null
+source lib/common.sh
+
 #------------------------------------------------------------------------------
 # Delete clusters
 #------------------------------------------------------------------------------
@@ -10,29 +15,17 @@ multipass delete --all -p
 # Setup KUBECONFIG
 #------------------------------------------------------------------------------
 
-kubectl config delete-user kube-00
-kubectl config delete-cluster kube-00
-kubectl config delete-context kube-00
-
-kubectl config delete-user kube-01
-kubectl config delete-cluster kube-01
-kubectl config delete-context kube-01
-
-kubectl config delete-user kube-02
-kubectl config delete-cluster kube-02
-kubectl config delete-context kube-02
+for CLUSTER in ${CLUS0} ${CLUS1} ${CLUS2}; do
+  kubectl config delete-user "${CLUSTER}"
+  kubectl config delete-cluster "${CLUSTER}"
+  kubectl config delete-context "${CLUSTER}"
+done
 
 #------------------------------------------------------------------------------
 # Delete ArgoCD context
 #------------------------------------------------------------------------------
 
-argocd context --delete kube-00
-
-#------------------------------------------------------------------------------
-# Delete Istio root CA
-#------------------------------------------------------------------------------
-
-rm -rf ./tmp/istio-ca
+argocd context --delete "${CLUS0}"
 
 #------------------------------------------------------------------------------
 # Delete the istio-sidecar.deb

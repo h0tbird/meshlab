@@ -20,6 +20,7 @@ cd "$(dirname "$0")"/..
 source lib/misc.sh
 
 # Global variables
+CLUS0="kube-00"
 CLUS1="kube-01"
 CLUS2="kube-02"
 
@@ -58,23 +59,23 @@ docker start registry-ghcr.io 2>/dev/null || docker run -d -p 5013:5000 \
 
 echo -e "\n---[ Multipass VMs ]---------------------------------------------\n"
 
-{ multipass start kube-00 2>/dev/null || (sleep 00; launch_k8s kube-00) } &
-{ multipass start kube-01 2>/dev/null || (sleep 05; launch_k8s kube-01) } &
-{ multipass start kube-02 2>/dev/null || (sleep 10; launch_k8s kube-02) } &
+{ multipass start ${CLUS0} 2>/dev/null || (sleep 00; launch_k8s ${CLUS0}) } &
+{ multipass start ${CLUS1} 2>/dev/null || (sleep 05; launch_k8s ${CLUS1}) } &
+{ multipass start ${CLUS2} 2>/dev/null || (sleep 10; launch_k8s ${CLUS2}) } &
 
 wait
 
 declare -A IP=(
-  [kube-00]="$(multipass info kube-00 | grep IPv4 | awk '{print $2}')"
-  [kube-01]="$(multipass info kube-01 | grep IPv4 | awk '{print $2}')"
-  [kube-02]="$(multipass info kube-02 | grep IPv4 | awk '{print $2}')"
+  [${CLUS0}]="$(multipass info ${CLUS0} | grep IPv4 | awk '{print $2}')"
+  [${CLUS1}]="$(multipass info ${CLUS1} | grep IPv4 | awk '{print $2}')"
+  [${CLUS2}]="$(multipass info ${CLUS2} | grep IPv4 | awk '{print $2}')"
 )
 
 #------------------------------------------------------------------------------
 # [i] Setup KUBECONFIG
 #------------------------------------------------------------------------------
 
-KUBECONFIG=~/.kube/config:tmp/kube-00/config:tmp/kube-01/config:tmp/kube-02/config \
+KUBECONFIG=~/.kube/config:tmp/${CLUS0}/config:tmp/${CLUS1}/config:tmp/${CLUS2}/config \
 kubectl config view --flatten > ./tmp/config && cp ./tmp/config ~/.kube/config
 
 #------------------------------------------------------------------------------

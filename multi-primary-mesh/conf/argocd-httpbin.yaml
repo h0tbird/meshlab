@@ -34,6 +34,9 @@ spec:
         repoURL: https://github.com/h0tbird/httpbin.git
         targetRevision: HEAD
         path: .
+        helm:
+          values: |
+            domain: red-balloon.local
       destination:
         server: '{{server}}'
         namespace: httpbin

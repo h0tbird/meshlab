@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-set -x
-
 # shellcheck source=/dev/null
 source lib/common.sh
 

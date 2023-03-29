@@ -71,7 +71,7 @@ KUBECONFIG=~/.kube/config:tmp/${CLUS0}/config:tmp/${CLUS1}/config:tmp/${CLUS2}/c
 kubectl config view --flatten > ./tmp/config && cp ./tmp/config ~/.kube/config
 
 #------------------------------------------------------------------------------
-# [i] Setup the ArgoCD client and add clusters
+# [i] Setup the ArgoCD client and add the clusters
 #------------------------------------------------------------------------------
 
 echo -e "\n---[ ArgoCD ]----------------------------------------------------\n"
@@ -192,7 +192,7 @@ vault auth list | grep -q 'approle' || {
 }
 
 #------------------------------------------------------------------------------
-# [x] Get the RoleID and SecretID for cert-manager
+# [n] Get the RoleID and SecretID for cert-manager
 #------------------------------------------------------------------------------
 
 ROLE_ID=$(
@@ -225,7 +225,7 @@ kubectl --context "${CLUS0}" apply -Rf ./conf/argocd/cert-manager
 # [i] Deploy the Istio issuers chart
 #------------------------------------------------------------------------------
 
-echo -e "\n---[ Mesh issuers ]----------------------------------------------\n"
+echo -e "\n---[ Istio issuers ]---------------------------------------------\n"
 
 helm template ./charts/istio-issuers \
 --set roleID="${ROLE_ID}" \
@@ -280,37 +280,6 @@ kubectl --context "${CLUS0}" apply -Rf ./conf/argocd/istio
   argocd app sync "${CLUS1}-istio-ewgw" "${CLUS2}-istio-ewgw" > /dev/null
   argocd app wait "${CLUS1}-istio-ewgw" "${CLUS2}-istio-ewgw" > /dev/null
 }
-
-#------------------------------------------------------------------------------
-# [i] Istio Gateway
-#------------------------------------------------------------------------------
-
-echo -e "\n---[ Catch-all Istio Gateway ]-----------------------------------\n"
-
-for CLUSTER in ${STAMP[clusters]}; do
-
-kubectl --context "${CLUSTER}" apply -f - << EOF
-apiVersion: networking.istio.io/v1beta1
-kind: Gateway
-metadata:
-  name: ingress-gateway
-  namespace: istio-system
-spec:
-  selector:
-    istio: ingressgateway
-  servers:
-  - port:
-      number: 443
-      name: https
-      protocol: HTTPS
-    hosts:
-    - "*"
-    tls:
-      mode: SIMPLE
-      credentialName: istio-ingressgateway-certs
-EOF
-
-done
 
 #------------------------------------------------------------------------------
 # [i] Enable Istio endpoint discovery

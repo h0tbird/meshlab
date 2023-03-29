@@ -7,7 +7,9 @@ source lib/common.sh
 # Delete clusters
 #------------------------------------------------------------------------------
 
-multipass delete --all -p
+multipass suspend "${CLUS0}" "${CLUS1}" "${CLUS2}"
+multipass delete "${CLUS0}" "${CLUS1}" "${CLUS2}"
+multipass purge
 
 #------------------------------------------------------------------------------
 # Setup KUBECONFIG

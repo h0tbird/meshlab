@@ -53,27 +53,20 @@ echo -e "\n---[ Multipass VMs ]---------------------------------------------\n"
 
 MPLIST=$(multipass list)
 
-# Start the management cluster
-echo "${MPLIST}" | grep "${CLUS0}" | grep -q Running ||
-{ multipass start "${CLUS0}" 2>/dev/null || (launch_k8s "${CLUS0}") } &
+# Start all the clusters
+for CLUSTER in $(listClusters); do
+    echo "${MPLIST}" | grep "${CLUSTER}" | grep -q Running || {
+      { multipass start "${CLUSTER}" 2>/dev/null || (launch_k8s "${CLUSTER}") } &
+      sleep 5
+    }
+done; wait
 
-# Start the stamp clusters
-for STAMP in "${!STAMPS[@]}"; do for CLUSTER in ${STAMPS[${STAMP}]}; do
-    echo "${MPLIST}" | grep "${CLUSTER}" | grep -q Running ||
-    { sleep 5; { multipass start "${CLUSTER}" 2>/dev/null || (launch_k8s "${CLUSTER}") } & }
-done done
-
-wait
-
-# Get the IPs
+# Get all the IPs
 declare -A IP
-IP[${CLUS0}]=$(multipass info "${CLUS0}" | grep IPv4 | awk '{print $2}')
-for STAMP in "${!STAMPS[@]}"; do for CLUSTER in ${STAMPS[${STAMP}]}; do
+for CLUSTER in $(listClusters); do
     IP[${CLUSTER}]=$(multipass info "${CLUSTER}" | grep IPv4 | awk '{print $2}')
-done done
-
-# Echo all the IPs
-for CLUSTER in "${!IP[@]}"; do echo "${CLUSTER} = ${IP[${CLUSTER}]}"; done
+    echo "${CLUSTER} = ${IP[${CLUSTER}]}"
+done
 
 #------------------------------------------------------------------------------
 # [i] Setup KUBECONFIG

@@ -12,7 +12,7 @@ spec:
           argocd.argoproj.io/secret-type: cluster
   template:
     metadata:
-      name: '{{name}}-istio-issuers'
+      name: {{`'{{name}}-istio-issuers'`}}
     spec:
       project: cert-manager
       source:
@@ -21,12 +21,12 @@ spec:
         path: charts/issuers
         helm:
           values: |
-            clusterName: {{name}}
-            stampName: {{metadata.labels.stamp}}
-            roleID: TODO
-            secretID: TODO
+            {{`clusterName: {{name}}
+            stampName: {{metadata.labels.stamp}}`}}
+            roleID: {{.Values.roleID}}
+            secretID: {{.Values.secretID}}
       destination:
-        server: '{{server}}'
+        server: {{`'{{server}}'`}}
         namespace: istio-system
       syncPolicy:
         syncOptions:

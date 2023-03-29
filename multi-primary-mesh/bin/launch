@@ -191,6 +191,18 @@ vault auth list | grep -q 'approle' || {
     token_policies="${STAMP[name]}-cert-manager"
 }
 
+ROLE_ID=$(
+  vault read -format json \
+  "auth/approle/role/${STAMP[name]}-cert-manager/role-id" | \
+  jq -r '.data.role_id'
+)
+
+SECRET_ID_B64=$(
+  vault write -format json \
+  -f "auth/approle/role/${STAMP[name]}-cert-manager/secret-id" | \
+  jq -r '.data.secret_id' | base64 -w0
+)
+
 #------------------------------------------------------------------------------
 # [i] Deploy cert-manager
 #------------------------------------------------------------------------------
@@ -206,132 +218,21 @@ kubectl --context "${CLUS0}" apply -Rf ./conf/argocd/cert-manager
 }
 
 #------------------------------------------------------------------------------
-# [i] Create Istio ICA certificates
+# [i] Deploy the Istio issuers chart
 #------------------------------------------------------------------------------
 
-echo -e "\n---[ Istio ICA ]-------------------------------------------------\n"
+echo -e "\n---[ Mesh issuers ]----------------------------------------------\n"
 
-ROLE_ID=$(
-  vault read -format json \
-  "auth/approle/role/${STAMP[name]}-cert-manager/role-id" | \
-  jq -r '.data.role_id'
-)
+helm template ./charts/istio-issuers \
+--set roleID="${ROLE_ID}" \
+--set secretID="${SECRET_ID_B64}" |
+kubectl --context "${CLUS0}" apply -f -
 
-SECRET_ID_B64=$(
-  vault write -format json \
-  -f "auth/approle/role/${STAMP[name]}-cert-manager/secret-id" | \
-  jq -r '.data.secret_id' | base64 -w0
-)
-
-for CLUSTER in ${STAMP[clusters]}; do
-
-kubectl create namespace istio-system --dry-run=client \
--o yaml | kubectl --context "${CLUSTER}" apply -f -
-
-kubectl --context "${CLUSTER}" apply -f - << EOF
-apiVersion: v1
-kind: Secret
-type: Opaque
-metadata:
-  name: vault-ica-approle
-  namespace: istio-system
-data:
-  secretId: ${SECRET_ID_B64}
-EOF
-
-kubectl --context "${CLUSTER}" apply -f - << EOF
-apiVersion: cert-manager.io/v1
-kind: Issuer
-metadata:
-  name: vault-ica
-  namespace: istio-system
-spec:
-  vault:
-    path: stamp/${STAMP[name]}/root/sign-intermediate
-    server: http://vault.demo.lab:8200
-    auth:
-      appRole:
-        path: approle
-        roleId: ${ROLE_ID}
-        secretRef:
-          name: vault-ica-approle
-          key: secretId
-EOF
-
-kubectl --context "${CLUSTER}" apply -f - << EOF
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: istio-cluster-ica
-  namespace: istio-system
-spec:
-  secretName: cacerts
-  commonName: "${CLUSTER}"
-  isCA: true
-  duration: 43800h
-  renewBefore: 8760h
-  privateKey:
-    rotationPolicy: Always
-  issuerRef:
-    name: vault-ica
-    kind: Issuer
-EOF
-
-done
-
-#------------------------------------------------------------------------------
-# [i] cert-manager CA Issuer and test certificate
-#------------------------------------------------------------------------------
-
-echo -e "\n---[ cert-manager CA Issuer ]------------------------------------\n"
-
-for CLUSTER in ${STAMP[clusters]}; do
-
-kubectl --context "${CLUSTER}" apply -f - << EOF
-apiVersion: cert-manager.io/v1
-kind: Issuer
-metadata:
-  name: ingressgateway
-  namespace: istio-system
-spec:
-  ca:
-    secretName: cacerts
-EOF
-
-kubectl --context "${CLUSTER}" apply -f - << EOF
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: ingressgateway
-  namespace: istio-system
-spec:
-  secretName: istio-ingressgateway-certs
-  commonName: "istio-${CLUSTER}-ingressgateway"
-  duration: 43800h
-  renewBefore: 8760h
-  dnsNames:
-  - "*.demo.lab"
-  - "*.alt.lab"
-  - "test.something.lab"
-  privateKey:
-    rotationPolicy: Always
-  issuerRef:
-    name: ingressgateway
-    kind: Issuer
-EOF
-
-done
-
-#------------------------------------------------------------------------------
-# [i] Wait for all certificates to be issued
-#------------------------------------------------------------------------------
-
-echo -e "\n---[ Waiting for certs ]-----------------------------------------\n"
-
-k --context "${CLUS1}" wait --for=condition=Ready certificate -A --all &
-k --context "${CLUS2}" wait --for=condition=Ready certificate -A --all &
-
-wait
+[ "$(echo "${ALIST}" | grep issuers | grep -c 'Synced  Healthy')" -eq 2 ] || {
+  echo "argocd app sync ${CLUS1}-istio-issuers ${CLUS2}-istio-issuers"
+  argocd app sync "${CLUS1}-istio-issuers" "${CLUS2}-istio-issuers" > /dev/null
+  argocd app wait "${CLUS1}-istio-issuers" "${CLUS2}-istio-issuers" > /dev/null
+}
 
 #------------------------------------------------------------------------------
 # [i] Deploy Istio

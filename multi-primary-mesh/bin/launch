@@ -51,12 +51,16 @@ docker start registry-ghcr.io 2>/dev/null || docker run -d -p 5013:5000 \
 
 echo -e "\n---[ Multipass VMs ]---------------------------------------------\n"
 
+MPLIST=$(multipass list)
+
 # Start the management cluster
+echo "${MPLIST}" | grep "${CLUS0}" | grep -q Running ||
 { multipass start "${CLUS0}" 2>/dev/null || (launch_k8s "${CLUS0}") } &
 
 # Start the stamp clusters
 for STAMP in "${!STAMPS[@]}"; do for CLUSTER in ${STAMPS[${STAMP}]}; do
-    sleep 5; { multipass start "${CLUSTER}" 2>/dev/null || (launch_k8s "${CLUSTER}") } &
+    echo "${MPLIST}" | grep "${CLUSTER}" | grep -q Running ||
+    { sleep 5; { multipass start "${CLUSTER}" 2>/dev/null || (launch_k8s "${CLUSTER}") } & }
 done done
 
 wait

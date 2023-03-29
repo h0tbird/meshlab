@@ -119,26 +119,6 @@ sleep 2; ALIST=$(argocd app list)
 ##-----------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------
-# [i] Setup CoreDNS server DNS entries for demo.lab
-#------------------------------------------------------------------------------
-
-echo -e "\n---[ CoreDNS ]---------------------------------------------------\n"
-
-for CLUSTER in ${STAMP[clusters]}; do
-
-kubectl --context "${CLUSTER}" -n kube-system create cm coredns-custom \
---dry-run=client -o yaml --from-literal=demo.server="demo.lab {
-  hosts {
-    ttl 60
-    ${IP[${CLUS0}]} vault.demo.lab
-    ${IP[${CLUSTER}]} httpbin.demo.lab
-    fallthrough
-  }
-}" | kubectl --context "${CLUSTER}" -n kube-system apply -f -
-
-done
-
-#------------------------------------------------------------------------------
 # [i] Deploy vault
 #------------------------------------------------------------------------------
 
@@ -163,7 +143,7 @@ export VAULT_TOKEN=root
 
 while ! vault status &>/dev/null; do sleep 1; done
 
-# Root CA for the stamp
+# TODO: One root CA for all the stamps
 vault secrets list | grep -q "stamp/${STAMP[name]}" || {
   vault secrets enable --path "stamp/${STAMP[name]}" \
   -description "PKI for the ${STAMP[name]} stamp" pki
@@ -217,6 +197,26 @@ SECRET_ID_B64=$(
   -f "auth/approle/role/${STAMP[name]}-cert-manager/secret-id" | \
   jq -r '.data.secret_id' | base64 -w0
 )
+
+#------------------------------------------------------------------------------
+# [i] Setup CoreDNS server DNS entries for demo.lab
+#------------------------------------------------------------------------------
+
+echo -e "\n---[ CoreDNS ]---------------------------------------------------\n"
+
+for CLUSTER in ${STAMP[clusters]}; do
+
+kubectl --context "${CLUSTER}" -n kube-system create cm coredns-custom \
+--dry-run=client -o yaml --from-literal=demo.server="demo.lab {
+  hosts {
+    ttl 60
+    ${IP[${CLUS0}]} vault.demo.lab
+    ${IP[${CLUSTER}]} httpbin.demo.lab
+    fallthrough
+  }
+}" | kubectl --context "${CLUSTER}" -n kube-system apply -f -
+
+done
 
 #------------------------------------------------------------------------------
 # [i] Deploy cert-manager
@@ -354,7 +354,7 @@ kubectl --context "${CLUS0}" apply -Rf ./conf/argocd/httpbin
 }
 
 #------------------------------------------------------------------------------
-# Echo ArgoCD info
+# Echo useful info
 #------------------------------------------------------------------------------
 
 echo -e "\n---[ Info ]------------------------------------------------------\n"
@@ -362,3 +362,6 @@ echo -e "\n---[ Info ]------------------------------------------------------\n"
 echo "ArgoCD WebUI: https://${IP[${CLUS0}]}"
 echo "ArgoCD User: admin"
 echo "ArgoCD Pass: ${ARGOCD_PASS}"
+echo
+echo "export VAULT_ADDR=${VAULT_ADDR}"
+echo "export VAULT_TOKEN=${VAULT_TOKEN}"

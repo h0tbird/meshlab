@@ -84,16 +84,19 @@ ARGOCD_PASS=$(
 
 argocd context "${CLUS0}" 2> /dev/null || {
 
+  # Login to ArgoCD
   argocd login "${IP[${CLUS0}]}" \
     --insecure \
     --name "${CLUS0}" \
     --username admin \
     --password "${ARGOCD_PASS}"
 
-  argocd cluster add -y "${CLUS1}"
-  argocd cluster add -y "${CLUS2}"
+  # Add clusters with labels
+  argocd cluster add -y "${CLUS1}" --label name="${CLUS1}" --label stamp="${STAMP[name]}"
+  argocd cluster add -y "${CLUS2}" --label name="${CLUS2}" --label stamp="${STAMP[name]}"
 }
 
+# Add the ArgoCD configmap with custom settings
 kubectl --context "${CLUS0}" apply -f ./conf/argocd-cm.yaml
 
 sleep 2; ALIST=$(argocd app list)

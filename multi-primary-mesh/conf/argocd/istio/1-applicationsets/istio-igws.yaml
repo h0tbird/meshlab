@@ -24,7 +24,7 @@ spec:
             mesh: red-balloon
             network: {{name}}
             cluster: {{name}}
-            domain: red-balloon.local
+            domain: cluster.local
             revision: 1-17-1
             trustDomain: red-balloon.local
       destination:

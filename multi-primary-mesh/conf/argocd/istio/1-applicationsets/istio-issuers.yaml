@@ -2,7 +2,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: httpbin
+  name: istio-issuers
   namespace: argocd
 spec:
   generators:
@@ -12,16 +12,14 @@ spec:
           argocd.argoproj.io/secret-type: cluster
   template:
     metadata:
-      name: '{{name}}-httpbin'
+      name: '{{name}}-istio-issuers'
     spec:
-      project: httpbin
+      project: cert-manager
       source:
-        repoURL: https://github.com/h0tbird/httpbin.git
-        targetRevision: HEAD
-        path: .
-        helm:
-          values: |
-            domain: cluster.local
+        # TODO
       destination:
         server: '{{server}}'
-        namespace: httpbin
+        namespace: istio-system
+      syncPolicy:
+        syncOptions:
+        - CreateNamespace=true

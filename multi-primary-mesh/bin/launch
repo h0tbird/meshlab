@@ -72,7 +72,12 @@ done
 # [i] Setup KUBECONFIG
 #------------------------------------------------------------------------------
 
-KUBECONFIG=~/.kube/config:tmp/${CLUS0}/config:tmp/${CLUS1}/config:tmp/${CLUS2}/config \
+K8SCFG=~/.kube/config
+for CLUSTER in $(listClusters); do
+  K8SCFG=${K8SCFG}:tmp/${CLUSTER}/config
+done
+
+KUBECONFIG=${K8SCFG} \
 kubectl config view --flatten > ./tmp/config && cp ./tmp/config ~/.kube/config
 
 #------------------------------------------------------------------------------

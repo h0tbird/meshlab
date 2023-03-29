@@ -21,13 +21,10 @@ spec:
         path: charts/issuers
         helm:
           values: |
-            # TODO
-            # mesh: red-balloon
-            # network: {{name}}
-            # cluster: {{name}}
-            # domain: cluster.local
-            # revision: 1-17-1
-            # trustDomain: red-balloon.local
+            clusterName: {{name}}
+            stampName: {{metadata.labels.stamp}}
+            roleID: TODO
+            secretID: TODO
       destination:
         server: '{{server}}'
         namespace: istio-system

@@ -191,6 +191,10 @@ vault auth list | grep -q 'approle' || {
     token_policies="${STAMP[name]}-cert-manager"
 }
 
+#------------------------------------------------------------------------------
+# [x] Get the RoleID and SecretID for cert-manager
+#------------------------------------------------------------------------------
+
 ROLE_ID=$(
   vault read -format json \
   "auth/approle/role/${STAMP[name]}-cert-manager/role-id" | \

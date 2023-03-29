@@ -1,14 +1,21 @@
 #!/bin/bash
 
 #------------------------------------------------------------------------------
-# List all the clusters
+# List clusters and stamps
 #------------------------------------------------------------------------------
 
-function listClusters {
-  echo -n "${CLUS0} "
-  for STAMP in "${!STAMPS[@]}"; do
-    echo -n "${STAMPS[${STAMP}]} "
-  done
+function list {
+  case $1 in
+    "clusters")
+      echo -n "${CLUS0} "
+      for STAMP in "${!STAMPS[@]}"; do
+        echo -n "${STAMPS[${STAMP}]} "
+      done ;;
+    "stamps")
+      for STAMP in "${!STAMPS[@]}"; do
+        echo -n "${STAMP} "
+      done ;;
+  esac
 }
 
 #------------------------------------------------------------------------------

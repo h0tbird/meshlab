@@ -54,7 +54,7 @@ echo -e "\n---[ Multipass VMs ]---------------------------------------------\n"
 MPLIST=$(multipass list)
 
 # Start all the clusters
-for CLUSTER in $(listClusters); do
+for CLUSTER in $(list clusters); do
     echo "${MPLIST}" | grep "${CLUSTER}" | grep -q Running || {
       { multipass start "${CLUSTER}" 2>/dev/null || (launch_k8s "${CLUSTER}") } &
       sleep 5
@@ -63,7 +63,7 @@ done; wait
 
 # Get all the IPs
 declare -A IP
-for CLUSTER in $(listClusters); do
+for CLUSTER in $(list clusters); do
     IP[${CLUSTER}]=$(multipass info "${CLUSTER}" | grep IPv4 | awk '{print $2}')
     echo "${CLUSTER} = ${IP[${CLUSTER}]}"
 done
@@ -73,7 +73,7 @@ done
 #------------------------------------------------------------------------------
 
 K8SCFG=~/.kube/config
-for CLUSTER in $(listClusters); do
+for CLUSTER in $(list clusters); do
   K8SCFG=${K8SCFG}:tmp/${CLUSTER}/config
 done
 
@@ -102,8 +102,9 @@ argocd context "${CLUS0}" 2> /dev/null || {
     --password "${ARGOCD_PASS}"
 
   # Add clusters with labels
-  argocd cluster add -y "${CLUS1}" --label name="${CLUS1}" --label stamp="${STAMP[name]}"
-  argocd cluster add -y "${CLUS2}" --label name="${CLUS2}" --label stamp="${STAMP[name]}"
+  for STMP in $(list stamps); do for CLUSTER in ${STAMPS[$STMP]}; do
+    argocd cluster add -y "${CLUSTER}" --label name="${CLUSTER}" --label stamp="${STMP}"
+  done; done
 }
 
 # Add the ArgoCD configmap with custom settings

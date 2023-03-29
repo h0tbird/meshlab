@@ -62,6 +62,11 @@ Display information about all instances:
 multipass info --all
 ```
 
+Tail `multipass` logs:
+```console
+tail -f /Library/Logs/Multipass/multipassd.log
+```
+
 </p></details>
 
 ## Cloud-init

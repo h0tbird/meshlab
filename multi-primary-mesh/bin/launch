@@ -143,28 +143,28 @@ export VAULT_TOKEN=root
 
 while ! vault status &>/dev/null; do sleep 1; done
 
-# TODO: One root CA for all the stamps
-vault secrets list | grep -q "stamp/${STAMP[name]}" || {
-  vault secrets enable --path "stamp/${STAMP[name]}" \
-  -description "PKI for the ${STAMP[name]} stamp" pki
-  vault secrets tune -max-lease-ttl=87600h "stamp/${STAMP[name]}"
-  vault write -field=certificate "stamp/${STAMP[name]}/root/generate/internal" \
-  common_name="${STAMP[name]}" ttl=87600h > /dev/null
-  vault write "stamp/${STAMP[name]}/config/urls" \
-     issuing_certificates="${VAULT_ADDR}/v1/stamp/${STAMP[name]}/ca" \
-     crl_distribution_points="${VAULT_ADDR}/v1/stamp/${STAMP[name]}/crl"
+# One root CA for all the stamps
+vault secrets list | grep -q "mesh" || {
+  vault secrets enable --path "mesh" \
+  -description "PKI for the mesh" pki
+  vault secrets tune -max-lease-ttl=87600h "mesh"
+  vault write -field=certificate "mesh/root/generate/internal" \
+  common_name="mesh" ttl=87600h > /dev/null
+  vault write "mesh/config/urls" \
+     issuing_certificates="${VAULT_ADDR}/v1/mesh/ca" \
+     crl_distribution_points="${VAULT_ADDR}/v1/mesh/crl"
 }
 
 # Create a policy for cert-manager to issue intermediate CAs
-vault policy list | grep -q "${STAMP[name]}-cert-manager" || {
-vault policy write "${STAMP[name]}-cert-manager" - << EOF
-path "stamp/${STAMP[name]}/root/sign-intermediate" {
+vault policy list | grep -q "mesh-cert-manager" || {
+vault policy write "mesh-cert-manager" - << EOF
+path "mesh/root/sign-intermediate" {
   capabilities = ["create", "read", "update"]
 }
-path "stamp/${STAMP[name]}/intermediate/set-signed" {
+path "mesh/intermediate/set-signed" {
   capabilities = ["create", "update"]
 }
-path "stamp/${STAMP[name]}/roles/ica" {
+path "mesh/roles/ica" {
   capabilities = ["read"]
 }
 EOF
@@ -173,13 +173,13 @@ EOF
 # Create an AppRole for cert-manager to issue intermediate CAs
 vault auth list | grep -q 'approle' || {
   vault auth enable approle
-  vault write "auth/approle/role/${STAMP[name]}-cert-manager" \
+  vault write "auth/approle/role/mesh-cert-manager" \
     secret_id_ttl=0 \
     token_num_uses=0 \
     token_ttl=0 \
     token_max_ttl=0 \
     secret_id_num_uses=0 \
-    token_policies="${STAMP[name]}-cert-manager"
+    token_policies="mesh-cert-manager"
 }
 
 #------------------------------------------------------------------------------
@@ -188,13 +188,13 @@ vault auth list | grep -q 'approle' || {
 
 ROLE_ID=$(
   vault read -format json \
-  "auth/approle/role/${STAMP[name]}-cert-manager/role-id" | \
+  "auth/approle/role/mesh-cert-manager/role-id" | \
   jq -r '.data.role_id'
 )
 
 SECRET_ID_B64=$(
   vault write -format json \
-  -f "auth/approle/role/${STAMP[name]}-cert-manager/secret-id" | \
+  -f "auth/approle/role/mesh-cert-manager/secret-id" | \
   jq -r '.data.secret_id' | base64 -w0
 )
 

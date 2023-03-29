@@ -16,7 +16,18 @@ spec:
     spec:
       project: cert-manager
       source:
-        # TODO
+        repoURL: https://github.com/h0tbird/istio.git
+        targetRevision: HEAD
+        path: charts/issuers
+        helm:
+          values: |
+            # TODO
+            # mesh: red-balloon
+            # network: {{name}}
+            # cluster: {{name}}
+            # domain: cluster.local
+            # revision: 1-17-1
+            # trustDomain: red-balloon.local
       destination:
         server: '{{server}}'
         namespace: istio-system

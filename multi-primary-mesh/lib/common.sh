@@ -10,3 +10,8 @@ export -A STAMP=(
   [name]="red-ballon"
   [clusters]="${CLUS1} ${CLUS2}"
 )
+
+export -A STAMPS=(
+  [pasta]="${CLUS1} ${CLUS2}"
+  #[pizza]="pizza-1 pizza-2"
+)

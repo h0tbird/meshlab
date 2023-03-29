@@ -51,17 +51,25 @@ docker start registry-ghcr.io 2>/dev/null || docker run -d -p 5013:5000 \
 
 echo -e "\n---[ Multipass VMs ]---------------------------------------------\n"
 
-{ multipass start "${CLUS0}" 2>/dev/null || (sleep 00; launch_k8s "${CLUS0}") } &
-{ multipass start "${CLUS1}" 2>/dev/null || (sleep 05; launch_k8s "${CLUS1}") } &
-{ multipass start "${CLUS2}" 2>/dev/null || (sleep 10; launch_k8s "${CLUS2}") } &
+# Start the management cluster
+{ multipass start "${CLUS0}" 2>/dev/null || (launch_k8s "${CLUS0}") } &
+
+# Start the stamp clusters
+for STAMP in "${!STAMPS[@]}"; do for CLUSTER in ${STAMPS[${STAMP}]}; do
+    sleep 5; { multipass start "${CLUSTER}" 2>/dev/null || (launch_k8s "${CLUSTER}") } &
+done done
 
 wait
 
-declare -A IP=(
-  [${CLUS0}]="$(multipass info "${CLUS0}" | grep IPv4 | awk '{print $2}')"
-  [${CLUS1}]="$(multipass info "${CLUS1}" | grep IPv4 | awk '{print $2}')"
-  [${CLUS2}]="$(multipass info "${CLUS2}" | grep IPv4 | awk '{print $2}')"
-)
+# Get the IPs
+declare -A IP
+IP[${CLUS0}]=$(multipass info "${CLUS0}" | grep IPv4 | awk '{print $2}')
+for STAMP in "${!STAMPS[@]}"; do for CLUSTER in ${STAMPS[${STAMP}]}; do
+    IP[${CLUSTER}]=$(multipass info "${CLUSTER}" | grep IPv4 | awk '{print $2}')
+done done
+
+# Echo all the IPs
+for CLUSTER in "${!IP[@]}"; do echo "${CLUSTER} = ${IP[${CLUSTER}]}"; done
 
 #------------------------------------------------------------------------------
 # [i] Setup KUBECONFIG

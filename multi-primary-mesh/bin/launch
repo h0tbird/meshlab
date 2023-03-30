@@ -52,6 +52,7 @@ docker start registry-ghcr.io 2>/dev/null || docker run -d -p 5013:5000 \
 echo -e "\n---[ Multipass VMs ]---------------------------------------------\n"
 
 MPLIST=$(multipass list)
+N=$(list clusters | wc -w)
 
 # Start all the clusters
 for CLUSTER in $(list clusters all); do
@@ -92,7 +93,7 @@ echo "${K8SCFG}" | tr ':' '\n'
 # [i] Wait for all the clusters to be ready
 #------------------------------------------------------------------------------
 
-echo -e "\n---[ Wait for clusters ]----------------------------------------\n"
+echo -e "\n---[ Wait for clusters ]-----------------------------------------\n"
 
 for CLUSTER in $(list clusters); do
   until kubectl --context "${CLUSTER}" wait --for=condition=Ready pods --all -A 2>/dev/null; do
@@ -119,9 +120,6 @@ kubectl --context "${CLUSTER}" -n kube-system create cm coredns-custom \
 }" | kubectl --context "${CLUSTER}" -n kube-system apply -f -
 
 done
-
-# TODO: Wait for CoreDNS to reload or restart
-sleep 10
 
 #------------------------------------------------------------------------------
 # [i] Setup the ArgoCD and register the clusters to it
@@ -258,7 +256,7 @@ echo -e "\n---[ cert-manager ]----------------------------------------------\n"
 
 k0 apply -Rf ./conf/argocd/cert-manager
 
-[ "$(echo "${ALIST}" | grep cert-manager | grep -c 'Synced  Healthy')" -eq 2 ] || {
+[ "$(echo "${ALIST}" | grep cert-manager | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
   echo "argocd app sync -l name=cert-manager --async"
   argocd app sync -l name=cert-manager --async > /dev/null
   argocd app wait -l name=cert-manager > /dev/null
@@ -275,7 +273,7 @@ helm template ./charts/istio-issuers \
 --set secretID="${SECRET_ID_B64}" |
 k0 apply -f -
 
-[ "$(echo "${ALIST}" | grep issuers | grep -c 'Synced  Healthy')" -eq 2 ] || {
+[ "$(echo "${ALIST}" | grep issuers | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
   echo "argocd app sync -l name=istio-issuers --async"
   argocd app sync -l name=istio-issuers --async > /dev/null
   argocd app wait -l name=istio-issuers --degraded > /dev/null
@@ -290,35 +288,35 @@ echo -e "\n---[ Istio ]-----------------------------------------------------\n"
 k0 apply -Rf ./conf/argocd/istio
 
 # Base
-[ "$(echo "${ALIST}" | grep istio-base | grep -c 'Synced  Healthy')" -eq 2 ] || {
+[ "$(echo "${ALIST}" | grep istio-base | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
   echo "argocd app sync -l name=istio-base --async"
   argocd app sync -l name=istio-base --async > /dev/null
   argocd app wait -l name=istio-base > /dev/null
 }
 
 # Cni
-[ "$(echo "${ALIST}" | grep istio-cni | grep -c 'Synced  Healthy')" -eq 2 ] || {
+[ "$(echo "${ALIST}" | grep istio-cni | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
   echo "argocd app sync -l name=istio-cni --async"
   argocd app sync -l name=istio-cni --async > /dev/null
   argocd app wait -l name=istio-cni > /dev/null
 }
 
 # Pilot
-[ "$(echo "${ALIST}" | grep istio-pilot | grep -c 'Synced  Healthy')" -eq 2 ] || {
+[ "$(echo "${ALIST}" | grep istio-pilot | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
  echo "argocd app sync -l name=istio-pilot --async"
  argocd app sync -l name=istio-pilot --async > /dev/null
  argocd app wait -l name=istio-pilot > /dev/null
 }
 
 # IngressGateways
-[ "$(echo "${ALIST}" | grep istio-igws | grep -c 'Synced  Healthy')" -eq 2 ] || {
+[ "$(echo "${ALIST}" | grep istio-igws | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
   echo "argocd app sync -l name=istio-igws --async"
   argocd app sync -l name=istio-igws --async > /dev/null
   argocd app wait -l name=istio-igws > /dev/null
 }
 
 # East-West gateway
-[ "$(echo "${ALIST}" | grep istio-ewgw | grep -c 'Synced  Healthy')" -eq 2 ] || {
+[ "$(echo "${ALIST}" | grep istio-ewgw | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
   echo "argocd app sync -l name=istio-ewgw --async"
   argocd app sync -l name=istio-ewgw --async > /dev/null
   argocd app wait -l name=istio-ewgw > /dev/null
@@ -343,7 +341,7 @@ echo -e "\n---[ httpbin ]---------------------------------------------------\n"
 
 k0 apply -Rf ./conf/argocd/httpbin
 
-[ "$(echo "${ALIST}" | grep httpbin | grep -c 'Synced  Healthy')" -eq 2 ] || {
+[ "$(echo "${ALIST}" | grep httpbin | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
   echo "argocd app sync -l name=httpbin --async"
   argocd app sync -l name=httpbin --async > /dev/null
   argocd app wait -l name=httpbin > /dev/null

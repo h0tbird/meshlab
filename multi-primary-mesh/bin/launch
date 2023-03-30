@@ -151,8 +151,8 @@ argocd context "${CLUS0}" 2> /dev/null || {
     --password "${ARGOCD_PASS}"
 
   # Add clusters with labels
-  for STMP in $(list stamps); do for CLUSTER in ${STAMPS[$STMP]}; do
-    argocd cluster add -y "${CLUSTER}" --label name="${CLUSTER}" --label stamp="${STMP}"
+  for STAMP in $(list stamps); do for CLUSTER in ${STAMPS[$STAMP]}; do
+    argocd cluster add -y "${CLUSTER}" --label name="${CLUSTER}" --label stamp="${STAMP}"
   done; done
 }
 

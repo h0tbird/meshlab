@@ -80,6 +80,10 @@ done
 KUBECONFIG=${K8SCFG} \
 kubectl config view --flatten > ./tmp/config && cp ./tmp/config ~/.kube/config
 
+function k0 {
+  kubectl --context "${CLUS0}" "${@}"
+}
+
 #------------------------------------------------------------------------------
 # [i] Setup the ArgoCD and register the clusters to it
 #------------------------------------------------------------------------------
@@ -87,15 +91,15 @@ kubectl config view --flatten > ./tmp/config && cp ./tmp/config ~/.kube/config
 echo -e "\n---[ ArgoCD ]----------------------------------------------------\n"
 
 # Install ArgoCD
-kubectl --context "${CLUS0}" wait --for=condition=Ready --timeout=360s pods --all -A 2>/dev/null
-kubectl create ns argocd --dry-run=client -o yaml | kubectl --context "${CLUS0}" apply -f -
-kubectl --context "${CLUS0}" -n argocd apply -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml > /dev/null
-kubectl --context "${CLUS0}" -n argocd patch svc argocd-server -p '{"spec": {"type": "LoadBalancer"}}'
-kubectl --context "${CLUS0}" wait --for=condition=Ready --timeout=360s pods --all -A
+k0 wait --for=condition=Ready --timeout=360s pods --all -A
+k0 create ns argocd --dry-run=client -o yaml | k0 apply -f -
+k0 -n argocd apply -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml > /dev/null
+k0 -n argocd patch svc argocd-server -p '{"spec": {"type": "LoadBalancer"}}'
+k0 wait --for=condition=Ready --timeout=360s pods --all -A
 
 # Get the password
 ARGOCD_PASS=$(
-  kubectl --context "${CLUS0}" -n argocd \
+  k0 -n argocd \
   get secret argocd-initial-admin-secret \
   -o jsonpath='{.data.password}' | base64 -d
 )
@@ -117,8 +121,9 @@ argocd context "${CLUS0}" 2> /dev/null || {
 }
 
 # Add the ArgoCD configmap with custom settings
-kubectl --context "${CLUS0}" apply -f ./conf/argocd-cm.yaml
+k0 apply -f ./conf/argocd-cm.yaml
 
+# Cache the ArgoCD apps list
 sleep 2; ALIST=$(argocd app list)
 
 ##-----------------------------------------------------------------------------
@@ -133,7 +138,7 @@ sleep 2; ALIST=$(argocd app list)
 
 echo -e "\n---[ Deploy Vault ]----------------------------------------------\n"
 
-kubectl --context "${CLUS0}" apply -Rf ./conf/argocd/vault
+k0 apply -Rf ./conf/argocd/vault
 
 [ "$(echo "${ALIST}" | grep vault | grep -c 'Synced  Healthy')" -eq 1 ] || {
   echo "argocd app sync vault"
@@ -233,7 +238,7 @@ done
 
 echo -e "\n---[ cert-manager ]----------------------------------------------\n"
 
-kubectl --context "${CLUS0}" apply -Rf ./conf/argocd/cert-manager
+k0 apply -Rf ./conf/argocd/cert-manager
 
 [ "$(echo "${ALIST}" | grep cert-manager | grep -c 'Synced  Healthy')" -eq 2 ] || {
   echo "argocd app sync ${CLUS1}-cert-manager ${CLUS2}-cert-manager"
@@ -250,7 +255,7 @@ echo -e "\n---[ Istio issuers ]---------------------------------------------\n"
 helm template ./charts/istio-issuers \
 --set roleID="${ROLE_ID}" \
 --set secretID="${SECRET_ID_B64}" |
-kubectl --context "${CLUS0}" apply -f -
+k0 apply -f -
 
 [ "$(echo "${ALIST}" | grep issuers | grep -c 'Synced  Healthy')" -eq 2 ] || {
   echo "argocd app sync ${CLUS1}-istio-issuers ${CLUS2}-istio-issuers"
@@ -264,7 +269,7 @@ kubectl --context "${CLUS0}" apply -f -
 
 echo -e "\n---[ Istio ]-----------------------------------------------------\n"
 
-kubectl --context "${CLUS0}" apply -Rf ./conf/argocd/istio
+k0 apply -Rf ./conf/argocd/istio
 
 # Base
 [ "$(echo "${ALIST}" | grep istio-base | grep -c 'Synced  Healthy')" -eq 2 ] || {
@@ -318,7 +323,7 @@ kubectl --context "${CLUS1}" apply -f -
 
 echo -e "\n---[ httpbin ]---------------------------------------------------\n"
 
-kubectl --context "${CLUS0}" apply -Rf ./conf/argocd/httpbin
+k0 apply -Rf ./conf/argocd/httpbin
 
 [ "$(echo "${ALIST}" | grep httpbin | grep -c 'Synced  Healthy')" -eq 2 ] || {
   echo "argocd app sync ${CLUS1}-httpbin ${CLUS2}-httpbin"

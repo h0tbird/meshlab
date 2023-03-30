@@ -81,17 +81,26 @@ KUBECONFIG=${K8SCFG} \
 kubectl config view --flatten > ./tmp/config && cp ./tmp/config ~/.kube/config
 
 #------------------------------------------------------------------------------
-# [i] Setup the ArgoCD client and add the clusters
+# [i] Setup the ArgoCD and register the clusters to it
 #------------------------------------------------------------------------------
 
 echo -e "\n---[ ArgoCD ]----------------------------------------------------\n"
 
+# Install ArgoCD
+kubectl --context "${CLUS0}" wait --for=condition=Ready --timeout=360s pods --all -A 2>/dev/null
+kubectl create ns argocd --dry-run=client -o yaml | kubectl --context "${CLUS0}" apply -f -
+kubectl --context "${CLUS0}" -n argocd apply -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml > /dev/null
+kubectl --context "${CLUS0}" -n argocd patch svc argocd-server -p '{"spec": {"type": "LoadBalancer"}}'
+kubectl --context "${CLUS0}" wait --for=condition=Ready --timeout=360s pods --all -A
+
+# Get the password
 ARGOCD_PASS=$(
   kubectl --context "${CLUS0}" -n argocd \
   get secret argocd-initial-admin-secret \
   -o jsonpath='{.data.password}' | base64 -d
 )
 
+# Check if the ArgoCD context exists
 argocd context "${CLUS0}" 2> /dev/null || {
 
   # Login to ArgoCD

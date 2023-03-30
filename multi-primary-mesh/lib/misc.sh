@@ -111,22 +111,6 @@ function launch_k8s {
 	  
 	  IP=\$(hostname -I | awk '{print \$1}')
 	  kubectl config view --raw | sed "s/127\.0\.0\.1/\${IP}/g; s/: default/: $1/g" > /home/ubuntu/config
-	  
-	  #----------------
-	  # Install ArgoCD
-	  #----------------
-	  
-	  [ "\$(hostname)" = "${CLUS0}" ] && {
-	     kubectl create ns argocd
-	     kubectl -n argocd apply -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-	     kubectl -n argocd patch svc argocd-server -p '{"spec": {"type": "LoadBalancer"}}'
-	  } || true
-
-	  #-------------------------------
-	  # Wait for all pods to be ready
-	  #-------------------------------
-	  
-	  sleep 5; kubectl wait --for=condition=Ready --timeout=360s pods --all -A
 	EOF
 
 	# Copy the kubeconfig to the host

@@ -54,7 +54,7 @@ echo -e "\n---[ Multipass VMs ]---------------------------------------------\n"
 MPLIST=$(multipass list)
 
 # Start all the clusters
-for CLUSTER in $(list clusters); do
+for CLUSTER in $(list clusters all); do
     echo "${MPLIST}" | grep "${CLUSTER}" | grep -q Running || {
       { multipass start "${CLUSTER}" 2>/dev/null || (launch_k8s "${CLUSTER}") } &
       sleep 5
@@ -63,7 +63,7 @@ done; wait
 
 # Get all the IPs
 declare -A IP
-for CLUSTER in $(list clusters); do
+for CLUSTER in $(list clusters all); do
     IP[${CLUSTER}]=$(multipass info "${CLUSTER}" | grep IPv4 | awk '{print $2}')
     echo "${CLUSTER} = ${IP[${CLUSTER}]}"
 done
@@ -73,7 +73,7 @@ done
 #------------------------------------------------------------------------------
 
 K8SCFG=~/.kube/config
-for CLUSTER in $(list clusters); do
+for CLUSTER in $(list clusters all); do
   K8SCFG=${K8SCFG}:tmp/${CLUSTER}/config
 done
 

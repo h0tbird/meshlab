@@ -7,7 +7,7 @@
 function list {
   case $1 in
     "clusters")
-      echo -n "${CLUS0} "
+      [ "${2:-stamp}" == "all" ] && echo -n "${CLUS0} "
       for STAMP in "${!STAMPS[@]}"; do
         echo -n "${STAMPS[${STAMP}]} "
       done ;;

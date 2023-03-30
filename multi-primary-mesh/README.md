@@ -69,6 +69,31 @@ tail -f /Library/Logs/Multipass/multipassd.log
 
 </p></details>
 
+## Hypervisor.framework
+
+The drivers used on MacOS (HyperKit and QEMU) employ macOS’ Hypervisor.framework.
+This framework manages the networking stack for the instances. On creation of an
+instance, `Hypervisor.framework` on the host uses macOS’ “Internet Sharing”
+mechanism to create a virtual switch and connect each instance to it (subnet
+192.168.64.*) and provide DHCP and DNS resolution on this switch at 192.168.64.1
+(via `bootpd` & `mDNSResponder` services running on the host); this is configured
+by an auto-generated file /etc/bootpd.plist - but editing this is pointless as
+MacOS re-generates it as it desires.
+
+<details><summary>Click me</summary><p>
+
+Is the `bootpd` DHCP server alive?
+```console
+sudo lsof -iUDP:67 -n -P
+```
+
+Start it:
+```console
+sudo launchctl load -w /System/Library/LaunchDaemons/bootps.plist
+```
+
+</p></details>
+
 ## Cloud-init
 
 `cloud-init` is a tool used to configure virtual machine instances in the cloud

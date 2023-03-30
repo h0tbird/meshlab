@@ -4,6 +4,8 @@ kind: Application
 metadata:
   name: vault
   namespace: argocd
+  labels:
+    name: vault
 spec:
   project: vault
   source:

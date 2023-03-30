@@ -13,6 +13,8 @@ spec:
   template:
     metadata:
       name: {{`'{{name}}-istio-issuers'`}}
+      labels:
+        name: istio-issuers
     spec:
       project: cert-manager
       source:

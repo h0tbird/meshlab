@@ -13,6 +13,8 @@ spec:
   template:
     metadata:
       name: '{{name}}-istio-pilot'
+      labels:
+        name: istio-pilot
     spec:
       project: istio
       source:

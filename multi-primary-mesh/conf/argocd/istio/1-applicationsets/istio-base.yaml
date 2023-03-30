@@ -13,6 +13,8 @@ spec:
   template:
     metadata:
       name: '{{name}}-istio-base'
+      labels:
+        name: istio-base
     spec:
       project: istio
       source:

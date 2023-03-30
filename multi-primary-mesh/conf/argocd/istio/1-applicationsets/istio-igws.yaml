@@ -13,6 +13,8 @@ spec:
   template:
     metadata:
       name: '{{name}}-istio-igws'
+      labels:
+        name: istio-igws
     spec:
       project: istio
       source:

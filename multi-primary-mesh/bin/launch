@@ -72,9 +72,11 @@ done
 # [i] Setup KUBECONFIG
 #------------------------------------------------------------------------------
 
+echo -e "\n---[ KUBECONFIG ]------------------------------------------------\n"
+
 K8SCFG=~/.kube/config
 for CLUSTER in $(list clusters all); do
-  K8SCFG=${K8SCFG}:tmp/${CLUSTER}/config
+  K8SCFG=${K8SCFG}:./tmp/${CLUSTER}/config
 done
 
 KUBECONFIG=${K8SCFG} \
@@ -84,6 +86,43 @@ function k0 {
   kubectl --context "${CLUS0}" "${@}"
 }
 
+echo "${K8SCFG}" | tr ':' '\n'
+
+#------------------------------------------------------------------------------
+# [i] Wait for all the clusters to be ready
+#------------------------------------------------------------------------------
+
+echo -e "\n---[ Wait for clusters ]----------------------------------------\n"
+
+for CLUSTER in $(list clusters); do
+  until kubectl --context "${CLUSTER}" wait --for=condition=Ready pods --all -A 2>/dev/null; do
+    sleep 2
+  done &
+done; wait
+
+#------------------------------------------------------------------------------
+# [i] Setup CoreDNS server DNS entries for demo.lab
+#------------------------------------------------------------------------------
+
+echo -e "\n---[ CoreDNS ]---------------------------------------------------\n"
+
+for CLUSTER in $(list clusters); do
+
+kubectl --context "${CLUSTER}" -n kube-system create cm coredns-custom \
+--dry-run=client -o yaml --from-literal=demo.server="demo.lab {
+  hosts {
+    ttl 60
+    ${IP[${CLUS0}]} vault.demo.lab
+    ${IP[${CLUSTER}]} httpbin.demo.lab
+    fallthrough
+  }
+}" | kubectl --context "${CLUSTER}" -n kube-system apply -f -
+
+done
+
+# TODO: Wait for CoreDNS to reload or restart
+sleep 10
+
 #------------------------------------------------------------------------------
 # [i] Setup the ArgoCD and register the clusters to it
 #------------------------------------------------------------------------------
@@ -91,7 +130,6 @@ function k0 {
 echo -e "\n---[ ArgoCD ]----------------------------------------------------\n"
 
 # Install ArgoCD
-k0 wait --for=condition=Ready --timeout=360s pods --all -A
 k0 create ns argocd --dry-run=client -o yaml | k0 apply -f -
 k0 -n argocd apply -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml > /dev/null
 k0 -n argocd patch svc argocd-server -p '{"spec": {"type": "LoadBalancer"}}'
@@ -141,9 +179,9 @@ echo -e "\n---[ Deploy Vault ]----------------------------------------------\n"
 k0 apply -Rf ./conf/argocd/vault
 
 [ "$(echo "${ALIST}" | grep vault | grep -c 'Synced  Healthy')" -eq 1 ] || {
-  echo "argocd app sync vault"
-  argocd app sync vault > /dev/null
-  argocd app wait vault > /dev/null
+  echo "argocd app sync -l name=vault"
+  argocd app sync -l name=vault > /dev/null
+  argocd app wait -l name=vault > /dev/null
 }
 
 #------------------------------------------------------------------------------
@@ -213,26 +251,6 @@ SECRET_ID_B64=$(
 )
 
 #------------------------------------------------------------------------------
-# [i] Setup CoreDNS server DNS entries for demo.lab
-#------------------------------------------------------------------------------
-
-echo -e "\n---[ CoreDNS ]---------------------------------------------------\n"
-
-for CLUSTER in ${STAMP[clusters]}; do
-
-kubectl --context "${CLUSTER}" -n kube-system create cm coredns-custom \
---dry-run=client -o yaml --from-literal=demo.server="demo.lab {
-  hosts {
-    ttl 60
-    ${IP[${CLUS0}]} vault.demo.lab
-    ${IP[${CLUSTER}]} httpbin.demo.lab
-    fallthrough
-  }
-}" | kubectl --context "${CLUSTER}" -n kube-system apply -f -
-
-done
-
-#------------------------------------------------------------------------------
 # [i] Deploy cert-manager
 #------------------------------------------------------------------------------
 
@@ -241,9 +259,9 @@ echo -e "\n---[ cert-manager ]----------------------------------------------\n"
 k0 apply -Rf ./conf/argocd/cert-manager
 
 [ "$(echo "${ALIST}" | grep cert-manager | grep -c 'Synced  Healthy')" -eq 2 ] || {
-  echo "argocd app sync ${CLUS1}-cert-manager ${CLUS2}-cert-manager"
-  argocd app sync "${CLUS1}-cert-manager" "${CLUS2}-cert-manager" > /dev/null
-  argocd app wait "${CLUS1}-cert-manager" "${CLUS2}-cert-manager" > /dev/null
+  echo "argocd app sync -l name=cert-manager --async"
+  argocd app sync -l name=cert-manager --async > /dev/null
+  argocd app wait -l name=cert-manager > /dev/null
 }
 
 #------------------------------------------------------------------------------
@@ -258,9 +276,9 @@ helm template ./charts/istio-issuers \
 k0 apply -f -
 
 [ "$(echo "${ALIST}" | grep issuers | grep -c 'Synced  Healthy')" -eq 2 ] || {
-  echo "argocd app sync ${CLUS1}-istio-issuers ${CLUS2}-istio-issuers"
-  argocd app sync "${CLUS1}-istio-issuers" "${CLUS2}-istio-issuers" > /dev/null
-  argocd app wait "${CLUS1}-istio-issuers" "${CLUS2}-istio-issuers" > /dev/null
+  echo "argocd app sync -l name=istio-issuers --async"
+  argocd app sync -l name=istio-issuers --async > /dev/null
+  argocd app wait -l name=istio-issuers --degraded > /dev/null
 }
 
 #------------------------------------------------------------------------------
@@ -273,37 +291,37 @@ k0 apply -Rf ./conf/argocd/istio
 
 # Base
 [ "$(echo "${ALIST}" | grep istio-base | grep -c 'Synced  Healthy')" -eq 2 ] || {
-  echo "argocd app sync ${CLUS1}-istio-base ${CLUS2}-istio-base"
-  argocd app sync "${CLUS1}-istio-base" "${CLUS2}-istio-base" > /dev/null
-  argocd app wait "${CLUS1}-istio-base" "${CLUS2}-istio-base" > /dev/null
+  echo "argocd app sync -l name=istio-base --async"
+  argocd app sync -l name=istio-base --async > /dev/null
+  argocd app wait -l name=istio-base > /dev/null
 }
 
 # Cni
 [ "$(echo "${ALIST}" | grep istio-cni | grep -c 'Synced  Healthy')" -eq 2 ] || {
-  echo "argocd app sync ${CLUS1}-istio-cni ${CLUS2}-istio-cni"
-  argocd app sync "${CLUS1}-istio-cni" "${CLUS2}-istio-cni" > /dev/null
-  argocd app wait "${CLUS1}-istio-cni" "${CLUS2}-istio-cni" > /dev/null
+  echo "argocd app sync -l name=istio-cni --async"
+  argocd app sync -l name=istio-cni --async > /dev/null
+  argocd app wait -l name=istio-cni > /dev/null
 }
 
 # Pilot
 [ "$(echo "${ALIST}" | grep istio-pilot | grep -c 'Synced  Healthy')" -eq 2 ] || {
- echo "argocd app sync ${CLUS1}-istio-pilot ${CLUS2}-istio-pilot"
- argocd app sync "${CLUS1}-istio-pilot" "${CLUS2}-istio-pilot" > /dev/null
- argocd app wait "${CLUS1}-istio-pilot" "${CLUS2}-istio-pilot" > /dev/null
+ echo "argocd app sync -l name=istio-pilot --async"
+ argocd app sync -l name=istio-pilot --async > /dev/null
+ argocd app wait -l name=istio-pilot > /dev/null
 }
 
 # IngressGateways
 [ "$(echo "${ALIST}" | grep istio-igws | grep -c 'Synced  Healthy')" -eq 2 ] || {
-  echo "argocd app sync ${CLUS1}-istio-igws ${CLUS2}-istio-igws"
-  argocd app sync "${CLUS1}-istio-igws" "${CLUS2}-istio-igws" > /dev/null
-  argocd app wait "${CLUS1}-istio-igws" "${CLUS2}-istio-igws" > /dev/null
+  echo "argocd app sync -l name=istio-igws --async"
+  argocd app sync -l name=istio-igws --async > /dev/null
+  argocd app wait -l name=istio-igws > /dev/null
 }
 
 # East-West gateway
 [ "$(echo "${ALIST}" | grep istio-ewgw | grep -c 'Synced  Healthy')" -eq 2 ] || {
-  echo "argocd app sync ${CLUS1}-istio-ewgw ${CLUS2}-istio-ewgw"
-  argocd app sync "${CLUS1}-istio-ewgw" "${CLUS2}-istio-ewgw" > /dev/null
-  argocd app wait "${CLUS1}-istio-ewgw" "${CLUS2}-istio-ewgw" > /dev/null
+  echo "argocd app sync -l name=istio-ewgw --async"
+  argocd app sync -l name=istio-ewgw --async > /dev/null
+  argocd app wait -l name=istio-ewgw > /dev/null
 }
 
 #------------------------------------------------------------------------------
@@ -326,9 +344,9 @@ echo -e "\n---[ httpbin ]---------------------------------------------------\n"
 k0 apply -Rf ./conf/argocd/httpbin
 
 [ "$(echo "${ALIST}" | grep httpbin | grep -c 'Synced  Healthy')" -eq 2 ] || {
-  echo "argocd app sync ${CLUS1}-httpbin ${CLUS2}-httpbin"
-  argocd app sync "${CLUS1}-httpbin" "${CLUS2}-httpbin" > /dev/null
-  argocd app wait "${CLUS1}-httpbin" "${CLUS2}-httpbin" > /dev/null
+  echo "argocd app sync -l name=httpbin --async"
+  argocd app sync -l name=httpbin --async > /dev/null
+  argocd app wait -l name=httpbin > /dev/null
 }
 
 #------------------------------------------------------------------------------
@@ -377,5 +395,6 @@ echo "ArgoCD WebUI: https://${IP[${CLUS0}]}"
 echo "ArgoCD User: admin"
 echo "ArgoCD Pass: ${ARGOCD_PASS}"
 echo
+echo "Vault:"
 echo "export VAULT_ADDR=${VAULT_ADDR}"
 echo "export VAULT_TOKEN=${VAULT_TOKEN}"

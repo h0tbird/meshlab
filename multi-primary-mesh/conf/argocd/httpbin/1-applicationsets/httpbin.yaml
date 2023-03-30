@@ -13,6 +13,8 @@ spec:
   template:
     metadata:
       name: '{{name}}-httpbin'
+      labels:
+        name: httpbin
     spec:
       project: httpbin
       source:

@@ -13,6 +13,8 @@ spec:
   template:
     metadata:
       name: '{{name}}-cert-manager'
+      labels:
+        name: cert-manager
     spec:
       project: cert-manager
       source:

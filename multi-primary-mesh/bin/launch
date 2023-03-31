@@ -54,13 +54,19 @@ echo -e "\n---[ Multipass VMs ]---------------------------------------------\n"
 MPLIST=$(multipass list)
 N=$(list clusters | wc -w)
 
-# Start all the clusters
-for CLUSTER in $(list clusters all); do
+# Start the management cluster
+echo "${MPLIST}" | grep "${CLUS0}" | grep -q Running || {
+  { multipass start "${CLUS0}" 2>/dev/null || (launch_k8s "${CLUS0}" "cluster") } &
+  sleep 5
+}
+
+# Start all the stamp clusters
+for STAMP in $(list stamps); do for CLUSTER in ${STAMPS[${STAMP}]}; do
     echo "${MPLIST}" | grep "${CLUSTER}" | grep -q Running || {
-      { multipass start "${CLUSTER}" 2>/dev/null || (launch_k8s "${CLUSTER}") } &
+      { multipass start "${CLUSTER}" 2>/dev/null || (launch_k8s "${CLUSTER}" "${STAMP}") } &
       sleep 5
     }
-done; wait
+done; done; wait
 
 # Get all the IPs
 declare -A IP

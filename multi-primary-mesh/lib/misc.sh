@@ -51,12 +51,15 @@ function launch_vms {
 
 function launch_k8s {
 
+  NAME="$1"
+  STAMP="$2"
+
   # Base64 encoded config files
   REG_CONFIG=$(base64 -w0 conf/registries.yaml)
   K3S_CONFIG=$(base64 -w0 conf/k3s.yaml)
 
   # Setup the VM with cloud-config
-  multipass launch --name "$1" --cpus 2 --memory 5G --disk 10G --cloud-init - <<- EOF
+  multipass launch --name "${NAME}" --cpus 2 --memory 5G --disk 10G --cloud-init - <<- EOF
 	#cloud-config
 	 
 	write_files:
@@ -76,26 +79,26 @@ function launch_k8s {
 	  # Install k3s
 	  #-------------
 	  
-	  curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--disable=traefik" sh -s -
+	  curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--cluster-domain ${STAMP}.local --disable=traefik" sh -s -
 	  sleep 5; kubectl wait --for=condition=Ready nodes --all --timeout=60s
 	  
 	  #----------------
 	  # Topology setup
 	  #----------------
 	  
-	  kubectl label --overwrite node $1 topology.kubernetes.io/region=milky-way
-	  kubectl label --overwrite node $1 topology.kubernetes.io/zone=solar-system
-	  kubectl label --overwrite node $1 topology.istio.io/subzone=$1
+	  kubectl label --overwrite node ${NAME} topology.kubernetes.io/region=milky-way
+	  kubectl label --overwrite node ${NAME} topology.kubernetes.io/zone=solar-system
+	  kubectl label --overwrite node ${NAME} topology.istio.io/subzone=${NAME}
 	  
 	  #------------
 	  # Kubeconfig
 	  #------------
 	  
 	  IP=\$(hostname -I | awk '{print \$1}')
-	  kubectl config view --raw | sed "s/127\.0\.0\.1/\${IP}/g; s/: default/: $1/g" > /home/ubuntu/config
+	  kubectl config view --raw | sed "s/127\.0\.0\.1/\${IP}/g; s/: default/: ${NAME}/g" > /home/ubuntu/config
 	EOF
 
 	# Copy the kubeconfig to the host
-	mkdir -p ./tmp/"$1"
-	multipass transfer "$1:/home/ubuntu/config" "tmp/$1"
+	mkdir -p ./tmp/"${NAME}"
+	multipass transfer "${NAME}:/home/ubuntu/config" "tmp/${NAME}"
 }

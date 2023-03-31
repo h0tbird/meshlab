@@ -35,4 +35,14 @@ argocd context --delete "${CLUS0}"
 # Delete the istio-sidecar.deb
 #------------------------------------------------------------------------------
 
-rm -f ./tmp/virt-01/istio-sidecar.deb
+rm -f ./tmp/virt-01/istio-sidecar.deb || true
+
+#------------------------------------------------------------------------------
+# Flush the IP address pool
+#------------------------------------------------------------------------------
+
+echo "You might want to flush the IP address pool:"
+echo
+echo "sudo launchctl stop com.apple.bootpd"
+echo "sudo rm -f /var/db/dhcpd_leases"
+echo "sudo launchctl start com.apple.bootpd"

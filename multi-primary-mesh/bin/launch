@@ -276,7 +276,7 @@ k0 apply -f -
 [ "$(echo "${ALIST}" | grep issuers | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
   echo "argocd app sync -l name=istio-issuers --async"
   argocd app sync -l name=istio-issuers --async > /dev/null
-  argocd app wait -l name=istio-issuers --degraded --timeout 30 > /dev/null || true
+  argocd app wait -l name=istio-issuers --degraded --timeout 20 > /dev/null || true
 }
 
 #------------------------------------------------------------------------------

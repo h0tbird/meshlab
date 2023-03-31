@@ -5,8 +5,6 @@
 #------------------------------------------------------------------------------
 
 export MNGR="kube-00"
-export CLUS1="pasta-1"
-export CLUS2="pasta-2"
 
 export -A STAMPS=(
   [pasta]="pasta-1 pasta-2"

@@ -369,3 +369,4 @@ echo
 echo "Vault:"
 echo "export VAULT_ADDR=${VAULT_ADDR}"
 echo "export VAULT_TOKEN=${VAULT_TOKEN}"
+echo

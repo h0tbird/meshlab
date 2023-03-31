@@ -23,7 +23,7 @@ spec:
         path: .
         helm:
           values: |
-            domain: cluster.local
+            domain: {{metadata.labels.stamp}}.local
       destination:
         server: '{{server}}'
         namespace: httpbin

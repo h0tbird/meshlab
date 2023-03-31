@@ -7,15 +7,19 @@ source lib/common.sh
 # Delete clusters
 #------------------------------------------------------------------------------
 
-multipass suspend "${CLUS0}" "${CLUS1}" "${CLUS2}"
-multipass delete "${CLUS0}" "${CLUS1}" "${CLUS2}"
+# TODO: Use multipass delete --all --purge --force
+# or something like that that will return the leased IP addresses
+# to the pool so that they can be reused.
+
+multipass suspend $(list clusters all)
+multipass delete $(list clusters all)
 multipass purge
 
 #------------------------------------------------------------------------------
 # Setup KUBECONFIG
 #------------------------------------------------------------------------------
 
-for CLUSTER in ${CLUS0} ${CLUS1} ${CLUS2}; do
+for CLUSTER in $(list clusters all); do
   kubectl config delete-user "${CLUSTER}"
   kubectl config delete-cluster "${CLUSTER}"
   kubectl config delete-context "${CLUSTER}"

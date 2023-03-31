@@ -131,15 +131,15 @@ instance's first boot.
 Tail the `cloud-init` logs:
 ```console
 multipass exec kube-00 -- tail -f /var/log/cloud-init-output.log
-multipass exec kube-01 -- tail -f /var/log/cloud-init-output.log
-multipass exec kube-02 -- tail -f /var/log/cloud-init-output.log
+multipass exec pasta-1 -- tail -f /var/log/cloud-init-output.log
+multipass exec pasta-2 -- tail -f /var/log/cloud-init-output.log
 ```
 
 Inspect the rendered `runcmd`:
 ```console
 multipass exec kube-00 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
-multipass exec kube-01 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
-multipass exec kube-02 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
+multipass exec pasta-1 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
+multipass exec pasta-2 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
 multipass exec virt-01 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
 ```
 
@@ -194,12 +194,13 @@ argocd app list
 
 Manually sync applications:
 ```console
-argocd app sync kube-01-istio-base kube-02-istio-base
-argocd app sync kube-01-istio-cni kube-02-istio-cni
-argocd app sync kube-01-istio-pilot kube-02-istio-pilot
-argocd app sync kube-01-istio-igws kube-02-istio-igws
-argocd app sync kube-01-istio-ewgw kube-02-istio-ewgw
-argocd app sync kube-01-httpbin kube-02-httpbin
+argocd app sync -l name=istio-issuers --async
+argocd app sync -l name=istio-base --async
+argocd app sync -l name=istio-cni --async
+argocd app sync -l name=istio-pilot --async
+argocd app sync -l name=istio-igws --async
+argocd app sync -l name=istio-ewgw --async
+argocd app sync -l name=httpbin --async
 ```
 
 </p></details>
@@ -216,7 +217,7 @@ cloud-native environments.
 
 Create a DNS record for `httpbin.demo.com`:
 ```console
-k --context kube-01 -n kube-system create configmap coredns-custom --from-literal=demo.server='demo.com {
+k --context pasta-1 -n kube-system create configmap coredns-custom --from-literal=demo.server='demo.com {
   hosts {
     ttl 60
     192.168.64.3 httpbin.demo.com
@@ -227,7 +228,7 @@ k --context kube-01 -n kube-system create configmap coredns-custom --from-litera
 
 Create a DNS record for `httpbin.demo.com`:
 ```console
-k --context kube-02 -n kube-system create configmap coredns-custom --from-literal=demo.server='demo.com {
+k --context pasta-2 -n kube-system create configmap coredns-custom --from-literal=demo.server='demo.com {
   hosts {
     ttl 60
     192.168.64.4 httpbin.demo.com
@@ -264,7 +265,7 @@ required webhooks are reachable by the K8S API server. We use v1alpha2 API to
 ensure that the API server has also connected to the cert-manager conversion
 webhook:
 ```console
-cmctl check api --context kube-01
+cmctl check api --context pasta-1
 ```
 
 Get details about the current status of a cert-manager Certificate resource,

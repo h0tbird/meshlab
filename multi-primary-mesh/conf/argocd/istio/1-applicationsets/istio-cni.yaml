@@ -23,12 +23,12 @@ spec:
         path: charts/cni
         helm:
           values: |
-            mesh: red-balloon
+            mesh: {{metadata.labels.stamp}}
             network: {{name}}
             cluster: {{name}}
             domain: cluster.local
             revision: 1-17-1
-            trustDomain: red-balloon.local
+            trustDomain: {{metadata.labels.stamp}}.local
       destination:
         server: '{{server}}'
         namespace: istio-system

@@ -271,13 +271,13 @@ cmctl check api --context pasta-1
 Get details about the current status of a cert-manager Certificate resource,
 including information on related resources like `CertificateRequest` or `Order`:
 ```console
-cmctl status certificate --context kube-01 --namespace istio-system istio-cluster-ica
-cmctl status certificate --context kube-01 --namespace istio-system ingressgateway
+cmctl status certificate --context pasta-1 --namespace istio-system istio-cluster-ica
+cmctl status certificate --context pasta-1 --namespace istio-system ingressgateway
 ```
 
 Mark cert-manager `Certificate` resources for manual renewal:
 ```console
-cmctl renew --context kube-01 --namespace istio-system istio-cluster-ica
+cmctl renew --context pasta-1 --namespace istio-system istio-cluster-ica
 ```
 
 </p></details>
@@ -295,12 +295,12 @@ complexities of microservices architecture.
 
 Lists the remote clusters each `istiod` instance is connected to:
 ```console
-istioctl --context kube-01 remote-clusters
+istioctl --context pasta-1 remote-clusters
 ```
 
 Access the `istiod` WebUI:
 ```console
-istioctl --context kube-01 dashboard controlz deployment/istiod-1-17-1.istio-system
+istioctl --context pasta-1 dashboard controlz deployment/istiod-1-17-1.istio-system
 ```
 
 </p></details>
@@ -322,12 +322,12 @@ k --context kube-00 -n kube-system get ds -l svccontroller.k3s.cattle.io/svcname
 
 List the containers fronting the exposed `istio-eastwestgateway` ports:
 ```console
-k --context kube-01 -n kube-system get ds -l svccontroller.k3s.cattle.io/svcname=istio-eastwestgateway -o yaml | yq '.items[].spec.template.spec.containers[].name'
+k --context pasta-1 -n kube-system get ds -l svccontroller.k3s.cattle.io/svcname=istio-eastwestgateway -o yaml | yq '.items[].spec.template.spec.containers[].name'
 ```
 
 List the containers fronting the exposed `istio-ingressgateway` ports:
 ```console
-k --context kube-01 -n kube-system get ds -l svccontroller.k3s.cattle.io/svcname=istio-ingressgateway -o yaml | yq '.items[].spec.template.spec.containers[].name'
+k --context pasta-1 -n kube-system get ds -l svccontroller.k3s.cattle.io/svcname=istio-ingressgateway -o yaml | yq '.items[].spec.template.spec.containers[].name'
 ```
 
 </p></details>
@@ -352,7 +352,7 @@ multipass exec virt-01 -- curl -s localhost:15000/config_dump | istioctl pc secr
 Set debug log level on a given proxy:
 ```console
 istioctl pc log sleep-xxx.httpbin --level debug
-k --context kube-01 -n httpbin logs -f sleep-xxx -c istio-proxy
+k --context pasta-1 -n httpbin logs -f sleep-xxx -c istio-proxy
 ```
 
 Access the WebUI of a given envoy proxy:
@@ -362,12 +362,12 @@ istioctl dashboard envoy sleep-xxx.httpbin
 
 Dump the envoy config of an eastweast gateway:
 ```console
-k --context kube-01 -n istio-system exec -it deployment/istio-eastwestgateway -- curl -s localhost:15000/config_dump
+k --context pasta-1 -n istio-system exec -it deployment/istio-eastwestgateway -- curl -s localhost:15000/config_dump
 ```
 
 Dump the `common_tls_context` for a given envoy cluster:
 ```console
-k --context kube-01 -n httpbin exec -i sleep-xxx -- \
+k --context pasta-1 -n httpbin exec -i sleep-xxx -- \
 curl -s localhost:15000/config_dump | jq '
   .configs[] |
   select(."@type"=="type.googleapis.com/envoy.admin.v3.ClustersConfigDump") |
@@ -381,7 +381,7 @@ curl -s localhost:15000/config_dump | jq '
 
 List `LISTEN` ports:
 ```console
-k --context kube-01 -n istio-system exec istio-eastwestgateway-xxx -- netstat -tuanp | grep LISTEN | sort -u
+k --context pasta-1 -n istio-system exec istio-eastwestgateway-xxx -- netstat -tuanp | grep LISTEN | sort -u
 ```
 
 Check the status-port:
@@ -404,17 +404,17 @@ microservices architectures.
 
 `httpbin` priority and weight from the point of view of the `istio-ingressgateway`:
 ```console
-watch "istioctl --context kube-01 -n istio-system pc endpoint deploy/istio-ingressgateway | grep -E '^END|httpbin'; echo; k --context kube-01 -n istio-system exec -it deployment/istio-ingressgateway -- curl -X POST localhost:15000/clusters | grep '^outbound|80||httpbin' | grep -E 'zone|region|::priority|::weight' | sort | sed -e '/:zone:/s/$/\n/'"
+watch "istioctl --context pasta-1 -n istio-system pc endpoint deploy/istio-ingressgateway | grep -E '^END|httpbin'; echo; k --context pasta-1 -n istio-system exec -it deployment/istio-ingressgateway -- curl -X POST localhost:15000/clusters | grep '^outbound|80||httpbin' | grep -E 'zone|region|::priority|::weight' | sort | sed -e '/:zone:/s/$/\n/'"
 ```
 
 `httpbin` workloads, priority and weight from the point of view of the `sleep` pod:
 ```console
- watch "k --context kube-01 -n httpbin get po -o wide; echo; istioctl --context kube-01 -n httpbin pc endpoint deploy/sleep | grep -E '^END|httpbin'; echo; k --context kube-01 -n httpbin exec -it deployment/sleep -c istio-proxy -- curl -X POST localhost:15000/clusters | grep '^outbound|80||httpbin' | grep -E 'zone|region|::priority|::weight' | sort | sed -e '/:zone:/s/$/\n/'"
+ watch "k --context pasta-1 -n httpbin get po -o wide; echo; istioctl --context pasta-1 -n httpbin pc endpoint deploy/sleep | grep -E '^END|httpbin'; echo; k --context pasta-1 -n httpbin exec -it deployment/sleep -c istio-proxy -- curl -X POST localhost:15000/clusters | grep '^outbound|80||httpbin' | grep -E 'zone|region|::priority|::weight' | sort | sed -e '/:zone:/s/$/\n/'"
 ```
 
 `VM`: patch the `workloadentries` object with locality metadata (bug?):
 ```console
-k --context kube-01 -n httpbin patch workloadentries httpbin-192.168.64.5-vm-network --type merge -p '{"spec":{"locality":"milky-way/solar-system/virt-01"}}'
+k --context pasta-1 -n httpbin patch workloadentries httpbin-192.168.64.5-vm-network --type merge -p '{"spec":{"locality":"milky-way/solar-system/virt-01"}}'
 ```
 
 `VM`: retrieve topology metadata, assigned priority and weight:
@@ -432,8 +432,8 @@ The tests in this section should validate all functionalities.
 
 Send requests to service `httpbin`:
 ```console
-k --context kube-01 -n httpbin exec -i deployment/sleep -- curl -s httpbin/get | jq -r '.envs.HOSTNAME'
-k --context kube-02 -n httpbin exec -i deployment/sleep -- curl -s httpbin/get | jq -r '.envs.HOSTNAME'
+k --context pasta-1 -n httpbin exec -i deployment/sleep -- curl -s httpbin/get | jq -r '.envs.HOSTNAME'
+k --context pasta-2 -n httpbin exec -i deployment/sleep -- curl -s httpbin/get | jq -r '.envs.HOSTNAME'
 ```
 
 Same thing but using the VM:
@@ -454,7 +454,7 @@ speeds up TLS handshakes, among other improvements.
 
 Setup a place to dump the crypto material:
 ```console
-k --context kube-01 -n httpbin patch deployment sleep --type merge -p '
+k --context pasta-1 -n httpbin patch deployment sleep --type merge -p '
 spec:
   template:
     metadata:
@@ -469,7 +469,7 @@ spec:
 
 Write the required per-session TLS secrets to a file ([source](https://github.com/istio/istio/blob/5f90e4b9ae19800f4c539628ae038ec118835610/pilot/pkg/networking/core/v1alpha3/envoyfilter/cluster_patch_test.go#L241-L262)):
 ```console
-k --context kube-01 apply -f - << EOF
+k --context pasta-1 apply -f - << EOF
 apiVersion: networking.istio.io/v1alpha3
 kind: EnvoyFilter
 metadata:
@@ -501,27 +501,27 @@ EOF
 
 Restart envoy to kill all TCP connections and force new TLS handshakes:
 ```console
-k --context kube-01 -n httpbin exec -it deployment/sleep -c istio-proxy -- curl -X POST localhost:15000/quitquitquit
+k --context pasta-1 -n httpbin exec -it deployment/sleep -c istio-proxy -- curl -X POST localhost:15000/quitquitquit
 ```
 
 Optionally, use this command to list all available endpoints:
 ```console
-istioctl --context kube-01 pc endpoint deploy/httpbin.httpbin | egrep '^END|httpbin'
+istioctl --context pasta-1 pc endpoint deploy/httpbin.httpbin | egrep '^END|httpbin'
 ```
 
 Start `tcpdump`:
 ```console
-k --context kube-01 -n httpbin exec -it deployment/sleep -c istio-proxy -- sudo tcpdump -s0 -w /sniff/dump.pcap
+k --context pasta-1 -n httpbin exec -it deployment/sleep -c istio-proxy -- sudo tcpdump -s0 -w /sniff/dump.pcap
 ```
 
 Send a few requests to the endpoints listed above:
 ```console
-k --context kube-01 -n httpbin exec -i deployment/sleep -- curl -s httpbin/get | jq -r '.envs."HOSTNAME"'
+k --context pasta-1 -n httpbin exec -i deployment/sleep -- curl -s httpbin/get | jq -r '.envs."HOSTNAME"'
 ```
 
 Stop `tcpdump` and download everything:
 ```console
-k --context kube-01 -n httpbin cp -c istio-proxy sleep-xxx:sniff ~/sniff
+k --context pasta-1 -n httpbin cp -c istio-proxy sleep-xxx:sniff ~/sniff
 ```
 
 Open it with Wireshark:
@@ -548,17 +548,17 @@ step certificate inspect --bundle --servername istiod-1-17-1.istio-system.svc ht
 
 Inspect the certificate chain provided by a given workload:
 ```console
-istioctl --context kube-02 pc secret httpbin-xxxxxxxxxx-yyyyy.httpbin -o json | jq -r '.dynamicActiveSecrets[] | select(.name=="default") | .secret.tlsCertificate.certificateChain.inlineBytes' | base64 -d | step certificate inspect --bundle
+istioctl --context pasta-2 pc secret httpbin-xxxxxxxxxx-yyyyy.httpbin -o json | jq -r '.dynamicActiveSecrets[] | select(.name=="default") | .secret.tlsCertificate.certificateChain.inlineBytes' | base64 -d | step certificate inspect --bundle
 ```
 
 Inspect the certificate root CA present in a given workload:
 ```console
-istioctl --context kube-02 pc secret sleep-xxxxxxxxxx-yyyyy.httpbin -o json | jq -r '.dynamicActiveSecrets[] | select(.name=="ROOTCA") | .secret.validationContext.trustedCa.inlineBytes' | base64 -d | step certificate inspect --bundle
+istioctl --context pasta-2 pc secret sleep-xxxxxxxxxx-yyyyy.httpbin -o json | jq -r '.dynamicActiveSecrets[] | select(.name=="ROOTCA") | .secret.validationContext.trustedCa.inlineBytes' | base64 -d | step certificate inspect --bundle
 ```
 
 Similar as above but this time as a client:
 ```console
-k --context kube-01 -n httpbin exec -it deployment/sleep -c istio-proxy -- openssl s_client -showcerts httpbin:80
+k --context pasta-1 -n httpbin exec -it deployment/sleep -c istio-proxy -- openssl s_client -showcerts httpbin:80
 ```
 
 </p></details>
@@ -575,41 +575,41 @@ source ./lib/misc.sh && launch_vms virt-01
 
 Add locality info:
 ```console
-k --context kube-01 -n httpbin patch workloadentries httpbin-192.168.64.5-vm-network --type merge -p '{"spec":{"locality":"milky-way/solar-system/virt-01"}}'
-k --context kube-01 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"labels":{"istio-locality":"milky-way.solar-system.kube-01"}}}}}'
-k --context kube-01 -n httpbin label pod sleep-xxxx topology.istio.io/subzone=kube-01 topology.kubernetes.io/region=milky-way topology.kubernetes.io/zone=solar-system
+k --context pasta-1 -n httpbin patch workloadentries httpbin-192.168.64.5-vm-network --type merge -p '{"spec":{"locality":"milky-way/solar-system/virt-01"}}'
+k --context pasta-1 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"labels":{"istio-locality":"milky-way.solar-system.pasta-1"}}}}}'
+k --context pasta-1 -n httpbin label pod sleep-xxxx topology.istio.io/subzone=pasta-1 topology.kubernetes.io/region=milky-way topology.kubernetes.io/zone=solar-system
 ```
 
 ```console
-k --context kube-01 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"labels":{
+k --context pasta-1 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"labels":{
   "topology.kubernetes.io/region":"milky-way",
   "topology.kubernetes.io/zone":"solar-system",
-  "topology.istio.io/subzone":"kube-01"
+  "topology.istio.io/subzone":"pasta-1"
 }}}}}'
 ```
 
 Delete locality info:
 ```console
-k --context kube-01 -n httpbin patch workloadentries httpbin-192.168.64.5-vm-network --type json -p '[{"op": "remove", "path": "/spec/locality"}]'
-k --context kube-01 -n httpbin patch deployment sleep --type json -p '[{"op": "remove", "path": "/spec/template/metadata/labels/istio-locality"}]'
-k --context kube-01 -n httpbin label pod sleep-xxxx topology.istio.io/subzone- topology.kubernetes.io/region- topology.kubernetes.io/zone-
+k --context pasta-1 -n httpbin patch workloadentries httpbin-192.168.64.5-vm-network --type json -p '[{"op": "remove", "path": "/spec/locality"}]'
+k --context pasta-1 -n httpbin patch deployment sleep --type json -p '[{"op": "remove", "path": "/spec/template/metadata/labels/istio-locality"}]'
+k --context pasta-1 -n httpbin label pod sleep-xxxx topology.istio.io/subzone- topology.kubernetes.io/region- topology.kubernetes.io/zone-
 ```
 
 Set debug images:
 ```console
-k --context kube-01 -n istio-system set image deployment/istiod-1-17-1 discovery=docker.io/h0tbird/pilot:1.17.1
-k --context kube-01 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"docker.io/h0tbird/proxyv2:1.17.1"}}}}}'
+k --context pasta-1 -n istio-system set image deployment/istiod-1-17-1 discovery=docker.io/h0tbird/pilot:1.17.1
+k --context pasta-1 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"docker.io/h0tbird/proxyv2:1.17.1"}}}}}'
 ```
 
 Unset debug images:
 ```console
-k --context kube-01 -n istio-system set image deployment/istiod-1-17-1 discovery=docker.io/istio/pilot:1.17.1
-k --context kube-01 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"docker.io/istio/proxyv2:1.17.1"}}}}}'
+k --context pasta-1 -n istio-system set image deployment/istiod-1-17-1 discovery=docker.io/istio/pilot:1.17.1
+k --context pasta-1 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"docker.io/istio/proxyv2:1.17.1"}}}}}'
 ```
 
 Debug:
 ```console
-k --context kube-01 -n httpbin exec -it deployments/sleep -c istio-proxy -- sudo bash -c 'echo 0 > /proc/sys/kernel/yama/ptrace_scope'
-k --context kube-01 -n istio-system exec -it deployments/istiod-1-17-1 -- dlv dap --listen=:40000 --log=true
-k --context kube-01 -n istio-system port-forward deployments/istiod-1-17-1 40000:40000
+k --context pasta-1 -n httpbin exec -it deployments/sleep -c istio-proxy -- sudo bash -c 'echo 0 > /proc/sys/kernel/yama/ptrace_scope'
+k --context pasta-1 -n istio-system exec -it deployments/istiod-1-17-1 -- dlv dap --listen=:40000 --log=true
+k --context pasta-1 -n istio-system port-forward deployments/istiod-1-17-1 40000:40000
 ```

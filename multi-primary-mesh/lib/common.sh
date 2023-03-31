@@ -4,12 +4,12 @@
 # Define stamps and clusters
 #------------------------------------------------------------------------------
 
-export CLUS0="kube-00"
+export MNGR="kube-00"
 export CLUS1="pasta-1"
 export CLUS2="pasta-2"
 
 export -A STAMPS=(
-  [pasta]="${CLUS1} ${CLUS2}"
+  [pasta]="pasta-1 pasta-2"
   [pizza]="pizza-1 pizza-2"
 )
 
@@ -20,7 +20,7 @@ export -A STAMPS=(
 function list {
   case $1 in
     "clusters")
-      [ "${2:-stamp}" == "all" ] && echo -n "${CLUS0} "
+      [ "${2:-stamp}" == "all" ] && echo -n "${MNGR} "
       for STAMP in "${!STAMPS[@]}"; do
         echo -n "${STAMPS[${STAMP}]} "
       done ;;

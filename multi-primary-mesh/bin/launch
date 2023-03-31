@@ -55,8 +55,8 @@ MPLIST=$(multipass list)
 N=$(list clusters | wc -w)
 
 # Start the management cluster
-echo "${MPLIST}" | grep "${CLUS0}" | grep -q Running || {
-  { multipass start "${CLUS0}" 2>/dev/null || (launch_k8s "${CLUS0}" "cluster") } &
+echo "${MPLIST}" | grep "${MNGR}" | grep -q Running || {
+  { multipass start "${MNGR}" 2>/dev/null || (launch_k8s "${MNGR}" "cluster") } &
   sleep 5
 }
 
@@ -90,7 +90,7 @@ KUBECONFIG=${K8SCFG} \
 kubectl config view --flatten > ./tmp/config && cp ./tmp/config ~/.kube/config
 
 function k0 {
-  kubectl --context "${CLUS0}" "${@}"
+  kubectl --context "${MNGR}" "${@}"
 }
 
 echo "${K8SCFG}" | tr ':' '\n'
@@ -119,7 +119,7 @@ kubectl --context "${CLUSTER}" -n kube-system create cm coredns-custom \
 --dry-run=client -o yaml --from-literal=demo.server="demo.lab {
   hosts {
     ttl 60
-    ${IP[${CLUS0}]} vault.demo.lab
+    ${IP[${MNGR}]} vault.demo.lab
     ${IP[${CLUSTER}]} httpbin.demo.lab
     fallthrough
   }
@@ -147,12 +147,12 @@ ARGOCD_PASS=$(
 )
 
 # Check if the ArgoCD context exists
-argocd context "${CLUS0}" 2> /dev/null || {
+argocd context "${MNGR}" 2> /dev/null || {
 
   # Login to ArgoCD
-  argocd login "${IP[${CLUS0}]}" \
+  argocd login "${IP[${MNGR}]}" \
     --insecure \
-    --name "${CLUS0}" \
+    --name "${MNGR}" \
     --username admin \
     --password "${ARGOCD_PASS}"
 
@@ -169,7 +169,7 @@ k0 apply -f ./conf/argocd-cm.yaml
 sleep 2; ALIST=$(argocd app list)
 
 ##-----------------------------------------------------------------------------
-## TODO Deploy a controller to ${CLUS0} that will take care of everything below
+## TODO Deploy a controller to ${MNGR} that will take care of everything below
 ## by reconciling a Stamp CRDs that will be created after deploying the
 ## controller.
 ##-----------------------------------------------------------------------------
@@ -194,7 +194,7 @@ k0 apply -Rf ./conf/argocd/vault
 
 echo -e "\n---[ Populate Vault ]--------------------------------------------\n"
 
-export VAULT_ADDR="http://${IP[${CLUS0}]}:8200"
+export VAULT_ADDR="http://${IP[${MNGR}]}:8200"
 export VAULT_TOKEN=root
 
 while ! vault status &>/dev/null; do sleep 1; done
@@ -362,7 +362,7 @@ k0 apply -Rf ./conf/argocd/httpbin
 
 echo -e "\n---[ Info ]------------------------------------------------------\n"
 
-echo "ArgoCD WebUI: https://${IP[${CLUS0}]}"
+echo "ArgoCD WebUI: https://${IP[${MNGR}]}"
 echo "ArgoCD User: admin"
 echo "ArgoCD Pass: ${ARGOCD_PASS}"
 echo

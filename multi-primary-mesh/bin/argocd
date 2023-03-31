@@ -8,13 +8,13 @@ source lib/common.sh
 #------------------------------------------------------------------------------
 
 ARGOCD_PASS=$(
-  kubectl --context "${CLUS0}" -n argocd \
+  kubectl --context "${MNGR}" -n argocd \
   get secret argocd-initial-admin-secret \
   -o jsonpath='{.data.password}' | base64 -d
 )
 
 ARGOCD_IP=$(
-  kubectl --context "${CLUS0}" -n argocd \
+  kubectl --context "${MNGR}" -n argocd \
   get svc argocd-server \
   -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
 )

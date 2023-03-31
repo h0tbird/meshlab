@@ -29,7 +29,7 @@ done
 # Delete ArgoCD context
 #------------------------------------------------------------------------------
 
-argocd context --delete "${CLUS0}"
+argocd context --delete "${MNGR}"
 
 #------------------------------------------------------------------------------
 # Delete the istio-sidecar.deb

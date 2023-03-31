@@ -46,7 +46,7 @@ function launch_vms {
 }
 
 #------------------------------------------------------------------------------
-# Used to provision ${CLUS0}, ${CLUS1} and ${CLUS2}
+# Used to provision k8s clusters
 #------------------------------------------------------------------------------
 
 function launch_k8s {

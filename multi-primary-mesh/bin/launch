@@ -357,42 +357,6 @@ k0 apply -Rf ./conf/argocd/httpbin
 }
 
 #------------------------------------------------------------------------------
-# [?] Setup a non-k8s workload (optional)
-#------------------------------------------------------------------------------
-
-[ -z "${SKIP_VM}" ] && {
-
-  echo -e "\n---[ VM setup ]--------------------------------------------------\n"
-
-  # Launch the VM
-  multipass start virt-01 2>/dev/null || launch_vms virt-01
-
-  # Generate the VM files
-  istioctl x workload entry configure \
-    --context "${CLUS1}" \
-    -n httpbin \
-    -r 1-17-1 \
-    --name httpbin \
-    --clusterID "${CLUS1}" \
-    --autoregister \
-    -o ./tmp/virt-01/vm-files
-
-  # Use the custom address defined in ISTIOD_CUSTOM_HOST
-  grep -rl 'istiod-1-17-1.istio-system.svc' ./tmp | \
-  xargs sed -i "s/istiod-1-17-1.istio-system.svc/istiod.${CLUS1}/g"
-
-  # Download the istio-sidecar.deb
-  [ -f ./tmp/virt-01/istio-sidecar.deb ] || {
-    curl -sLo ./tmp/virt-01/istio-sidecar.deb \
-    https://storage.googleapis.com/istio-release/releases/1.17.1/deb/istio-sidecar-"$(arch)".deb
-  }
-
-  # Setup the VM files
-  cp ./conf/vm-setup ./tmp/virt-01
-  multipass exec virt-01 -- sudo /mnt/host/vm-setup
-}
-
-#------------------------------------------------------------------------------
 # Echo useful info
 #------------------------------------------------------------------------------
 

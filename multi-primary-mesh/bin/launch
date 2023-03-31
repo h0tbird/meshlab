@@ -101,7 +101,7 @@ echo "${K8SCFG}" | tr ':' '\n'
 
 echo -e "\n---[ Wait for clusters ]-----------------------------------------\n"
 
-for CLUSTER in $(list clusters); do
+for CLUSTER in $(list clusters all); do
   until kubectl --context "${CLUSTER}" wait --for=condition=Ready pods --all -A 2>/dev/null; do
     sleep 2
   done &

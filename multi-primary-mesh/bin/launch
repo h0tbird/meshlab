@@ -120,9 +120,8 @@ kubectl --context "${CLUSTER}" -n kube-system create cm coredns-custom \
   hosts {
     ttl 60
     ${IP[${MNGR}]} vault.demo.lab
-    ${IP[${CLUSTER}]} httpbin.demo.lab
-    ${IP[${CLUSTER}]} httpbin-blau.demo.lab
-    ${IP[${CLUSTER}]} httpbin-verd.demo.lab
+    ${IP[${CLUSTER}]} blau.demo.lab
+    ${IP[${CLUSTER}]} verd.demo.lab
     fallthrough
   }
 }" | kubectl --context "${CLUSTER}" -n kube-system apply -f -
@@ -351,12 +350,6 @@ done
 echo -e "\n---[ httpbin-(blau|verd) ]---------------------------------------\n"
 
 k0 apply -Rf ./conf/argocd/httpbin
-
-[ "$(echo "${ALIST}" | grep httpbin | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
-  echo "argocd app sync -l name=httpbin --async"
-  argocd app sync -l name=httpbin --async > /dev/null
-  argocd app wait -l name=httpbin > /dev/null
-}
 
 [ "$(echo "${ALIST}" | grep httpbin-blau | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
   echo "argocd app sync -l name=httpbin-blau --async"

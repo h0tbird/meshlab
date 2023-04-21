@@ -437,13 +437,13 @@ k --context pasta-1 -n httpbin-blau exec -i deployment/sleep -- curl -s httpbin/
 
 Send requests to the `httpbin-blau` service from an unauthenticated out-of-cluster workstation:
 ```console
-curl -skm 2 --resolve httpbin-blau.demo.lab:443:192.168.64.3 https://httpbin-blau.demo.lab/get | jq -r '.envs.HOSTNAME'
+curl -skm 2 --resolve blau.demo.lab:443:192.168.64.3 https://blau.demo.lab/get | jq -r '.envs.HOSTNAME'
 ```
 
 Same as above but with certificate validation:
 ```console
 k --context pasta-1 -n istio-system get secret cacerts -o json | jq -r '.data."ca.crt"' | base64 -d > /tmp/ca.crt
-curl -sm 2 --cacert /tmp/ca.crt --resolve httpbin-blau.demo.lab:443:192.168.64.3 https://httpbin-blau.demo.lab/get | jq -r '.envs.HOSTNAME'
+curl -sm 2 --cacert /tmp/ca.crt --resolve blau.demo.lab:443:192.168.64.3 https://blau.demo.lab/get | jq -r '.envs.HOSTNAME'
 ```
 
 Send requests to the `httpbin-blau` service from an authenticated out-of-cluster VM:

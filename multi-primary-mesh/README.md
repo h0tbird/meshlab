@@ -437,8 +437,14 @@ k --context pasta-2 -n httpbin exec -i deployment/sleep -- curl -s httpbin/get |
 ```
 
 Send requests to the `httpbin` service from an unauthenticated out-of-cluster workstation:
-```
+```console
 curl -skm 2 --resolve httpbin.demo.lab:443:192.168.64.3 https://httpbin.demo.lab/get | jq -r '.envs.HOSTNAME'
+```
+
+Same as above but with certificate validation:
+```console
+k --context pasta-1 -n istio-system get secret cacerts -o json | jq -r '.data."ca.crt"' | base64 -d > /tmp/ca.crt
+curl -sm 2 --cacert /tmp/ca.crt --resolve httpbin.demo.lab:443:192.168.64.3 https://httpbin.demo.lab/get | jq -r '.envs.HOSTNAME'
 ```
 
 Send requests to the `httpbin` service from an authenticated out-of-cluster VM:

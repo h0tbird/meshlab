@@ -22,7 +22,7 @@ Feel free to explore the code and documentation in this repository, and if you h
 ```
 
 ## Other related repos
- 
+
 ArgoCD is used to deploy:
 - https://github.com/h0tbird/istio
 - https://github.com/h0tbird/httpbin

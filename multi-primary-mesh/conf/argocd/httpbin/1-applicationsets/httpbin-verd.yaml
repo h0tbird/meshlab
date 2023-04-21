@@ -22,7 +22,7 @@ spec:
         targetRevision: HEAD
         path: .
         helm:
-          releaseName: httpbin-verd
+          releaseName: verd
           values: |
             domain: {{metadata.labels.stamp}}.local
       destination:

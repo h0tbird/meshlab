@@ -2,7 +2,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: httpbin
+  name: httpbin-blau
   namespace: argocd
 spec:
   generators:
@@ -12,9 +12,9 @@ spec:
           argocd.argoproj.io/secret-type: cluster
   template:
     metadata:
-      name: '{{name}}-httpbin'
+      name: '{{name}}-httpbin-blau'
       labels:
-        name: httpbin
+        name: httpbin-blau
     spec:
       project: httpbin
       source:
@@ -22,12 +22,12 @@ spec:
         targetRevision: HEAD
         path: .
         helm:
-          releaseName: httpbin
+          releaseName: httpbin-blau
           values: |
             domain: {{metadata.labels.stamp}}.local
       destination:
         server: '{{server}}'
-        namespace: httpbin
+        namespace: httpbin-blau
       syncPolicy:
         syncOptions:
         - CreateNamespace=true

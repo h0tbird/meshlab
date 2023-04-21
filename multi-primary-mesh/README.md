@@ -402,14 +402,14 @@ microservices architectures.
 
 <details><summary>Click me</summary><p>
 
-`httpbin` priority and weight from the point of view of the `istio-ingressgateway`:
+`httpbin-blau` priority and weight from the point of view of the `istio-ingressgateway`:
 ```console
-watch "istioctl --context pasta-1 -n istio-system pc endpoint deploy/istio-ingressgateway | grep -E '^END|httpbin'; echo; k --context pasta-1 -n istio-system exec -it deployment/istio-ingressgateway -- curl -X POST localhost:15000/clusters | grep '^outbound|80||httpbin' | grep -E 'zone|region|::priority|::weight' | sort | sed -e '/:zone:/s/$/\n/'"
+watch "istioctl --context pasta-1 -n istio-system pc endpoint deploy/istio-ingressgateway | grep -E '^END|httpbin-blau'; echo; k --context pasta-1 -n istio-system exec -it deployment/istio-ingressgateway -- curl -X POST localhost:15000/clusters | grep '^outbound.*httpbin-blau' | grep -E 'zone|region|::priority|::weight' | sort | sed -e '/:zone:/s/$/\n/'"
 ```
 
-`httpbin` workloads, priority and weight from the point of view of the `sleep` pod:
+`httpbin-blau` workloads, priority and weight from the point of view of the `sleep` pod:
 ```console
- watch "k --context pasta-1 -n httpbin get po -o wide; echo; istioctl --context pasta-1 -n httpbin pc endpoint deploy/sleep | grep -E '^END|httpbin'; echo; k --context pasta-1 -n httpbin exec -it deployment/sleep -c istio-proxy -- curl -X POST localhost:15000/clusters | grep '^outbound|80||httpbin' | grep -E 'zone|region|::priority|::weight' | sort | sed -e '/:zone:/s/$/\n/'"
+watch "k --context pasta-1 -n httpbin-blau get po -o wide; echo; istioctl --context pasta-1 -n httpbin-blau pc endpoint deploy/sleep | grep -E '^END|httpbin-blau'; echo; k --context pasta-1 -n httpbin-blau exec -it deployment/sleep -c istio-proxy -- curl -X POST localhost:15000/clusters | grep '^outbound.*httpbin-blau' | grep -E 'zone|region|::priority|::weight' | sort | sed -e '/:zone:/s/$/\n/'"
 ```
 
 `VM`: patch the `workloadentries` object with locality metadata (bug?):
@@ -430,26 +430,25 @@ The tests in this section should validate all functionalities.
 
 <details><summary>Click me</summary><p>
 
-Send requests to the `httpbin` service from an authenticated in-cluster pod:
+Send requests to the `httpbin-blau` service from an authenticated in-cluster pod:
 ```console
-k --context pasta-1 -n httpbin exec -i deployment/sleep -- curl -s httpbin/get | jq -r '.envs.HOSTNAME'
-k --context pasta-2 -n httpbin exec -i deployment/sleep -- curl -s httpbin/get | jq -r '.envs.HOSTNAME'
+k --context pasta-1 -n httpbin-blau exec -i deployment/sleep -- curl -s httpbin/get | jq -r '.envs.HOSTNAME'
 ```
 
-Send requests to the `httpbin` service from an unauthenticated out-of-cluster workstation:
+Send requests to the `httpbin-blau` service from an unauthenticated out-of-cluster workstation:
 ```console
-curl -skm 2 --resolve httpbin.demo.lab:443:192.168.64.3 https://httpbin.demo.lab/get | jq -r '.envs.HOSTNAME'
+curl -skm 2 --resolve httpbin-blau.demo.lab:443:192.168.64.3 https://httpbin-blau.demo.lab/get | jq -r '.envs.HOSTNAME'
 ```
 
 Same as above but with certificate validation:
 ```console
 k --context pasta-1 -n istio-system get secret cacerts -o json | jq -r '.data."ca.crt"' | base64 -d > /tmp/ca.crt
-curl -sm 2 --cacert /tmp/ca.crt --resolve httpbin.demo.lab:443:192.168.64.3 https://httpbin.demo.lab/get | jq -r '.envs.HOSTNAME'
+curl -sm 2 --cacert /tmp/ca.crt --resolve httpbin-blau.demo.lab:443:192.168.64.3 https://httpbin-blau.demo.lab/get | jq -r '.envs.HOSTNAME'
 ```
 
-Send requests to the `httpbin` service from an authenticated out-of-cluster VM:
+Send requests to the `httpbin-blau` service from an authenticated out-of-cluster VM:
 ```console
-for i in {1..20}; do multipass exec virt-01 -- curl -s httpbin/get | jq -r '.envs.HOSTNAME'; done | sort | uniq -c | sort -rn
+for i in {1..20}; do multipass exec virt-01 -- curl -s httpbin-blau/get | jq -r '.envs.HOSTNAME'; done | sort | uniq -c | sort -rn
 ```
 
 </p></details>

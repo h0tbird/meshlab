@@ -121,6 +121,8 @@ kubectl --context "${CLUSTER}" -n kube-system create cm coredns-custom \
     ttl 60
     ${IP[${MNGR}]} vault.demo.lab
     ${IP[${CLUSTER}]} httpbin.demo.lab
+    ${IP[${CLUSTER}]} httpbin-blau.demo.lab
+    ${IP[${CLUSTER}]} httpbin-verd.demo.lab
     fallthrough
   }
 }" | kubectl --context "${CLUSTER}" -n kube-system apply -f -

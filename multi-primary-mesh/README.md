@@ -430,13 +430,18 @@ The tests in this section should validate all functionalities.
 
 <details><summary>Click me</summary><p>
 
-Send requests to service `httpbin`:
+Send requests to the `httpbin` service from an authenticated in-cluster pod:
 ```console
 k --context pasta-1 -n httpbin exec -i deployment/sleep -- curl -s httpbin/get | jq -r '.envs.HOSTNAME'
 k --context pasta-2 -n httpbin exec -i deployment/sleep -- curl -s httpbin/get | jq -r '.envs.HOSTNAME'
 ```
 
-Same thing but using the VM:
+Send requests to the `httpbin` service from an unauthenticated out-of-cluster workstation:
+```
+curl -skm 2 --resolve httpbin.demo.lab:443:192.168.64.3 https://httpbin.demo.lab/get | jq -r '.envs.HOSTNAME'
+```
+
+Send requests to the `httpbin` service from an authenticated out-of-cluster VM:
 ```console
 for i in {1..20}; do multipass exec virt-01 -- curl -s httpbin/get | jq -r '.envs.HOSTNAME'; done | sort | uniq -c | sort -rn
 ```

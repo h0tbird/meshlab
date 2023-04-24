@@ -24,6 +24,7 @@ spec:
         helm:
           values: |
             installCRDs: true
+            clusterResourceNamespace: istio-system
       destination:
         server: '{{server}}'
         namespace: cert-manager

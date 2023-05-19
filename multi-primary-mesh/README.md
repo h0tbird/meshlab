@@ -432,12 +432,12 @@ The tests in this section should validate all functionalities.
 
 <details><summary>Click me</summary><p>
 
-Send requests to the `httpbin-blau` service from an authenticated in-cluster pod:
+Send requests to the `blau` service from an authenticated in-cluster pod:
 ```console
-k --context pasta-1 -n httpbin-blau exec -i deployment/sleep -- curl -s httpbin/get | jq -r '.envs.HOSTNAME'
+k --context pasta-1 -n httpbin-blau exec -i deployment/sleep -- curl -s blau/get | jq -r '.envs.HOSTNAME'
 ```
 
-Send requests to the `httpbin-blau` service from an unauthenticated out-of-cluster workstation:
+Send requests to the `blau` service from an unauthenticated out-of-cluster workstation:
 ```console
 curl -skm 2 --resolve blau.demo.lab:443:192.168.64.3 https://blau.demo.lab/get | jq -r '.envs.HOSTNAME'
 ```
@@ -448,9 +448,9 @@ k --context pasta-1 -n istio-system get secret cacerts -o json | jq -r '.data."c
 curl -sm 2 --cacert /tmp/ca.crt --resolve blau.demo.lab:443:192.168.64.3 https://blau.demo.lab/get | jq -r '.envs.HOSTNAME'
 ```
 
-Send requests to the `httpbin-blau` service from an authenticated out-of-cluster VM:
+Send requests to the `blau` service from an authenticated out-of-cluster VM:
 ```console
-for i in {1..20}; do multipass exec virt-01 -- curl -s httpbin-blau/get | jq -r '.envs.HOSTNAME'; done | sort | uniq -c | sort -rn
+for i in {1..20}; do multipass exec virt-01 -- curl -s blau/get | jq -r '.envs.HOSTNAME'; done | sort | uniq -c | sort -rn
 ```
 
 </p></details>

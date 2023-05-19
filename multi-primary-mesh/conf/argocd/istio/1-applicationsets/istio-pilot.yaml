@@ -27,7 +27,7 @@ spec:
             network: {{name}}
             cluster: {{name}}
             domain: {{metadata.labels.stamp}}.local
-            revision: 1-17-1
+            revision: 1-17-2
             trustDomain: {{metadata.labels.stamp}}.local
       destination:
         server: '{{server}}'

@@ -300,7 +300,7 @@ istioctl --context pasta-1 remote-clusters
 
 Access the `istiod` WebUI:
 ```console
-istioctl --context pasta-1 dashboard controlz deployment/istiod-1-17-1.istio-system
+istioctl --context pasta-1 dashboard controlz deployment/istiod-1-17-2.istio-system
 ```
 
 </p></details>
@@ -554,8 +554,8 @@ Find below a collection of commands to troubleshoot certificate issues.
 
 Connect to the externally exposed `istiod` service and inspect the certificate bundle it presents:
 ```console
-step certificate inspect --bundle --servername istiod-1-17-1.istio-system.svc https://192.168.64.3:15012 --roots /path/to/root-ca.pem
-step certificate inspect --bundle --servername istiod-1-17-1.istio-system.svc https://192.168.64.3:15012 --insecure
+step certificate inspect --bundle --servername istiod-1-17-2.istio-system.svc https://192.168.64.3:15012 --roots /path/to/root-ca.pem
+step certificate inspect --bundle --servername istiod-1-17-2.istio-system.svc https://192.168.64.3:15012 --insecure
 ```
 
 Inspect the certificate chain provided by a given workload:
@@ -609,19 +609,19 @@ k --context pasta-1 -n httpbin label pod sleep-xxxx topology.istio.io/subzone- t
 
 Set debug images:
 ```console
-k --context pasta-1 -n istio-system set image deployment/istiod-1-17-1 discovery=docker.io/h0tbird/pilot:1.17.1
-k --context pasta-1 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"docker.io/h0tbird/proxyv2:1.17.1"}}}}}'
+k --context pasta-1 -n istio-system set image deployment/istiod-1-17-2 discovery=docker.io/h0tbird/pilot:1.17.2
+k --context pasta-1 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"docker.io/h0tbird/proxyv2:1.17.2"}}}}}'
 ```
 
 Unset debug images:
 ```console
-k --context pasta-1 -n istio-system set image deployment/istiod-1-17-1 discovery=docker.io/istio/pilot:1.17.1
-k --context pasta-1 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"docker.io/istio/proxyv2:1.17.1"}}}}}'
+k --context pasta-1 -n istio-system set image deployment/istiod-1-17-2 discovery=docker.io/istio/pilot:1.17.2
+k --context pasta-1 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"docker.io/istio/proxyv2:1.17.2"}}}}}'
 ```
 
 Debug:
 ```console
 k --context pasta-1 -n httpbin exec -it deployments/sleep -c istio-proxy -- sudo bash -c 'echo 0 > /proc/sys/kernel/yama/ptrace_scope'
-k --context pasta-1 -n istio-system exec -it deployments/istiod-1-17-1 -- dlv dap --listen=:40000 --log=true
-k --context pasta-1 -n istio-system port-forward deployments/istiod-1-17-1 40000:40000
+k --context pasta-1 -n istio-system exec -it deployments/istiod-1-17-2 -- dlv dap --listen=:40000 --log=true
+k --context pasta-1 -n istio-system port-forward deployments/istiod-1-17-2 40000:40000
 ```

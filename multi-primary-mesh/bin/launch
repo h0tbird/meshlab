@@ -283,7 +283,8 @@ k0 apply -f -
 [ "$(echo "${ALIST}" | grep issuers | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
   echo "argocd app sync -l name=istio-issuers --async"
   argocd app sync -l name=istio-issuers --async > /dev/null
-  argocd app wait -l name=istio-issuers --degraded --timeout 20 > /dev/null || true
+  argocd app wait -l name=istio-issuers --resource '*:Certificate:*' --health --degraded > /dev/null
+  argocd app wait -l name=istio-issuers > /dev/null
 }
 
 #------------------------------------------------------------------------------
@@ -354,12 +355,14 @@ k0 apply -Rf ./conf/argocd/httpbin
 [ "$(echo "${ALIST}" | grep httpbin-blau | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
   echo "argocd app sync -l name=httpbin-blau --async"
   argocd app sync -l name=httpbin-blau --async > /dev/null
+  argocd app wait -l name=httpbin-blau --resource '*:Certificate:*' --health --degraded > /dev/null
   argocd app wait -l name=httpbin-blau > /dev/null
 }
 
 [ "$(echo "${ALIST}" | grep httpbin-verd | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
   echo "argocd app sync -l name=httpbin-verd --async"
   argocd app sync -l name=httpbin-verd --async > /dev/null
+  argocd app wait -l name=httpbin-verd --resource '*:Certificate:*' --health --degraded > /dev/null
   argocd app wait -l name=httpbin-verd > /dev/null
 }
 

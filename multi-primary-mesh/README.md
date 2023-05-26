@@ -200,7 +200,7 @@ argocd app sync -l name=istio-cni --async
 argocd app sync -l name=istio-pilot --async
 argocd app sync -l name=istio-igws --async
 argocd app sync -l name=istio-ewgw --async
-argocd app sync -l name=httpbin --async
+argocd app sync -l name=applab-blau --async
 ```
 
 Set a different `targetRevision`:

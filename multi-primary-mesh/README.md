@@ -432,14 +432,16 @@ The tests in this section should validate all functionalities.
 
 <details><summary>Click me</summary><p>
 
-Send requests to the `blau` service from an authenticated in-cluster pod:
+Send requests to the `blau` services from an authenticated in-cluster pod:
 ```console
 k --context pasta-1 -n httpbin-blau exec -i deployment/sleep -- curl -s httpbin/get | jq -r '.envs.HOSTNAME'
+k --context pasta-1 -n httpbin-blau exec -i deployment/sleep -- bash -c "echo hello | nc -N echo 9000"
 ```
 
-Send requests to the `blau` service from an unauthenticated out-of-cluster workstation:
+Send requests to the `blau` services from an unauthenticated out-of-cluster workstation:
 ```console
 curl -skm 2 --resolve httpbin.blau.demo.lab:443:192.168.64.3 https://httpbin.blau.demo.lab/get | jq -r '.envs.HOSTNAME'
+echo hello | gnutls-cli 192.168.64.3 -p 31400 --sni-hostname echo.blau.demo.lab --insecure --logfile=/tmp/echo.log
 ```
 
 Same as above but with certificate validation:

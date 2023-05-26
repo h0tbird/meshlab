@@ -203,6 +203,12 @@ argocd app sync -l name=istio-ewgw --async
 argocd app sync -l name=httpbin --async
 ```
 
+Set a different `targetRevision`:
+```
+k --context kube-00 -n argocd patch applicationset applab-blau --type merge -p '{"spec": {"template": {"spec": {"source": {"targetRevision": "HEAD"}}}}}'
+k --context kube-00 -n argocd get application pasta-1-applab-blau -o yaml | yq '.spec.source.targetRevision'
+```
+
 </p></details>
 
 ## CoreDNS

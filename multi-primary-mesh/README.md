@@ -434,23 +434,23 @@ The tests in this section should validate all functionalities.
 
 Send requests to the `blau` service from an authenticated in-cluster pod:
 ```console
-k --context pasta-1 -n httpbin-blau exec -i deployment/sleep -- curl -s blau/get | jq -r '.envs.HOSTNAME'
+k --context pasta-1 -n httpbin-blau exec -i deployment/sleep -- curl -s httpbin/get | jq -r '.envs.HOSTNAME'
 ```
 
 Send requests to the `blau` service from an unauthenticated out-of-cluster workstation:
 ```console
-curl -skm 2 --resolve blau.demo.lab:443:192.168.64.3 https://blau.demo.lab/get | jq -r '.envs.HOSTNAME'
+curl -skm 2 --resolve httpbin.blau.demo.lab:443:192.168.64.3 https://httpbin.blau.demo.lab/get | jq -r '.envs.HOSTNAME'
 ```
 
 Same as above but with certificate validation:
 ```console
 k --context pasta-1 -n istio-system get secret cacerts -o json | jq -r '.data."ca.crt"' | base64 -d > /tmp/ca.crt
-curl -sm 2 --cacert /tmp/ca.crt --resolve blau.demo.lab:443:192.168.64.3 https://blau.demo.lab/get | jq -r '.envs.HOSTNAME'
+curl -sm 2 --cacert /tmp/ca.crt --resolve httpbin.blau.demo.lab:443:192.168.64.3 https://httpbin.blau.demo.lab/get | jq -r '.envs.HOSTNAME'
 ```
 
 Send requests to the `blau` service from an authenticated out-of-cluster VM:
 ```console
-for i in {1..20}; do multipass exec virt-01 -- curl -s blau/get | jq -r '.envs.HOSTNAME'; done | sort | uniq -c | sort -rn
+for i in {1..20}; do multipass exec virt-01 -- curl -s httpbin/get | jq -r '.envs.HOSTNAME'; done | sort | uniq -c | sort -rn
 ```
 
 </p></details>

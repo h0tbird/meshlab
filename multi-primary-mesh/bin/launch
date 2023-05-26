@@ -348,12 +348,12 @@ for STAMP in $(list stamps); do
 done
 
 #------------------------------------------------------------------------------
-# [i] Deploy the httpbin services
+# [i] Deploy the applab services
 #------------------------------------------------------------------------------
 
-echo -e "\n---[ httpbin-(blau|verd) ]---------------------------------------\n"
+echo -e "\n---[ applab ]----------------------------------------------------\n"
 
-k0 apply -Rf ./conf/argocd/httpbin
+k0 apply -Rf ./conf/argocd/applab
 
 [ "$(echo "${ALIST}" | grep httpbin-blau | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
   echo "argocd app sync -l name=httpbin-blau --async"

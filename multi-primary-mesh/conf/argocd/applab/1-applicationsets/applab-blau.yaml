@@ -27,7 +27,7 @@ spec:
             domain: {{metadata.labels.stamp}}.local
       destination:
         server: '{{server}}'
-        namespace: httpbin-blau
+        namespace: applab-blau
       syncPolicy:
         syncOptions:
         - CreateNamespace=true

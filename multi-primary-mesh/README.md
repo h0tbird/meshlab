@@ -434,8 +434,8 @@ The tests in this section should validate all functionalities.
 
 Send requests to the `blau` services from an authenticated in-cluster pod:
 ```console
-k --context pasta-1 -n httpbin-blau exec -i deployment/sleep -- curl -s httpbin/get | jq -r '.envs.HOSTNAME'
-k --context pasta-1 -n httpbin-blau exec -i deployment/sleep -- bash -c "echo hello | nc -N echo 9000"
+k --context pasta-1 -n applab-blau exec -i deployment/sleep -- curl -s httpbin/get | jq -r '.envs.HOSTNAME'
+k --context pasta-1 -n applab-blau exec -i deployment/sleep -- bash -c "echo hello | nc -N echo 9000"
 ```
 
 Send requests to the `blau` services from an unauthenticated out-of-cluster workstation:
@@ -448,6 +448,7 @@ Same as above but with certificate validation:
 ```console
 k --context pasta-1 -n istio-system get secret cacerts -o json | jq -r '.data."ca.crt"' | base64 -d > /tmp/ca.crt
 curl -sm 2 --cacert /tmp/ca.crt --resolve httpbin.blau.demo.lab:443:192.168.64.3 https://httpbin.blau.demo.lab/get | jq -r '.envs.HOSTNAME'
+echo hello | openssl s_client -servername echo.blau.demo.lab -connect 192.168.64.3:31400 -quiet -CAfile /tmp/ca.crt
 ```
 
 Send requests to the `blau` service from an authenticated out-of-cluster VM:

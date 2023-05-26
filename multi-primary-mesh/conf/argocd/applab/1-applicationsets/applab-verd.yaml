@@ -27,7 +27,7 @@ spec:
             domain: {{metadata.labels.stamp}}.local
       destination:
         server: '{{server}}'
-        namespace: httpbin-verd
+        namespace: applab-verd
       syncPolicy:
         syncOptions:
         - CreateNamespace=true

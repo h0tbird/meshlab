@@ -378,10 +378,10 @@ k0 apply -Rf ./conf/argocd/applab
 echo -e "\n---[ Crypto material ]-------------------------------------------\n"
 
 for STAMP in $(list stamps); do for CLUSTER in ${STAMPS[${STAMP}]}; do
-  k --context ${CLUSTER} -n httpbin-blau get secret tls-blau -o yaml |
-    sed 's/httpbin-blau/istio-system/g' | k --context ${CLUSTER} apply -f -
-  k --context ${CLUSTER} -n httpbin-verd get secret tls-verd -o yaml |
-    sed 's/httpbin-verd/istio-system/g' | k --context ${CLUSTER} apply -f -
+  k --context ${CLUSTER} -n applab-blau get secret tls-blau -o yaml |
+    sed 's/applab-blau/istio-system/g' | k --context ${CLUSTER} apply -f -
+  k --context ${CLUSTER} -n applab-verd get secret tls-verd -o yaml |
+    sed 's/applab-verd/istio-system/g' | k --context ${CLUSTER} apply -f -
 done; done
 
 #------------------------------------------------------------------------------

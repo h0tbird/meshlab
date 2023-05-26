@@ -2,7 +2,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: httpbin-verd
+  name: applab-verd
   namespace: argocd
 spec:
   generators:
@@ -12,11 +12,11 @@ spec:
           argocd.argoproj.io/secret-type: cluster
   template:
     metadata:
-      name: '{{name}}-httpbin-verd'
+      name: '{{name}}-applab-verd'
       labels:
-        name: httpbin-verd
+        name: applab-verd
     spec:
-      project: httpbin
+      project: applab
       source:
         repoURL: https://github.com/h0tbird/httpbin.git
         targetRevision: HEAD

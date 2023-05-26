@@ -355,20 +355,20 @@ echo -e "\n---[ applab ]----------------------------------------------------\n"
 
 k0 apply -Rf ./conf/argocd/applab
 
-[ "$(echo "${ALIST}" | grep httpbin-blau | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
-  echo "argocd app sync -l name=httpbin-blau --async"
-  argocd app sync -l name=httpbin-blau --async > /dev/null
-  argocd app wait -l name=httpbin-blau --resource '*:Certificate:*' --health --degraded > /dev/null; sleep 1
-  argocd app wait -l name=httpbin-blau --resource '*:Certificate:*' --health --degraded > /dev/null; sleep 1
-  argocd app wait -l name=httpbin-blau > /dev/null
+[ "$(echo "${ALIST}" | grep applab-blau | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
+  echo "argocd app sync -l name=applab-blau --async"
+  argocd app sync -l name=applab-blau --async > /dev/null
+  argocd app wait -l name=applab-blau --resource '*:Certificate:*' --health --degraded > /dev/null; sleep 1
+  argocd app wait -l name=applab-blau --resource '*:Certificate:*' --health --degraded > /dev/null; sleep 1
+  argocd app wait -l name=applab-blau > /dev/null
 }
 
-[ "$(echo "${ALIST}" | grep httpbin-verd | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
-  echo "argocd app sync -l name=httpbin-verd --async"
-  argocd app sync -l name=httpbin-verd --async > /dev/null
-  argocd app wait -l name=httpbin-verd --resource '*:Certificate:*' --health --degraded > /dev/null; sleep 1
-  argocd app wait -l name=httpbin-verd --resource '*:Certificate:*' --health --degraded > /dev/null; sleep 1
-  argocd app wait -l name=httpbin-verd > /dev/null
+[ "$(echo "${ALIST}" | grep applab-verd | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
+  echo "argocd app sync -l name=applab-verd --async"
+  argocd app sync -l name=applab-verd --async > /dev/null
+  argocd app wait -l name=applab-verd --resource '*:Certificate:*' --health --degraded > /dev/null; sleep 1
+  argocd app wait -l name=applab-verd --resource '*:Certificate:*' --health --degraded > /dev/null; sleep 1
+  argocd app wait -l name=applab-verd > /dev/null
 }
 
 #------------------------------------------------------------------------------

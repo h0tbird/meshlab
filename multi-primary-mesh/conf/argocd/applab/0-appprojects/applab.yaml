@@ -2,7 +2,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
-  name: httpbin
+  name: applab
   namespace: argocd
 spec:
   clusterResourceWhitelist:

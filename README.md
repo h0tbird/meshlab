@@ -1,6 +1,6 @@
 # multi-primary-mesh
 
-Welcome to my Istio validation lab repository! In this lab, I have created a setup to validate Istio configuration in a cell-based architecture.
+Welcome to my Istio validation lab repository! In this lab, I have created a setup to validate Istio configurations in a cell-based architecture.
 Each cell is an architecture block representing a unit of isolation and scalability.
 The lab defines two cells, named "pasta" and "pizza", each composed of two clusters.
 Each cluster is configured with a multi-primary Istio control-plane for high availability and resilience.

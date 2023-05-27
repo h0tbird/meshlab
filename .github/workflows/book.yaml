@@ -16,12 +16,11 @@ jobs:
         fetch-depth: 0
     - name: Install
       run: |
-        tag=$(curl -s 'https://api.github.com/repos/rust-lang/mdbook/releases/latest' | jq -r '.tag_name')
-        url="https://github.com/rust-lang/mdbook/releases/download/${tag}/mdbook-${tag}-x86_64-unknown-linux-gnu.tar.gz"
+        TAG=$(curl -s 'https://api.github.com/repos/rust-lang/mdbook/releases/latest' | jq -r '.tag_name')
+        URL="https://github.com/rust-lang/mdbook/releases/download/${TAG}/mdbook-${TAG}-x86_64-unknown-linux-gnu.tar.gz"
         mkdir mdbook
-        curl -sSL $url | tar -xz --directory=./mdbook
-        echo `pwd`/mdbook >> $GITHUB_PATH
-        echo "GHPPATH: $GITHUB_PATH"
+        curl -sSL ${URL} | tar -xz --directory=./mdbook
+        echo $(pwd)/mdbook >> ${GITHUB_PATH}
     - name: Build
       run: |
         cd docs/book

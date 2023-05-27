@@ -1,0 +1,6 @@
+[book]
+authors = ["Marc Villacorta"]
+language = "en"
+multilingual = false
+src = "src"
+title = "The MeshLab Book"

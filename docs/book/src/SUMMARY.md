@@ -1,9 +1,12 @@
 # Summary
 
 [Introduction](./introduction.md)
+[Quick start](./quick-start.md)
+
+---
 
 - [Components](./components.md)
-  - [Pull-through registries](./components/pull-through-registries.md)
+  - [Pull-through](./components/pull-through.md)
   - [Multipass](./components/multipass.md)
   - [Hypervisor](./components/hypervisor.md)
   - [Cloud-init](./components/cloud-init.md)
@@ -17,8 +20,10 @@
   - [klipper-lb](./components/klipper-lb.md)
   - [Envoy](./components/envoy.md)
 
+- [Testing](./testing.md)
+
 [Locality load balancing](./locality-lb.md)
-[Testing](./testing.md)
+
 [TLS](./tls.md)
 [Certificates](./certificates.md)
 [Development](./development.md)

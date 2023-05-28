@@ -1,13 +1,6 @@
 # Hypervisor.framework
 
-The drivers used on MacOS (`HyperKit` and `QEMU`) employ MacOS’
-`Hypervisor.framework`. This framework manages the networking stack for the
-instances. On creation of an instance, `Hypervisor.framework` on the host uses
-MacOS’ “Internet Sharing” mechanism to create a virtual switch and connect each
-instance to it (subnet 192.168.64.*) and provide DHCP and DNS resolution on
-this switch at 192.168.64.1 (via `bootpd` & `mDNSResponder` services running on
-the host); this is configured by an auto-generated file `/etc/bootpd.plist` -
-but editing this is pointless as MacOS re-generates it as it desires.
+The drivers utilized on MacOS, specifically `HyperKit` and `QEMU`, rely on MacOS' `Hypervisor.framework` to manage the networking stack for the instances. When an instance is created, the `Hypervisor.framework` on the host employs MacOS' *"Internet Sharing"* mechanism to establish a virtual switch. Each instance is then connected to this switch with the subnet address 192.168.64.*. Furthermore, the host provides DHCP and DNS resolution services on this switch through the IP address 192.168.64.1, facilitated by the `bootpd` and `mDNSResponder` services running on the host machine. It is worth noting that attempting to manually edit the configuration file `/etc/bootpd.plist` is futile, as MacOS will regenerate it according to its own preferences.
 
 Is the `bootpd` DHCP server alive?
 ```console

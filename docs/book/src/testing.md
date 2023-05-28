@@ -17,7 +17,7 @@ echo hello | gnutls-cli 192.168.64.3 -p 70 --sni-hostname echo.blau.demo.lab --i
 Same as above but with certificate validation:
 ```console
 k --context pasta-1 -n istio-system get secret cacerts -o json | jq -r '.data."ca.crt"' | base64 -d > /tmp/ca.crt
-curl -sm 2 --cacert /tmp/ca.crt --resolve httpbin.blau.demo.lab:443:192.168.64.3 https://httpbin.blau.demo.lab/get | jq -r '.envs.HOSTNAME'
+curl -sm2 --cacert /tmp/ca.crt --resolve httpbin.blau.demo.lab:443:192.168.64.3 https://httpbin.blau.demo.lab/hostname | jq -r '.hostname'
 echo hello | openssl s_client -servername echo.blau.demo.lab -connect 192.168.64.3:70 -quiet -CAfile /tmp/ca.crt
 ```
 

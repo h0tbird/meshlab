@@ -24,19 +24,19 @@ k --context pasta-1 -n httpbin label pod sleep-xxxx topology.istio.io/subzone- t
 
 Set debug images:
 ```console
-k --context pasta-1 -n istio-system set image deployment/istiod-1-17-3 discovery=docker.io/h0tbird/pilot:1.17.3
-k --context pasta-1 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"docker.io/h0tbird/proxyv2:1.17.3"}}}}}'
+k --context pasta-1 -n istio-system set image deployment/istiod-1-18-0 discovery=docker.io/h0tbird/pilot:1.18.0
+k --context pasta-1 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"docker.io/h0tbird/proxyv2:1.18.0"}}}}}'
 ```
 
 Unset debug images:
 ```console
-k --context pasta-1 -n istio-system set image deployment/istiod-1-17-3 discovery=docker.io/istio/pilot:1.17.3
-k --context pasta-1 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"docker.io/istio/proxyv2:1.17.3"}}}}}'
+k --context pasta-1 -n istio-system set image deployment/istiod-1-18-0 discovery=docker.io/istio/pilot:1.18.0
+k --context pasta-1 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"docker.io/istio/proxyv2:1.18.0"}}}}}'
 ```
 
 Debug:
 ```console
 k --context pasta-1 -n httpbin exec -it deployments/sleep -c istio-proxy -- sudo bash -c 'echo 0 > /proc/sys/kernel/yama/ptrace_scope'
-k --context pasta-1 -n istio-system exec -it deployments/istiod-1-17-3 -- dlv dap --listen=:40000 --log=true
-k --context pasta-1 -n istio-system port-forward deployments/istiod-1-17-3 40000:40000
+k --context pasta-1 -n istio-system exec -it deployments/istiod-1-18-0 -- dlv dap --listen=:40000 --log=true
+k --context pasta-1 -n istio-system port-forward deployments/istiod-1-18-0 40000:40000
 ```

@@ -1,0 +1,34 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: istio-ztunnel
+  namespace: argocd
+spec:
+  generators:
+  - clusters:
+      selector:
+        matchLabels:
+          argocd.argoproj.io/secret-type: cluster
+  template:
+    metadata:
+      name: '{{name}}-istio-ztunnel'
+      labels:
+        name: istio-ztunnel
+    spec:
+      project: istio
+      source:
+        repoURL: https://github.com/h0tbird/istio.git
+        targetRevision: HEAD
+        path: charts/ztunnel
+        helm:
+          values: |
+            mesh: {{metadata.labels.stamp}}
+            network: {{name}}
+            cluster: {{name}}
+            domain: {{metadata.labels.stamp}}.local
+            revision: 1-18-0
+            trustDomain: {{metadata.labels.stamp}}.local
+      destination:
+        server: '{{server}}'
+        namespace: istio-system

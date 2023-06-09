@@ -319,6 +319,13 @@ k0 apply -Rf ./conf/argocd/istio
  argocd app wait -l name=istio-pilot > /dev/null
 }
 
+# Ztunnel
+[ "$(echo "${ALIST}" | grep istio-ztunnel | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
+  echo "argocd app sync -l name=istio-ztunnel --async"
+  argocd app sync -l name=istio-ztunnel --async > /dev/null
+  argocd app wait -l name=istio-ztunnel > /dev/null
+}
+
 # IngressGateways
 [ "$(echo "${ALIST}" | grep istio-igws | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
   echo "argocd app sync -l name=istio-igws --async"

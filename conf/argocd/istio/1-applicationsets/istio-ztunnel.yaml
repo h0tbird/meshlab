@@ -2,7 +2,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: istio-base
+  name: istio-ztunnel
   namespace: argocd
 spec:
   generators:
@@ -12,15 +12,15 @@ spec:
           argocd.argoproj.io/secret-type: cluster
   template:
     metadata:
-      name: '{{name}}-istio-base'
+      name: '{{name}}-istio-ztunnel'
       labels:
-        name: istio-base
+        name: istio-ztunnel
     spec:
       project: istio
       source:
         repoURL: https://github.com/h0tbird/istio.git
         targetRevision: ambient
-        path: charts/base
+        path: charts/ztunnel
         helm:
           values: |
             mesh: {{metadata.labels.stamp}}

@@ -19,7 +19,7 @@ spec:
       project: istio
       source:
         repoURL: https://github.com/h0tbird/istio.git
-        targetRevision: HEAD
+        targetRevision: ambient
         path: charts/igws
         helm:
           values: |

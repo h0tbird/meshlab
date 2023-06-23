@@ -10,15 +10,20 @@ step certificate inspect --bundle --servername istiod-1-18-0.istio-system.svc ht
 
 Inspect the certificate chain provided by a given workload:
 ```console
-istioctl --context pasta-2 pc secret httpbin-xxxxxxxxxx-yyyyy.httpbin -o json | jq -r '.dynamicActiveSecrets[] | select(.name=="default") | .secret.tlsCertificate.certificateChain.inlineBytes' | base64 -d | step certificate inspect --bundle
+istioctl --context pasta-1 pc secret httpbin-xxxxxxxxxx-yyyyy.httpbin -o json | jq -r '.dynamicActiveSecrets[] | select(.name=="default") | .secret.tlsCertificate.certificateChain.inlineBytes' | base64 -d | step certificate inspect --bundle
 ```
 
 Inspect the certificate root CA present in a given workload:
 ```console
-istioctl --context pasta-2 pc secret sleep-xxxxxxxxxx-yyyyy.httpbin -o json | jq -r '.dynamicActiveSecrets[] | select(.name=="ROOTCA") | .secret.validationContext.trustedCa.inlineBytes' | base64 -d | step certificate inspect --bundle
+istioctl --context pasta-1 pc secret sleep-xxxxxxxxxx-yyyyy.httpbin -o json | jq -r '.dynamicActiveSecrets[] | select(.name=="ROOTCA") | .secret.validationContext.trustedCa.inlineBytes' | base64 -d | step certificate inspect --bundle
 ```
 
 Similar as above but this time as a client:
 ```console
 k --context pasta-1 -n httpbin exec -it deployment/sleep -c istio-proxy -- openssl s_client -showcerts httpbin:80
+```
+
+Get details about the status of a cert-manager managed certificate:
+```
+cmctl --context pasta-1 --namespace applab-blau status certificate blau
 ```

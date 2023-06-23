@@ -24,6 +24,6 @@ k --context pasta-1 -n httpbin exec -it deployment/sleep -c istio-proxy -- opens
 ```
 
 Get details about the status of a cert-manager managed certificate:
-```
+```console
 cmctl --context pasta-1 --namespace applab-blau status certificate blau
 ```

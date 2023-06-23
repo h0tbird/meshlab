@@ -23,7 +23,7 @@ cmctl check api --context pasta-1
 Get details about the current status of a cert-manager Certificate resource,
 including information on related resources like `CertificateRequest` or `Order`:
 ```console
-cmctl status certificate --context pasta-1 --namespace istio-system istio-cluster-ica
+cmctl --context pasta-1 --namespace istio-system status certificate istio-cluster-ica
 ```
 
 Mark cert-manager `Certificate` resources for manual renewal:

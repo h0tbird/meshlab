@@ -8,4 +8,4 @@ The purpose of this lab is to test and validate different Istio configurations i
 
 ArgoCD is used to deploy:
 - [https://github.com/h0tbird/istio](https://github.com/h0tbird/istio)
-- [https://github.com/h0tbird/httpbin](https://github.com/h0tbird/httpbin)
+- [https://github.com/h0tbird/applab](https://github.com/h0tbird/applab)

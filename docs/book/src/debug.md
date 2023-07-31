@@ -24,14 +24,14 @@ k --context pasta-1 -n httpbin label pod sleep-xxxx topology.istio.io/subzone- t
 
 Set debug images:
 ```console
-k --context pasta-1 -n istio-system set image deployment/istiod-1-18-2 discovery=docker.io/h0tbird/pilot:1.18.0
-k --context pasta-1 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"docker.io/h0tbird/proxyv2:1.18.0"}}}}}'
+k --context pasta-1 -n istio-system set image deployment/istiod-1-18-2 discovery=docker.io/h0tbird/pilot:1.18.2
+k --context pasta-1 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"docker.io/h0tbird/proxyv2:1.18.2"}}}}}'
 ```
 
 Unset debug images:
 ```console
-k --context pasta-1 -n istio-system set image deployment/istiod-1-18-2 discovery=docker.io/istio/pilot:1.18.0
-k --context pasta-1 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"docker.io/istio/proxyv2:1.18.0"}}}}}'
+k --context pasta-1 -n istio-system set image deployment/istiod-1-18-2 discovery=docker.io/istio/pilot:1.18.2
+k --context pasta-1 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"docker.io/istio/proxyv2:1.18.2"}}}}}'
 ```
 
 Debug:

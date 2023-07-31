@@ -26,7 +26,7 @@ xargs sed -i "s/istiod-1-18-2.istio-system.svc/istiod.${CLUS1}/g"
 # Download the istio-sidecar.deb
 [ -f ./tmp/virt-01/istio-sidecar.deb ] || {
   curl -sLo ./tmp/virt-01/istio-sidecar.deb \
-  https://storage.googleapis.com/istio-release/releases/1.18.0/deb/istio-sidecar-"$(arch)".deb
+  https://storage.googleapis.com/istio-release/releases/1.18.2/deb/istio-sidecar-"$(arch)".deb
 }
 
 # Setup the VM files

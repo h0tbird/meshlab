@@ -341,9 +341,9 @@ echo -e "\n---[ Istio remote secrets ]--------------------------------------\n"
 
 for STAMP in $(list stamps); do
   CLUS=(${STAMPS[${STAMP}]})
-  istioctl x create-remote-secret --context "${CLUS[0]}" --name="${CLUS[0]}" | \
+  istioctl create-remote-secret --context "${CLUS[0]}" --name="${CLUS[0]}" | \
   kubectl --context "${CLUS[1]}" apply -f -
-  istioctl x create-remote-secret --context "${CLUS[1]}" --name="${CLUS[1]}" | \
+  istioctl create-remote-secret --context "${CLUS[1]}" --name="${CLUS[1]}" | \
   kubectl --context "${CLUS[0]}" apply -f -
 done
 

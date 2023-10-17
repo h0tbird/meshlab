@@ -2,7 +2,7 @@
 
 Add locality info:
 ```console
-k --context pasta-1 -n httpbin patch workloadentries httpbin-192.168.64.5-vm-network --type merge -p '{"spec":{"locality":"milky-way/solar-system/virt-01"}}'
+k --context pasta-1 -n httpbin patch workloadentries httpbin-192.168.65.5-vm-network --type merge -p '{"spec":{"locality":"milky-way/solar-system/virt-01"}}'
 k --context pasta-1 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"labels":{"istio-locality":"milky-way.solar-system.pasta-1"}}}}}'
 k --context pasta-1 -n httpbin label pod sleep-xxxx topology.istio.io/subzone=pasta-1 topology.kubernetes.io/region=milky-way topology.kubernetes.io/zone=solar-system
 ```
@@ -17,7 +17,7 @@ k --context pasta-1 -n httpbin patch deployment sleep --type merge -p '{"spec":{
 
 Delete locality info:
 ```console
-k --context pasta-1 -n httpbin patch workloadentries httpbin-192.168.64.5-vm-network --type json -p '[{"op": "remove", "path": "/spec/locality"}]'
+k --context pasta-1 -n httpbin patch workloadentries httpbin-192.168.65.5-vm-network --type json -p '[{"op": "remove", "path": "/spec/locality"}]'
 k --context pasta-1 -n httpbin patch deployment sleep --type json -p '[{"op": "remove", "path": "/spec/template/metadata/labels/istio-locality"}]'
 k --context pasta-1 -n httpbin label pod sleep-xxxx topology.istio.io/subzone- topology.kubernetes.io/region- topology.kubernetes.io/zone-
 ```

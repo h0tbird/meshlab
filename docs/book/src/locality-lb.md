@@ -21,7 +21,7 @@ watch "k --context pasta-2 -n applab-blau get po -o wide; echo; istioctl --conte
 
 `VM`: patch the `workloadentries` object with locality metadata (bug?):
 ```console
-k --context pasta-1 -n httpbin patch workloadentries httpbin-192.168.64.5-vm-network --type merge -p '{"spec":{"locality":"milky-way/solar-system/virt-01"}}'
+k --context pasta-1 -n httpbin patch workloadentries httpbin-192.168.65.5-vm-network --type merge -p '{"spec":{"locality":"milky-way/solar-system/virt-01"}}'
 ```
 
 `VM`: retrieve topology metadata, assigned priority and weight:

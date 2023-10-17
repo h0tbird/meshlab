@@ -1,11 +1,11 @@
 Does the TCP connection (`port: 443` --> `nodePort: 30065` --> `targetPort: 8443`) to the `istio-ingressgateway` work?
 ```
-curl -vkm 2 --resolve blau.demo.lab:443:192.168.64.3 https://blau.demo.lab/get
+curl -vkm 2 --resolve blau.demo.lab:443:192.168.65.3 https://blau.demo.lab/get
 ```
 
 Does the `istio-ingressgateway` present the right TLS certificate?
 ```
-step certificate inspect --bundle --servername blau.demo.lab https://192.168.64.3 --insecure
+step certificate inspect --bundle --servername blau.demo.lab https://192.168.65.3 --insecure
 istioctl --context pasta-1 -n istio-system pc secret deploy/istio-ingressgateway
 ```
 

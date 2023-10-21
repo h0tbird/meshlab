@@ -27,3 +27,5 @@ sudo launchctl stop com.apple.bootpd
 sudo rm -f /var/db/dhcpd_leases
 sudo launchctl start com.apple.bootpd
 ```
+
+It appears that at a certain juncture, `docker` and `multipass` ceased to share the same network bridge. Whichever starts first will occupy `bridge100` with the IP address `192.168.64.1`, while the subsequent one will take `bridge101` with the IP address `192.168.65.1`. Upon repeatedly stopping and starting these services, you will notice a sequential increment in the third octet of the `Shared_Net_Address`.

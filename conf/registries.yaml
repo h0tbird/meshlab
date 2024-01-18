@@ -1,10 +1,10 @@
 mirrors:
   docker.io:
     endpoint:
-      - "http://192.168.65.1:5011"
+      - "http://192.168.64.1:5011"
   quay.io:
     endpoint:
-      - "http://192.168.65.1:5012"
+      - "http://192.168.64.1:5012"
   ghcr.io:
     endpoint:
-      - "http://192.168.65.1:5013"
+      - "http://192.168.64.1:5013"

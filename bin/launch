@@ -45,6 +45,10 @@ docker start registry-ghcr.io 2>/dev/null || docker run -d -p 5013:5000 \
   --name registry-ghcr.io \
   registry:2
 
+# Use bridge100 IP
+BIP=$(ifconfig bridge100 | awk '/inet / {print $2}')
+sed -i "s|http://.*:50|http://${BIP}:50|g" conf/registries.yaml
+
 #------------------------------------------------------------------------------
 # [i] Create clusters
 #------------------------------------------------------------------------------

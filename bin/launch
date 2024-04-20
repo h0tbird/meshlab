@@ -45,10 +45,6 @@ docker start registry-ghcr.io 2>/dev/null || docker run -d -p 5013:5000 \
   --name registry-ghcr.io \
   registry:2
 
-# Use bridge100 IP
-BIP=$(ifconfig bridge100 | awk '/inet / {print $2}')
-sed -i "s|http://.*:50|http://${BIP}:50|g" conf/registries.yaml
-
 #------------------------------------------------------------------------------
 # [i] Create clusters
 #------------------------------------------------------------------------------
@@ -131,6 +127,9 @@ kubectl --context "${CLUSTER}" -n kube-system create cm coredns-custom \
     fallthrough
   }
 }" | kubectl --context "${CLUSTER}" -n kube-system apply -f -
+
+# Restart otherwise it takes a while to pick up the new config
+kubectl --context "${CLUSTER}" -n kube-system rollout restart deployment coredns
 
 done
 

@@ -61,7 +61,7 @@ function launch_k8s {
   # Setup the VM with cloud-config
   multipass launch --name "${NAME}" --cpus 2 --memory 5G --disk 10G --cloud-init - <<- EOF
 	#cloud-config
-	 
+
 	write_files:
 	- path: /etc/rancher/k3s/registries.yaml
 	  content: ${REG_CONFIG}
@@ -69,31 +69,38 @@ function launch_k8s {
 	- path: /etc/rancher/k3s/config.yaml
 	  content: ${K3S_CONFIG}
 	  encoding: b64
-	 
+
 	runcmd:
 	- |
-	  
+
 	  set -xo errexit
-	  
+
+	  #------------------
+	  # Setup registries
+	  #------------------
+
+	  IP=\$(ip r | awk '/default/ {print \$3}')
+	  sed -i "s/XXX/\${IP}/g" /etc/rancher/k3s/registries.yaml
+
 	  #-------------
 	  # Install k3s
 	  #-------------
-	  
+
 	  curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--cluster-domain ${STAMP}.local --disable=traefik" sh -s -
 	  sleep 5; kubectl wait --for=condition=Ready nodes --all --timeout=60s
-	  
+
 	  #----------------
 	  # Topology setup
 	  #----------------
-	  
+
 	  kubectl label --overwrite node ${NAME} topology.kubernetes.io/region=milky-way
 	  kubectl label --overwrite node ${NAME} topology.kubernetes.io/zone=solar-system
 	  kubectl label --overwrite node ${NAME} topology.istio.io/subzone=${NAME}
-	  
+
 	  #------------
 	  # Kubeconfig
 	  #------------
-	  
+
 	  IP=\$(hostname -I | awk '{print \$1}')
 	  kubectl config view --raw | sed "s/127\.0\.0\.1/\${IP}/g; s/: default/: ${NAME}/g" > /home/ubuntu/config
 	EOF

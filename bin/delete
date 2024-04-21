@@ -7,8 +7,8 @@ source lib/common.sh
 # Delete clusters
 #------------------------------------------------------------------------------
 
-multipass suspend "$(list clusters all)"
-multipass delete "$(list clusters all)"
+multipass suspend $(list clusters all)
+multipass delete $(list clusters all)
 multipass purge
 
 #------------------------------------------------------------------------------

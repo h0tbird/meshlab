@@ -120,10 +120,6 @@ kubectl --context "${CLUSTER}" -n kube-system create cm coredns-custom \
   hosts {
     ttl 60
     ${IP[${MNGR}]} vault.demo.lab
-    ${IP[${CLUSTER}]} echo.blau.demo.lab
-    ${IP[${CLUSTER}]} httpbin.blau.demo.lab
-    ${IP[${CLUSTER}]} echo.verd.demo.lab
-    ${IP[${CLUSTER}]} httpbin.verd.demo.lab
     fallthrough
   }
 }" | kubectl --context "${CLUSTER}" -n kube-system apply -f -
@@ -351,41 +347,11 @@ for STAMP in $(list stamps); do
 done
 
 #------------------------------------------------------------------------------
-# [i] Deploy the applab services
+# Deploy some workloads
 #------------------------------------------------------------------------------
 
-blue "---[ applab ]-----------------------------------------------------------"
-
-k0 apply -Rf ./conf/argocd/applab
-
-[ "$(echo "${ALIST}" | grep applab-blau | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
-  echo "argocd app sync -l name=applab-blau --async"
-  argocd app sync -l name=applab-blau --async > /dev/null
-  argocd app wait -l name=applab-blau --resource '*:Certificate:*' --health --degraded > /dev/null; sleep 1
-  argocd app wait -l name=applab-blau --resource '*:Certificate:*' --health --degraded > /dev/null; sleep 1
-  argocd app wait -l name=applab-blau > /dev/null
-}
-
-[ "$(echo "${ALIST}" | grep applab-verd | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
-  echo "argocd app sync -l name=applab-verd --async"
-  argocd app sync -l name=applab-verd --async > /dev/null
-  argocd app wait -l name=applab-verd --resource '*:Certificate:*' --health --degraded > /dev/null; sleep 1
-  argocd app wait -l name=applab-verd --resource '*:Certificate:*' --health --degraded > /dev/null; sleep 1
-  argocd app wait -l name=applab-verd > /dev/null
-}
-
-#------------------------------------------------------------------------------
-# [i] Copy the TLS secrets to the istio-system namespace
-#------------------------------------------------------------------------------
-
-blue "---[ Crypto material ]--------------------------------------------------"
-
-for STAMP in $(list stamps); do for CLUSTER in ${STAMPS[${STAMP}]}; do
-  k --context ${CLUSTER} -n applab-blau get secret tls-blau -o yaml |
-    sed 's/applab-blau/istio-system/g' | k --context ${CLUSTER} apply -f -
-  k --context ${CLUSTER} -n applab-verd get secret tls-verd -o yaml |
-    sed 's/applab-verd/istio-system/g' | k --context ${CLUSTER} apply -f -
-done; done
+swarmctl --context 'pasta-*|pizza-*' i --istio-revision 1-19-6
+swarmctl --context 'pasta-*|pizza-*' w 1:2 --istio-revision 1-19-6
 
 #------------------------------------------------------------------------------
 # [i] Echo useful info

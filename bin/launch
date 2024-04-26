@@ -182,7 +182,7 @@ sleep 2; ALIST=$(argocd app list)
 
 blue "---[ Deploy Vault ]-----------------------------------------------------"
 
-k0 apply -Rf ./conf/argocd/vault
+helm template ./charts/vault | k0 apply -f -
 
 [ "$(echo "${ALIST}" | grep vault | grep -c 'Synced  Healthy')" -eq 1 ] || {
   echo "argocd app sync -l name=vault"
@@ -262,6 +262,7 @@ SECRET_ID_B64=$(
 
 blue "---[ cert-manager ]-----------------------------------------------------"
 
+# TODO: Move all this yaml to helm charts, same as the issuers
 k0 apply -Rf ./conf/argocd/cert-manager
 
 [ "$(echo "${ALIST}" | grep cert-manager | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
@@ -295,6 +296,7 @@ k0 apply -f -
 
 blue "---[ Istio ]------------------------------------------------------------"
 
+# TODO: Move all this yaml to helm charts, same as the issuers
 k0 apply -Rf ./conf/argocd/istio
 
 # Base

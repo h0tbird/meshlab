@@ -262,8 +262,7 @@ SECRET_ID_B64=$(
 
 blue "---[ cert-manager ]-----------------------------------------------------"
 
-# TODO: Move all this yaml to helm charts, same as the issuers
-k0 apply -Rf ./conf/argocd/cert-manager
+helm template ./charts/cert-manager | k0 apply -f -
 
 [ "$(echo "${ALIST}" | grep cert-manager | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
   echo "argocd app sync -l name=cert-manager --async"

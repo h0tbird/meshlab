@@ -12,7 +12,7 @@ spec:
           argocd.argoproj.io/secret-type: cluster
   template:
     metadata:
-      name: '{{name}}-cert-manager'
+      name: {{`'{{name}}-cert-manager'`}}
       labels:
         name: cert-manager
     spec:
@@ -26,7 +26,7 @@ spec:
             installCRDs: true
             clusterResourceNamespace: istio-system
       destination:
-        server: '{{server}}'
+        server: {{`'{{server}}'`}}
         namespace: cert-manager
       syncPolicy:
         syncOptions:

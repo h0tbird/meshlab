@@ -12,7 +12,7 @@ spec:
           argocd.argoproj.io/secret-type: cluster
   template:
     metadata:
-      name: '{{name}}-istio-base'
+      name: {{`'{{name}}-istio-base'`}}
       labels:
         name: istio-base
     spec:
@@ -23,12 +23,12 @@ spec:
         path: charts/base
         helm:
           values: |
-            mesh: {{metadata.labels.stamp}}
+            {{`mesh: {{metadata.labels.stamp}}
             network: {{name}}
             cluster: {{name}}
             domain: {{metadata.labels.stamp}}.local
             revision: 1-19-6
-            trustDomain: {{metadata.labels.stamp}}.local
+            trustDomain: {{metadata.labels.stamp}}.local`}}
       destination:
-        server: '{{server}}'
+        server: {{`'{{server}}'`}}
         namespace: istio-system

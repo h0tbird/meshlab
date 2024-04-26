@@ -171,9 +171,7 @@ k0 apply -f ./conf/argocd-cm.yaml
 sleep 2; ALIST=$(argocd app list)
 
 ##-----------------------------------------------------------------------------
-## TODO Deploy a controller to ${MNGR} that will take care of everything below
-## by reconciling a Stamp CRDs that will be created after deploying the
-## controller.
+## TODO Everything below can be replaced by Argo Workflows or a custom operator
 ##-----------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------
@@ -295,8 +293,7 @@ k0 apply -f -
 
 blue "---[ Istio ]------------------------------------------------------------"
 
-# TODO: Move all this yaml to helm charts, same as the issuers
-k0 apply -Rf ./conf/argocd/istio
+helm template ./charts/istio | k0 apply -f -
 
 # Base
 [ "$(echo "${ALIST}" | grep istio-base | grep -c 'Synced  Healthy')" -eq "${N}" ] || {

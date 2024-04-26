@@ -2,7 +2,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: istio-pilot
+  name: istio-cni
   namespace: argocd
 spec:
   generators:
@@ -12,28 +12,23 @@ spec:
           argocd.argoproj.io/secret-type: cluster
   template:
     metadata:
-      name: '{{name}}-istio-pilot'
+      name: {{`'{{name}}-istio-cni'`}}
       labels:
-        name: istio-pilot
+        name: istio-cni
     spec:
       project: istio
       source:
         repoURL: https://github.com/h0tbird/istio.git
         targetRevision: HEAD
-        path: charts/pilot
+        path: charts/cni
         helm:
           values: |
-            mesh: {{metadata.labels.stamp}}
+            {{`mesh: {{metadata.labels.stamp}}
             network: {{name}}
             cluster: {{name}}
             domain: {{metadata.labels.stamp}}.local
             revision: 1-19-6
-            trustDomain: {{metadata.labels.stamp}}.local
+            trustDomain: {{metadata.labels.stamp}}.local`}}
       destination:
-        server: '{{server}}'
+        server: {{`'{{server}}'`}}
         namespace: istio-system
-      ignoreDifferences:
-      - group: "*"
-        kind: "*"
-        managedFieldsManagers:
-        - pilot-discovery

@@ -269,31 +269,24 @@ helm template ./charts/cert-manager | k0 apply -f -
 }
 
 #------------------------------------------------------------------------------
-# [i] Deploy the Istio issuers chart
+# [i] Deploy Istio
 #------------------------------------------------------------------------------
 
-blue "---[ Istio issuers ]----------------------------------------------------"
+blue "---[ Istio ]------------------------------------------------------------"
 
-helm template ./charts/istio-issuers \
+helm template ./charts/istio \
 --set roleID="${ROLE_ID}" \
 --set secretID="${SECRET_ID_B64}" |
 k0 apply -f -
 
-[ "$(echo "${ALIST}" | grep issuers | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
+# Issuers
+[ "$(echo "${ALIST}" | grep istio-issuers | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
   echo "argocd app sync -l name=istio-issuers --async"
   argocd app sync -l name=istio-issuers --async > /dev/null
   argocd app wait -l name=istio-issuers --resource '*:Certificate:*' --health --degraded > /dev/null; sleep 1
   argocd app wait -l name=istio-issuers --resource '*:Certificate:*' --health --degraded > /dev/null; sleep 1
   argocd app wait -l name=istio-issuers > /dev/null
 }
-
-#------------------------------------------------------------------------------
-# [i] Deploy Istio
-#------------------------------------------------------------------------------
-
-blue "---[ Istio ]------------------------------------------------------------"
-
-helm template ./charts/istio | k0 apply -f -
 
 # Base
 [ "$(echo "${ALIST}" | grep istio-base | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
@@ -323,7 +316,7 @@ helm template ./charts/istio | k0 apply -f -
   argocd app wait -l name=istio-igws > /dev/null
 }
 
-# East-West gateway
+# EastWestGateways
 [ "$(echo "${ALIST}" | grep istio-ewgw | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
   echo "argocd app sync -l name=istio-ewgw --async"
   argocd app sync -l name=istio-ewgw --async > /dev/null

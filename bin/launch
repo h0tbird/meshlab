@@ -330,6 +330,13 @@ helm template ./charts/istio | k0 apply -f -
   argocd app wait -l name=istio-ewgw > /dev/null
 }
 
+# Tag
+[ "$(echo "${ALIST}" | grep istio-tags | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
+  echo "argocd app sync -l name=istio-tags --async"
+  argocd app sync -l name=istio-tags --async > /dev/null
+  argocd app wait -l name=istio-tags > /dev/null
+}
+
 #------------------------------------------------------------------------------
 # [i] Enable Istio endpoint discovery
 #------------------------------------------------------------------------------

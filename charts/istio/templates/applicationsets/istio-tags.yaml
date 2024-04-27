@@ -1,0 +1,29 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: istio-tags
+  namespace: argocd
+spec:
+  generators:
+  - clusters:
+      selector:
+        matchLabels:
+          argocd.argoproj.io/secret-type: cluster
+  template:
+    metadata:
+      name: {{`'{{name}}-istio-tags'`}}
+      labels:
+        name: istio-tags
+    spec:
+      project: istio
+      source:
+        repoURL: https://github.com/h0tbird/istio.git
+        targetRevision: HEAD
+        path: charts/tags
+        helm:
+          values: |
+            revisionTags: ['stable']
+      destination:
+        server: {{`'{{server}}'`}}
+        namespace: istio-system

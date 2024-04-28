@@ -15,11 +15,4 @@ argocd app sync -l name=istio-cni --async
 argocd app sync -l name=istio-pilot --async
 argocd app sync -l name=istio-igws --async
 argocd app sync -l name=istio-ewgw --async
-argocd app sync -l name=applab-blau --async
-```
-
-Set a different `targetRevision`:
-```console
-k --context kube-00 -n argocd patch applicationset applab-blau --type merge \
--p '{"spec": {"template": {"spec": {"source": {"targetRevision": "HEAD"}}}}}'
 ```

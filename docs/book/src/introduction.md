@@ -7,5 +7,6 @@ Although the cells share the same root CA for their cryptographic material, each
 The purpose of this lab is to test and validate different Istio configurations in a realistic environment.
 
 ArgoCD is used to deploy:
+- [https://artifacthub.io/packages/helm/hashicorp/vault](https://artifacthub.io/packages/helm/hashicorp/vault)
+- [https://artifacthub.io/packages/helm/cert-manager/cert-manager](https://artifacthub.io/packages/helm/cert-manager/cert-manager)
 - [https://github.com/h0tbird/istio](https://github.com/h0tbird/istio)
-- [https://github.com/h0tbird/applab](https://github.com/h0tbird/applab)

@@ -9,7 +9,7 @@ multipass list
 
 Display information about all instances:
 ```console
-multipass info --all
+multipass info
 ```
 
 Tail the logs:

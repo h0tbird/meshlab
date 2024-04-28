@@ -4,6 +4,6 @@
 
 Run config check:
 ```console
-multipass exec pasta-1 -- bash -c "k3s check-config"
-multipass exec pasta-2 -- bash -c "k3s check-config"
+multipass exec pasta-1 -- bash -c "sudo k3s check-config"
+multipass exec pasta-2 -- bash -c "sudo k3s check-config"
 ```

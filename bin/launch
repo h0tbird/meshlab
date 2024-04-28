@@ -175,6 +175,20 @@ sleep 2; ALIST=$(argocd app list)
 ##-----------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------
+# [i] Deploy Prometheus
+#------------------------------------------------------------------------------
+
+blue "---[ Deploy Prometheus ]------------------------------------------------"
+
+helm template ./charts/prometheus | k0 apply -f -
+
+[ "$(echo "${ALIST}" | grep prometheus | grep -c 'Synced  Healthy')" -eq 1 ] || {
+  echo "argocd app sync -l name=prometheus"
+  argocd app sync -l name=prometheus > /dev/null
+  argocd app wait -l name=prometheus > /dev/null
+}
+
+#------------------------------------------------------------------------------
 # [i] Deploy vault
 #------------------------------------------------------------------------------
 

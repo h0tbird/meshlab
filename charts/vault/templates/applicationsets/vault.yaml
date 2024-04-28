@@ -1,0 +1,37 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: vault
+  namespace: argocd
+spec:
+  generators:
+  - list:
+      elements:
+      - cluster: kube-00
+        url: https://kubernetes.default.svc
+  template:
+    metadata:
+      name: {{`'{{cluster}}-vault'`}}
+      labels:
+        name: vault
+    spec:
+      project: vault
+      source:
+        repoURL: https://helm.releases.hashicorp.com
+        targetRevision: 0.23.0
+        chart: vault
+        helm:
+          values: |
+            server:
+              dev:
+                enabled: true
+                devRootToken: root
+              service:
+                type: LoadBalancer
+      destination:
+        server: {{`'{{url}}'`}}
+        namespace: vault
+      syncPolicy:
+        syncOptions:
+        - CreateNamespace=true

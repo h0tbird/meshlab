@@ -23,7 +23,7 @@ spec:
         chart: prometheus
         helm:
           values: |
-            aletmanager:
+            alertmanager:
               enabled: false
             kube-state-metrics:
               enabled: false

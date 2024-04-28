@@ -12,6 +12,11 @@ Display information about all instances:
 multipass info
 ```
 
+Open a shell on a running instance:
+```
+multipass shell pasta-1
+```
+
 Tail the logs:
 ```console
 sudo tail -f /Library/Logs/Multipass/multipassd.log

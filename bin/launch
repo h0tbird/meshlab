@@ -171,6 +171,16 @@ k0 apply -f ./conf/argocd-cm.yaml
 sleep 2; ALIST=$(argocd app list)
 
 #------------------------------------------------------------------------------
+# [i] Install all the ApplicationSets
+#------------------------------------------------------------------------------
+
+blue "---[ ApplicationSets ]-------------------------------------------------"
+
+helm template ./charts/prometheus | k0 apply -f -
+helm template ./charts/vault | k0 apply -f -
+helm template ./charts/cert-manager | k0 apply -f -
+
+#------------------------------------------------------------------------------
 # [i] Install Argo Workflows
 #------------------------------------------------------------------------------
 
@@ -187,19 +197,43 @@ k0 -n argo patch deployment argo-server \
   "server", "--auth-mode=server"
 ]}]'
 
+# Install Argo WorkflowTemplates
+helm template ./charts/wftemplates | k0 -n argo apply -f -
+
 #------------------------------------------------------------------------------
-# TODO: Argo Workflow DAG
+# [i] Argo Workflow DAG
 #------------------------------------------------------------------------------
 
-# TODO
+k0 -n argo create -f - << EOF
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: bootstrap-
+spec:
+  entrypoint: stages
+  templates:
+  - name: stages
+    dag:
+      tasks:
+      - name: prometheus
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: flags
+            value: -l name=prometheus
+          - name: argocd-server-address
+            value: argocd-server.argocd.svc.cluster.local:443
+          - name: argocd-credentials-secret
+            value: argocd-initial-admin-secret
+EOF
 
 #------------------------------------------------------------------------------
 # [i] Deploy Prometheus
 #------------------------------------------------------------------------------
 
 blue "---[ Deploy Prometheus ]------------------------------------------------"
-
-helm template ./charts/prometheus | k0 apply -f -
 
 [ "$(echo "${ALIST}" | grep prometheus | grep -c 'Synced  Healthy')" -eq 1 ] || {
   echo "argocd app sync -l name=prometheus"
@@ -212,8 +246,6 @@ helm template ./charts/prometheus | k0 apply -f -
 #------------------------------------------------------------------------------
 
 blue "---[ Deploy Vault ]-----------------------------------------------------"
-
-helm template ./charts/vault | k0 apply -f -
 
 [ "$(echo "${ALIST}" | grep vault | grep -c 'Synced  Healthy')" -eq 1 ] || {
   echo "argocd app sync -l name=vault"
@@ -292,8 +324,6 @@ SECRET_ID_B64=$(
 #------------------------------------------------------------------------------
 
 blue "---[ cert-manager ]-----------------------------------------------------"
-
-helm template ./charts/cert-manager | k0 apply -f -
 
 [ "$(echo "${ALIST}" | grep cert-manager | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
   echo "argocd app sync -l name=cert-manager --async"

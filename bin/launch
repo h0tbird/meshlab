@@ -170,9 +170,28 @@ k0 apply -f ./conf/argocd-cm.yaml
 # Cache the ArgoCD apps list
 sleep 2; ALIST=$(argocd app list)
 
-##-----------------------------------------------------------------------------
-## TODO Everything below can be replaced by Argo Workflows or a custom operator
-##-----------------------------------------------------------------------------
+#------------------------------------------------------------------------------
+# [i] Install Argo Workflows
+#------------------------------------------------------------------------------
+
+blue "---[ Argo Workflows ]---------------------------------------------------"
+
+# Install Argo Workflows
+k0 create ns argo --dry-run=client -o yaml | k0 apply -f -
+k0 -n argo apply -f https://github.com/argoproj/argo-workflows/releases/download/v3.5.6/install.yaml
+
+# Patch the Argo server to use server auth
+k0 -n argo patch deployment argo-server \
+  --type='json' \
+  -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/args", "value": [
+  "server", "--auth-mode=server"
+]}]'
+
+#------------------------------------------------------------------------------
+# TODO: Argo Workflow DAG
+#------------------------------------------------------------------------------
+
+# TODO
 
 #------------------------------------------------------------------------------
 # [i] Deploy Prometheus

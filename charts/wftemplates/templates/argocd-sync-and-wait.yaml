@@ -25,6 +25,7 @@ spec:
       - name: flags
         value: --
       - name: argocd-server-address
+        value: argocd-server.argocd.svc.cluster.local:443
       - name: argocd-credentials-secret
     script:
       image: {{`"quay.io/argoproj/argocd:{{inputs.parameters.argocd-version}}"`}}

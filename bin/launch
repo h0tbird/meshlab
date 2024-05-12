@@ -223,8 +223,6 @@ spec:
           parameters:
           - name: flags
             value: -l name=prometheus
-          - name: argocd-server-address
-            value: argocd-server.argocd.svc.cluster.local:443
           - name: argocd-credentials-secret
             value: argocd-initial-admin-secret
 EOF

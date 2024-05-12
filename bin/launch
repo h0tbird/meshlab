@@ -200,6 +200,13 @@ k0 -n argo patch deployment argo-server \
 # Install Argo WorkflowTemplates
 helm template ./charts/wftemplates | k0 -n argo apply -f -
 
+# Create a secret for the ArgoCD credentials
+k0 create secret generic argocd-credentials-secret \
+ --from-literal=password="${ARGOCD_PASS}" \
+ --from-literal=username='admin' \
+ --from-literal=token='' \
+ --dry-run=client -o yaml | k0 -n argo apply -f -
+
 #------------------------------------------------------------------------------
 # [i] Argo Workflow DAG
 #------------------------------------------------------------------------------

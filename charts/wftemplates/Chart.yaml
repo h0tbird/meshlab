@@ -1,0 +1,5 @@
+apiVersion: v2
+name: wftemplates
+description: Argo Workflow Templates
+type: application
+version: 0.1.0

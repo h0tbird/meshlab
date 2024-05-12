@@ -27,6 +27,7 @@ spec:
       - name: argocd-server-address
         value: argocd-server.argocd.svc.cluster.local:443
       - name: argocd-credentials-secret
+        value: argocd-credentials
     script:
       image: {{`"quay.io/argoproj/argocd:{{inputs.parameters.argocd-version}}"`}}
       command: [bash]
@@ -54,7 +55,8 @@ spec:
       source: |
         #!/bin/bash
 
-        set -euo pipefail
+        #set -euo pipefail
+        set -x
 
         if [[ -z $ARGOCD_AUTH_TOKEN ]] && [[ -z "$ARGOCD_USERNAME" || -z "$ARGOCD_PASSWORD" ]]; then
           echo "Either the ARGOCD_AUTH_TOKEN must be specified, or the ARGOCD_USERNAME/ARGOCD_PASSWORD must be specified."
@@ -62,11 +64,11 @@ spec:
         fi
 
         if [ -z $ARGOCD_AUTH_TOKEN ]; then
-          yes | argocd login "$ARGOCD_SERVER" --username=$ARGOCD_USERNAME --password=$ARGOCD_PASSWORD {{`{{inputs.parameters.flags}}`}}
+          yes | argocd login "$ARGOCD_SERVER" --username=$ARGOCD_USERNAME --password=$ARGOCD_PASSWORD
         fi
 
         echo "Running as ArgoCD User:"
-        argocd account get-user-info {{`{{inputs.parameters.flags}}`}}
+        argocd account get-user-info
 
-        {{`argocd app sync {{inputs.parameters.application-name}} --revision {{inputs.parameters.revision}} {{inputs.parameters.flags}}`}}
+        {{`argocd app sync {{inputs.parameters.application-name}} {{inputs.parameters.flags}}`}}
         {{`argocd app wait {{inputs.parameters.application-name}} --health {{inputs.parameters.flags}}`}}

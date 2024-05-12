@@ -201,7 +201,7 @@ k0 -n argo patch deployment argo-server \
 helm template ./charts/wftemplates | k0 -n argo apply -f -
 
 # Create a secret for the ArgoCD credentials
-k0 create secret generic argocd-credentials-secret \
+k0 create secret generic argocd-credentials \
  --from-literal=password="${ARGOCD_PASS}" \
  --from-literal=username='admin' \
  --from-literal=token='' \
@@ -230,8 +230,6 @@ spec:
           parameters:
           - name: flags
             value: -l name=prometheus
-          - name: argocd-credentials-secret
-            value: argocd-initial-admin-secret
 EOF
 
 #------------------------------------------------------------------------------

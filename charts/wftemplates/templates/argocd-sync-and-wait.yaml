@@ -19,6 +19,7 @@ spec:
       - name: argocd-version
         value: v2.11.0
       - name: application-name
+        value: ""
       - name: revision
         value: HEAD
       - name: flags
@@ -26,7 +27,7 @@ spec:
       - name: argocd-server-address
       - name: argocd-credentials-secret
     script:
-      image: {{`"argoproj/argocd:{{inputs.parameters.argocd-version}}"`}}
+      image: {{`"quay.io/argoproj/argocd:{{inputs.parameters.argocd-version}}"`}}
       command: [bash]
       env:
         - name: ARGOCD_AUTH_TOKEN

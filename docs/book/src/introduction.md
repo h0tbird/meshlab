@@ -9,4 +9,5 @@ The purpose of this lab is to test and validate different Istio configurations i
 ArgoCD is used to deploy:
 - [https://artifacthub.io/packages/helm/hashicorp/vault](https://artifacthub.io/packages/helm/hashicorp/vault)
 - [https://artifacthub.io/packages/helm/cert-manager/cert-manager](https://artifacthub.io/packages/helm/cert-manager/cert-manager)
+- [https://artifacthub.io/packages/helm/prometheus-community/prometheus](https://artifacthub.io/packages/helm/prometheus-community/prometheus)
 - [https://github.com/h0tbird/istio](https://github.com/h0tbird/istio)

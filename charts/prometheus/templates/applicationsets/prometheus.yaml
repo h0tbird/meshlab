@@ -19,7 +19,7 @@ spec:
       project: prometheus
       source:
         repoURL: https://prometheus-community.github.io/helm-charts
-        targetRevision: 25.20.1
+        targetRevision: 25.21.0
         chart: prometheus
         helm:
           values: |
@@ -31,6 +31,9 @@ spec:
               enabled: false
             prometheus-pushgateway:
               enabled: false
+            server:
+              extraArgs:
+                web.enable-remote-write-receiver: null
       destination:
         server: {{`'{{url}}'`}}
         namespace: prometheus

@@ -130,7 +130,7 @@ kubectl --context "${CLUSTER}" -n kube-system rollout restart deployment coredns
 done
 
 #------------------------------------------------------------------------------
-# [i] Setup the ArgoCD and register the clusters to it
+# [i] Setup ArgoCD and register the clusters to it
 #------------------------------------------------------------------------------
 
 blue "---[ ArgoCD ]-----------------------------------------------------------"
@@ -187,7 +187,7 @@ helm template ./charts/cert-manager | k0 apply -f -
 blue "---[ Argo Workflows ]---------------------------------------------------"
 
 # Install Argo Workflows
-helm install -n argowf --create-namespace \
+helm upgrade --install -n argowf --create-namespace \
   argo-workflows argo/argo-workflows --version 0.41.4 \
   --set 'server.authModes={server}'
 

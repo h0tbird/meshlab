@@ -137,9 +137,16 @@ blue "---[ ArgoCD ]-----------------------------------------------------------"
 
 # Install ArgoCD
 helm upgrade --install -n argocd --create-namespace --wait --timeout 5m \
-  argocd oci://ghcr.io/argoproj/argo-helm/argo-cd --version 6.9.0 \
-  --set server.service.type=LoadBalancer |
-  grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
+argocd oci://ghcr.io/argoproj/argo-helm/argo-cd --version 6.9.0 -f <(echo "---
+server:
+  service:
+    type: LoadBalancer
+configs:
+  cm:
+    resource.customizations.ignoreDifferences.admissionregistration.k8s.io_MutatingWebhookConfiguration: |
+      jqPathExpressions:
+      - '.webhooks[]?.clientConfig.caBundle'
+") | grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
 
 # Get the password
 ARGOCD_PASS=$(
@@ -152,10 +159,6 @@ echo
 echo "ArgoCD WebUI: https://${IP[${MNGR}]}"
 echo "ArgoCD User: admin"
 echo "ArgoCD Pass: ${ARGOCD_PASS}"
-
-# TODO: Use the chart for this:
-# # ArgoCD configmap with custom settings
-# k0 apply -f ./conf/argocd-cm.yaml
 
 #------------------------------------------------------------------------------
 # [i] Register clusters to ArgoCD

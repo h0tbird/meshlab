@@ -303,16 +303,14 @@ vault auth list | grep -q 'approle' || {
     token_policies="mesh-cert-manager"
 }
 
-#------------------------------------------------------------------------------
-# [n] Get the RoleID and SecretID for cert-manager
-#------------------------------------------------------------------------------
-
+# Get the cert-manager's RoleID
 ROLE_ID=$(
   vault read -format json \
   "auth/approle/role/mesh-cert-manager/role-id" | \
   jq -r '.data.role_id'
 )
 
+# Get the cert-manager's SecretID
 SECRET_ID_B64=$(
   vault write -format json \
   -f "auth/approle/role/mesh-cert-manager/secret-id" | \

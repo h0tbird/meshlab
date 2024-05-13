@@ -137,16 +137,15 @@ blue "---[ ArgoCD ]-----------------------------------------------------------"
 
 # Install ArgoCD
 helm upgrade --install -n argocd --create-namespace --wait --timeout 5m \
-argocd oci://ghcr.io/argoproj/argo-helm/argo-cd --version 6.9.0 -f <(echo "---
-server:
-  service:
-    type: LoadBalancer
+argocd oci://ghcr.io/argoproj/argo-helm/argo-cd --version 6.9.0 \
+--set 'server.service.type=LoadBalancer' \
+-f - << EOF | grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
 configs:
   cm:
     resource.customizations.ignoreDifferences.admissionregistration.k8s.io_MutatingWebhookConfiguration: |
       jqPathExpressions:
       - '.webhooks[]?.clientConfig.caBundle'
-") | grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
+EOF
 
 # Get the password
 ARGOCD_PASS=$(

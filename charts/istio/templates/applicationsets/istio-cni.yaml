@@ -22,6 +22,7 @@ spec:
         targetRevision: HEAD
         path: charts/cni
         helm:
+          releaseName: istio-cni
           values: |
             {{`mesh: {{metadata.labels.stamp}}
             network: {{name}}

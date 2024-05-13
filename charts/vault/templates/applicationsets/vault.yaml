@@ -22,6 +22,7 @@ spec:
         targetRevision: 0.23.0
         chart: vault
         helm:
+          releaseName: vault
           values: |
             server:
               dev:

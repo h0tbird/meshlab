@@ -267,60 +267,31 @@ spec:
           parameters:
           - name: flags
             value: -l name=cert-manager
+      - name: populate-vault
+        dependencies: [vault]
+        templateRef:
+          name: populate-vault
+          template: populate-vault
+        arguments:
+          parameters:
+          - name: vault-address
+            value: http://${IP[${MNGR}]}:8200
+          - name: vault-token
+            value: root
 EOF
 
 # Wait for the workflow to finish
 k0 -n argowf wait --for=condition=Completed --timeout=360s workflows --all
 
 #------------------------------------------------------------------------------
-# [i] Populate vault
+# [i] Deploy Istio
 #------------------------------------------------------------------------------
 
-blue "---[ Populate Vault ]---------------------------------------------------"
+blue "---[ Istio ]------------------------------------------------------------"
 
-export VAULT_ADDR="http://${IP[${MNGR}]}:8200"
-export VAULT_TOKEN=root
-
-while ! vault status &>/dev/null; do sleep 1; done
-
-# One root CA for all the stamps
-vault secrets list | grep -q "mesh" || {
-  vault secrets enable --path "mesh" \
-  -description "PKI for the mesh" pki
-  vault secrets tune -max-lease-ttl=87600h "mesh"
-  vault write -field=certificate "mesh/root/generate/internal" \
-  common_name="mesh" ttl=87600h > /dev/null
-  vault write "mesh/config/urls" \
-     issuing_certificates="${VAULT_ADDR}/v1/mesh/ca" \
-     crl_distribution_points="${VAULT_ADDR}/v1/mesh/crl"
-}
-
-# Create a policy for cert-manager to issue intermediate CAs
-vault policy list | grep -q "mesh-cert-manager" || {
-vault policy write "mesh-cert-manager" - << EOF
-path "mesh/root/sign-intermediate" {
-  capabilities = ["create", "read", "update"]
-}
-path "mesh/intermediate/set-signed" {
-  capabilities = ["create", "update"]
-}
-path "mesh/roles/ica" {
-  capabilities = ["read"]
-}
-EOF
-}
-
-# Create an AppRole for cert-manager to issue intermediate CAs
-vault auth list | grep -q 'approle' || {
-  vault auth enable approle
-  vault write "auth/approle/role/mesh-cert-manager" \
-    secret_id_ttl=0 \
-    token_num_uses=0 \
-    token_ttl=0 \
-    token_max_ttl=0 \
-    secret_id_num_uses=0 \
-    token_policies="mesh-cert-manager"
-}
+# Set the Vault address and token
+VAULT_ADDR="http://${IP[${MNGR}]}:8200"
+VAULT_TOKEN=root
 
 # Get the cert-manager's RoleID
 ROLE_ID=$(
@@ -336,12 +307,7 @@ SECRET_ID_B64=$(
   jq -r '.data.secret_id' | base64 -w0
 )
 
-#------------------------------------------------------------------------------
-# [i] Deploy Istio
-#------------------------------------------------------------------------------
-
-blue "---[ Istio ]------------------------------------------------------------"
-
+# Install Istio
 helm template ./charts/istio \
 --set roleID="${ROLE_ID}" \
 --set secretID="${SECRET_ID_B64}" |

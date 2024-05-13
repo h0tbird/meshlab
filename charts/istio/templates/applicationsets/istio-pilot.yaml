@@ -22,6 +22,7 @@ spec:
         targetRevision: HEAD
         path: charts/pilot
         helm:
+          releaseName: istio-pilot
           values: |
             {{`mesh: {{metadata.labels.stamp}}
             network: {{name}}

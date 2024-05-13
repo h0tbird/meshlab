@@ -22,6 +22,7 @@ spec:
         targetRevision: HEAD
         path: charts/base
         helm:
+          releaseName: istio-base
           values: |
             {{`mesh: {{metadata.labels.stamp}}
             network: {{name}}

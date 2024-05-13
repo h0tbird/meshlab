@@ -22,6 +22,7 @@ spec:
         targetRevision: HEAD
         path: charts/ewgw
         helm:
+          releaseName: istio-ewgw
           values: |
             {{`mesh: {{metadata.labels.stamp}}
             network: {{name}}

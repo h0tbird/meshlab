@@ -130,7 +130,7 @@ kubectl --context "${CLUSTER}" -n kube-system rollout restart deployment coredns
 done
 
 #------------------------------------------------------------------------------
-# [i] Setup ArgoCD and register the clusters to it
+# [i] Setup ArgoCD
 #------------------------------------------------------------------------------
 
 blue "---[ ArgoCD ]-----------------------------------------------------------"
@@ -186,10 +186,10 @@ helm template ./charts/vault | k0 apply -f -
 helm template ./charts/cert-manager | k0 apply -f -
 
 #------------------------------------------------------------------------------
-# [i] Install Argo Workflows
+# [i] Setup ArgoWF
 #------------------------------------------------------------------------------
 
-blue "---[ Argo Workflows ]---------------------------------------------------"
+blue "---[ ArgoWF ]-----------------------------------------------------------"
 
 # Install Argo Workflows
 helm upgrade --install -n argowf --create-namespace --wait --timeout 5m \

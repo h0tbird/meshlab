@@ -136,10 +136,18 @@ done
 blue "---[ ArgoCD ]-----------------------------------------------------------"
 
 # Install ArgoCD
-k0 create ns argocd --dry-run=client -o yaml | k0 apply -f -
-k0 -n argocd apply -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml > /dev/null
-k0 -n argocd patch svc argocd-server -p '{"spec": {"type": "LoadBalancer"}}'
-k0 wait --for=condition=Ready --timeout=360s pods --all -A
+helm upgrade --install -n argocd --create-namespace --wait --timeout 5m \
+  argocd oci://ghcr.io/argoproj/argo-helm/argo-cd --version 6.9.0 \
+  --set server.service.type=LoadBalancer
+
+# ArgoCD configmap with custom settings
+k0 apply -f ./conf/argocd-cm.yaml
+
+#------------------------------------------------------------------------------
+# [i] Register clusters to ArgoCD
+#------------------------------------------------------------------------------
+
+blue "---[ Register clusters to ArgoCD ]--------------------------------------"
 
 # Get the password
 ARGOCD_PASS=$(
@@ -164,9 +172,6 @@ argocd context "${MNGR}" 2> /dev/null || {
   done; done
 }
 
-# Add the ArgoCD configmap with custom settings
-k0 apply -f ./conf/argocd-cm.yaml
-
 # Cache the ArgoCD apps list
 sleep 2; ALIST=$(argocd app list)
 
@@ -187,7 +192,7 @@ helm template ./charts/cert-manager | k0 apply -f -
 blue "---[ Argo Workflows ]---------------------------------------------------"
 
 # Install Argo Workflows
-helm upgrade --install -n argowf --create-namespace \
+helm upgrade --install -n argowf --create-namespace --wait --timeout 5m \
   argo-workflows argo/argo-workflows --version 0.41.4 \
   --set 'server.authModes={server}' \
   --set 'workflow.serviceAccount.create=true' \

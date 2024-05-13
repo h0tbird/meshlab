@@ -290,8 +290,8 @@ k0 -n argowf wait --for=condition=Completed --timeout=360s workflows --all
 blue "---[ Istio ]------------------------------------------------------------"
 
 # Set the Vault address and token
-VAULT_ADDR="http://${IP[${MNGR}]}:8200"
-VAULT_TOKEN=root
+export VAULT_ADDR="http://${IP[${MNGR}]}:8200"
+export VAULT_TOKEN=root
 
 # Get the cert-manager's RoleID
 ROLE_ID=$(

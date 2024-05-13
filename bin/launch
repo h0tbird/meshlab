@@ -189,7 +189,11 @@ blue "---[ Argo Workflows ]---------------------------------------------------"
 # Install Argo Workflows
 helm upgrade --install -n argowf --create-namespace \
   argo-workflows argo/argo-workflows --version 0.41.4 \
-  --set 'server.authModes={server}'
+  --set 'server.authModes={server}' \
+  --set 'workflow.serviceAccount.create=true' \
+  --set 'workflow.serviceAccount.name=argo-workflow' \
+  --set 'workflow.rbac.create=true' \
+  --set 'controller.workflowNamespaces={argowf}'
 
 # Install Argo WorkflowTemplates
 helm template ./charts/wftemplates | k0 -n argowf apply -f -
@@ -213,6 +217,7 @@ metadata:
   generateName: bootstrap-
 spec:
   entrypoint: stages
+  serviceAccountName: argo-workflow
   templates:
   - name: stages
     dag:

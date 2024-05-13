@@ -138,16 +138,8 @@ blue "---[ ArgoCD ]-----------------------------------------------------------"
 # Install ArgoCD
 helm upgrade --install -n argocd --create-namespace --wait --timeout 5m \
   argocd oci://ghcr.io/argoproj/argo-helm/argo-cd --version 6.9.0 \
-  --set server.service.type=LoadBalancer
-
-# ArgoCD configmap with custom settings
-k0 apply -f ./conf/argocd-cm.yaml
-
-#------------------------------------------------------------------------------
-# [i] Register clusters to ArgoCD
-#------------------------------------------------------------------------------
-
-blue "---[ Register clusters to ArgoCD ]--------------------------------------"
+  --set server.service.type=LoadBalancer |
+  grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
 
 # Get the password
 ARGOCD_PASS=$(
@@ -155,6 +147,21 @@ ARGOCD_PASS=$(
   get secret argocd-initial-admin-secret \
   -o jsonpath='{.data.password}' | base64 -d
 )
+
+echo
+echo "ArgoCD WebUI: https://${IP[${MNGR}]}"
+echo "ArgoCD User: admin"
+echo "ArgoCD Pass: ${ARGOCD_PASS}"
+
+# TODO: Use the chart for this:
+# # ArgoCD configmap with custom settings
+# k0 apply -f ./conf/argocd-cm.yaml
+
+#------------------------------------------------------------------------------
+# [i] Register clusters to ArgoCD
+#------------------------------------------------------------------------------
+
+blue "---[ Register clusters to ArgoCD ]--------------------------------------"
 
 # Check if the ArgoCD context exists
 argocd context "${MNGR}" 2> /dev/null || {
@@ -194,11 +201,16 @@ blue "---[ ArgoWF ]-----------------------------------------------------------"
 # Install Argo Workflows
 helm upgrade --install -n argowf --create-namespace --wait --timeout 5m \
   argo-workflows argo/argo-workflows --version 0.41.4 \
+  --set 'server.service.type=LoadBalancer' \
   --set 'server.authModes={server}' \
   --set 'workflow.serviceAccount.create=true' \
   --set 'workflow.serviceAccount.name=argo-workflow' \
   --set 'workflow.rbac.create=true' \
-  --set 'controller.workflowNamespaces={argowf}'
+  --set 'controller.workflowNamespaces={argowf}' |
+  grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
+
+echo
+echo "ArgoWF WebUI: http://${IP[${MNGR}]}:2746"
 
 #------------------------------------------------------------------------------
 # [i] Bootstrap DAG

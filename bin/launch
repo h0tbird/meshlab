@@ -203,7 +203,7 @@ blue "---[ ArgoWF ]-----------------------------------------------------------"
 # Install Argo Workflows
 helm upgrade --install -n argowf --create-namespace --wait --timeout 5m \
   argo-workflows argo/argo-workflows --version 0.41.4 \
-  --set 'server.service.type=LoadBalancer' \
+  --set 'server.serviceType=LoadBalancer' \
   --set 'server.authModes={server}' \
   --set 'workflow.serviceAccount.create=true' \
   --set 'workflow.serviceAccount.name=argo-workflow' \

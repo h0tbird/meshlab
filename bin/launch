@@ -195,6 +195,12 @@ helm upgrade --install -n argowf --create-namespace \
   --set 'workflow.rbac.create=true' \
   --set 'controller.workflowNamespaces={argowf}'
 
+#------------------------------------------------------------------------------
+# [i] Bootstrap DAG
+#------------------------------------------------------------------------------
+
+blue "---[ Bootstrap DAG ]----------------------------------------------------"
+
 # Install Argo WorkflowTemplates
 helm template ./charts/wftemplates | k0 -n argowf apply -f -
 
@@ -205,11 +211,7 @@ k0 create secret generic argocd-credentials \
  --from-literal=token='' \
  --dry-run=client -o yaml | k0 -n argowf apply -f -
 
-#------------------------------------------------------------------------------
-# [i] Argo Workflow DAG
-#------------------------------------------------------------------------------
-
-# Create a bootstrap workflow
+# Create the bootstrap workflow
 k0 -n argowf create -f - << EOF
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow

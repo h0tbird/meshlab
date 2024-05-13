@@ -6,8 +6,12 @@ Although the cells share the same root CA for their cryptographic material, each
 
 The purpose of this lab is to test and validate different Istio configurations in a realistic environment.
 
-ArgoCD is used to deploy:
-- [https://artifacthub.io/packages/helm/hashicorp/vault](https://artifacthub.io/packages/helm/hashicorp/vault)
-- [https://artifacthub.io/packages/helm/cert-manager/cert-manager](https://artifacthub.io/packages/helm/cert-manager/cert-manager)
-- [https://artifacthub.io/packages/helm/prometheus-community/prometheus](https://artifacthub.io/packages/helm/prometheus-community/prometheus)
-- [https://github.com/h0tbird/istio](https://github.com/h0tbird/istio)
+Helm is used to deploy:
+- [ArgoCD](https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd)
+- [Argo Workflows](https://artifacthub.io/packages/helm/argo/argo-workflows)
+
+Argo Workflows and ArgoCD are used to deploy:
+- [Vault](https://artifacthub.io/packages/helm/hashicorp/vault)
+- [cert-manager](https://artifacthub.io/packages/helm/cert-manager/cert-manager)
+- [Prometheus](https://artifacthub.io/packages/helm/prometheus-community/prometheus)
+- [Istio](https://github.com/h0tbird/istio)

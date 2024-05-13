@@ -187,31 +187,26 @@ helm template ./charts/cert-manager | k0 apply -f -
 blue "---[ Argo Workflows ]---------------------------------------------------"
 
 # Install Argo Workflows
-k0 create ns argo --dry-run=client -o yaml | k0 apply -f -
-k0 -n argo apply -f https://github.com/argoproj/argo-workflows/releases/download/v3.5.6/install.yaml
-
-# Patch the Argo server to use server auth
-k0 -n argo patch deployment argo-server \
-  --type='json' \
-  -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/args", "value": [
-  "server", "--auth-mode=server"
-]}]'
+helm install -n argowf --create-namespace \
+  argo-workflows argo/argo-workflows --version 0.41.4 \
+  --set 'server.authModes={server}'
 
 # Install Argo WorkflowTemplates
-helm template ./charts/wftemplates | k0 -n argo apply -f -
+helm template ./charts/wftemplates | k0 -n argowf apply -f -
 
-# Create a secret for the ArgoCD credentials
+# Create a secret with ArgoCD credentials
 k0 create secret generic argocd-credentials \
  --from-literal=password="${ARGOCD_PASS}" \
  --from-literal=username='admin' \
  --from-literal=token='' \
- --dry-run=client -o yaml | k0 -n argo apply -f -
+ --dry-run=client -o yaml | k0 -n argowf apply -f -
 
 #------------------------------------------------------------------------------
 # [i] Argo Workflow DAG
 #------------------------------------------------------------------------------
 
-k0 -n argo create -f - << EOF
+# Create a bootstrap workflow
+k0 -n argowf create -f - << EOF
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
@@ -230,31 +225,26 @@ spec:
           parameters:
           - name: flags
             value: -l name=prometheus
+      - name: vault
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: flags
+            value: -l name=vault
+      - name: cert-manager
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: flags
+            value: -l name=cert-manager
 EOF
 
-#------------------------------------------------------------------------------
-# [i] Deploy Prometheus
-#------------------------------------------------------------------------------
-
-blue "---[ Deploy Prometheus ]------------------------------------------------"
-
-[ "$(echo "${ALIST}" | grep prometheus | grep -c 'Synced  Healthy')" -eq 1 ] || {
-  echo "argocd app sync -l name=prometheus"
-  argocd app sync -l name=prometheus > /dev/null
-  argocd app wait -l name=prometheus > /dev/null
-}
-
-#------------------------------------------------------------------------------
-# [i] Deploy vault
-#------------------------------------------------------------------------------
-
-blue "---[ Deploy Vault ]-----------------------------------------------------"
-
-[ "$(echo "${ALIST}" | grep vault | grep -c 'Synced  Healthy')" -eq 1 ] || {
-  echo "argocd app sync -l name=vault"
-  argocd app sync -l name=vault > /dev/null
-  argocd app wait -l name=vault > /dev/null
-}
+# Wait for the workflow to finish
+k0 -n argowf wait --for=condition=Completed --timeout=360s workflows --all
 
 #------------------------------------------------------------------------------
 # [i] Populate vault
@@ -321,18 +311,6 @@ SECRET_ID_B64=$(
   -f "auth/approle/role/mesh-cert-manager/secret-id" | \
   jq -r '.data.secret_id' | base64 -w0
 )
-
-#------------------------------------------------------------------------------
-# [i] Deploy cert-manager
-#------------------------------------------------------------------------------
-
-blue "---[ cert-manager ]-----------------------------------------------------"
-
-[ "$(echo "${ALIST}" | grep cert-manager | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
-  echo "argocd app sync -l name=cert-manager --async"
-  argocd app sync -l name=cert-manager --async > /dev/null
-  argocd app wait -l name=cert-manager > /dev/null
-}
 
 #------------------------------------------------------------------------------
 # [i] Deploy Istio

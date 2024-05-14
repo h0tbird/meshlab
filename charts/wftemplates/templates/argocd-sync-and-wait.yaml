@@ -22,8 +22,10 @@ spec:
         value: ""
       - name: revision
         value: HEAD
-      - name: flags
-        value: --
+      - name: selector
+        value: ""
+      - name: parameters
+        value: ""
       - name: argocd-server-address
         value: argocd-server.argocd.svc.cluster.local:443
       - name: argocd-credentials-secret
@@ -53,22 +55,31 @@ spec:
         - name: ARGOCD_SERVER
           value: {{`"{{inputs.parameters.argocd-server-address}}"`}}
       source: |
-        #!/bin/bash
-
-        #set -euo pipefail
         set -x
 
-        if [[ -z $ARGOCD_AUTH_TOKEN ]] && [[ -z "$ARGOCD_USERNAME" || -z "$ARGOCD_PASSWORD" ]]; then
+        function params() {
+          echo "$(for p in {{`{{inputs.parameters.parameters}}`}}; do echo -n " -p ${p}"; done)"
+        }
+
+        if [[ -z "${ARGOCD_AUTH_TOKEN}" ]] && [[ -z "${ARGOCD_USERNAME}" || -z "${ARGOCD_PASSWORD}" ]]; then
           echo "Either the ARGOCD_AUTH_TOKEN must be specified, or the ARGOCD_USERNAME/ARGOCD_PASSWORD must be specified."
           exit 1
         fi
 
-        if [ -z $ARGOCD_AUTH_TOKEN ]; then
-          yes | argocd login "$ARGOCD_SERVER" --username=$ARGOCD_USERNAME --password=$ARGOCD_PASSWORD
+        if [ -z ${ARGOCD_AUTH_TOKEN} ]; then
+          yes | argocd login "${ARGOCD_SERVER}" --username="${ARGOCD_USERNAME}" --password="${ARGOCD_PASSWORD}"
         fi
 
-        echo "Running as ArgoCD User:"
-        argocd account get-user-info
+        if [[ -n "{{`{{inputs.parameters.parameters}}`}}" ]]; then
+          if [[ -n "{{`{{inputs.parameters.selector}}`}}" ]]; then
+            for APP in $(argocd app list -l {{`{{inputs.parameters.selector}}`}} -o name); do
+              argocd app set "${APP}" $(params)
+            done
+          fi
+          if [[ -n "{{`{{inputs.parameters.application-name}}`}}" ]]; then
+            argocd app set {{`{{inputs.parameters.application-name}}`}} -p {{`{{inputs.parameters.parameters}}`}}
+          fi
+        fi
 
-        {{`argocd app sync {{inputs.parameters.application-name}} {{inputs.parameters.flags}}`}}
-        {{`argocd app wait {{inputs.parameters.application-name}} --health {{inputs.parameters.flags}}`}}
+        {{`argocd app sync {{inputs.parameters.application-name}} -l {{inputs.parameters.selector}}`}}
+        {{`argocd app wait {{inputs.parameters.application-name}} --health -l {{inputs.parameters.selector}}`}}

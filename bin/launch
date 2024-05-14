@@ -193,6 +193,7 @@ blue "---[ ApplicationSets ]-------------------------------------------------"
 helm template ./charts/prometheus | k0 apply -f -
 helm template ./charts/vault | k0 apply -f -
 helm template ./charts/cert-manager | k0 apply -f -
+helm template ./charts/istio | k0 apply -f -
 
 #------------------------------------------------------------------------------
 # [i] Setup ArgoWF
@@ -249,24 +250,24 @@ spec:
           template: argocd-sync-and-wait
         arguments:
           parameters:
-          - name: flags
-            value: -l name=prometheus
+          - name: selector
+            value: name=prometheus
       - name: vault
         templateRef:
           name: argocd-sync-and-wait
           template: argocd-sync-and-wait
         arguments:
           parameters:
-          - name: flags
-            value: -l name=vault
+          - name: selector
+            value: name=vault
       - name: cert-manager
         templateRef:
           name: argocd-sync-and-wait
           template: argocd-sync-and-wait
         arguments:
           parameters:
-          - name: flags
-            value: -l name=cert-manager
+          - name: selector
+            value: name=cert-manager
       - name: populate-vault
         dependencies: [vault]
         templateRef:
@@ -278,6 +279,17 @@ spec:
             value: http://${IP[${MNGR}]}:8200
           - name: vault-token
             value: root
+      - name: istio-issuers
+        dependencies: [populate-vault, cert-manager]
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selector
+            value: name=istio-issuers
+          - name: parameters
+            value: 'roleID={{tasks.populate-vault.outputs.parameters.role-id}} secretID={{tasks.populate-vault.outputs.parameters.secret-id-b64}}'
 EOF
 
 # Wait for the workflow to finish
@@ -289,38 +301,38 @@ k0 -n argowf wait --for=condition=Completed --timeout=360s workflows --all
 
 blue "---[ Istio ]------------------------------------------------------------"
 
-# Set the Vault address and token
-export VAULT_ADDR="http://${IP[${MNGR}]}:8200"
-export VAULT_TOKEN=root
-
-# Get the cert-manager's RoleID
-ROLE_ID=$(
-  vault read -format json \
-  "auth/approle/role/mesh-cert-manager/role-id" | \
-  jq -r '.data.role_id'
-)
-
-# Get the cert-manager's SecretID
-SECRET_ID_B64=$(
-  vault write -format json \
-  -f "auth/approle/role/mesh-cert-manager/secret-id" | \
-  jq -r '.data.secret_id' | base64 -w0
-)
-
-# Install Istio
-helm template ./charts/istio \
---set roleID="${ROLE_ID}" \
---set secretID="${SECRET_ID_B64}" |
-k0 apply -f -
-
-# Issuers
-[ "$(echo "${ALIST}" | grep istio-issuers | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
-  echo "argocd app sync -l name=istio-issuers --async"
-  argocd app sync -l name=istio-issuers --async > /dev/null
-  argocd app wait -l name=istio-issuers --resource '*:Certificate:*' --health --degraded > /dev/null; sleep 1
-  argocd app wait -l name=istio-issuers --resource '*:Certificate:*' --health --degraded > /dev/null; sleep 1
-  argocd app wait -l name=istio-issuers > /dev/null
-}
+# # Set the Vault address and token
+# export VAULT_ADDR="http://${IP[${MNGR}]}:8200"
+# export VAULT_TOKEN=root
+# 
+# # Get the cert-manager's RoleID
+# ROLE_ID=$(
+#   vault read -format json \
+#   "auth/approle/role/mesh-cert-manager/role-id" | \
+#   jq -r '.data.role_id'
+# )
+# 
+# # Get the cert-manager's SecretID
+# SECRET_ID_B64=$(
+#   vault write -format json \
+#   -f "auth/approle/role/mesh-cert-manager/secret-id" | \
+#   jq -r '.data.secret_id' | base64 -w0
+# )
+# 
+# # Install Istio
+# helm template ./charts/istio \
+# --set roleID="${ROLE_ID}" \
+# --set secretID="${SECRET_ID_B64}" |
+# k0 apply -f -
+# 
+# # Issuers
+# [ "$(echo "${ALIST}" | grep istio-issuers | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
+#   echo "argocd app sync -l name=istio-issuers --async"
+#   argocd app sync -l name=istio-issuers --async > /dev/null
+#   argocd app wait -l name=istio-issuers --resource '*:Certificate:*' --health --degraded > /dev/null; sleep 1
+#   argocd app wait -l name=istio-issuers --resource '*:Certificate:*' --health --degraded > /dev/null; sleep 1
+#   argocd app wait -l name=istio-issuers > /dev/null
+# }
 
 # Base
 [ "$(echo "${ALIST}" | grep istio-base | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
@@ -399,3 +411,9 @@ echo "Vault:"
 echo "export VAULT_ADDR=${VAULT_ADDR}"
 echo "export VAULT_TOKEN=${VAULT_TOKEN}"
 echo
+
+
+# ValuesObject
+# Toolbox
+# Populate vault
+# Use kubectl to update ApplicationSet ValuesObject with ROLE_ID and SECRET_ID_B64

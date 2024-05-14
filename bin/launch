@@ -288,8 +288,6 @@ spec:
           parameters:
           - name: selector
             value: name=istio-issuers
-          - name: parameters
-            value: 'roleID={{tasks.populate-vault.outputs.parameters.role-id}} secretID={{tasks.populate-vault.outputs.parameters.secret-id-b64}}'
 EOF
 
 # Wait for the workflow to finish
@@ -412,8 +410,6 @@ echo "export VAULT_ADDR=${VAULT_ADDR}"
 echo "export VAULT_TOKEN=${VAULT_TOKEN}"
 echo
 
-
-# ValuesObject
 # Toolbox
 # Populate vault
 # Use kubectl to update ApplicationSet ValuesObject with ROLE_ID and SECRET_ID_B64

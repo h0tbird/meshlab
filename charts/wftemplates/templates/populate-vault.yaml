@@ -11,6 +11,14 @@ spec:
       parameters:
       - name: vault-address
       - name: vault-token
+    outputs:
+      parameters:
+      - name: role-id
+        valueFrom:
+          path: /tmp/ROLE_ID
+      - name: secret-id-b64
+        valueFrom:
+          path: /tmp/SECRET_ID_B64
     script:
       image: hashicorp/vault
       command: [sh]
@@ -22,7 +30,6 @@ spec:
       source: |
         #!/bin/sh
 
-        set -x
         apk add --no-cache jq
 
         while ! vault status &>/dev/null; do sleep 1; done
@@ -80,5 +87,5 @@ spec:
           jq -r '.data.secret_id' | base64 -w0
         )
 
-        echo "RoleID: $ROLE_ID"
-        echo "SecretID: $SECRET_ID_B64"
+        echo -n "${ROLE_ID}" > /tmp/ROLE_ID
+        echo -n "${SECRET_ID_B64}" > /tmp/SECRET_ID_B64

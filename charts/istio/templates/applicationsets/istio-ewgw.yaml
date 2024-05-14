@@ -23,12 +23,12 @@ spec:
         path: charts/ewgw
         helm:
           releaseName: istio-ewgw
-          values: |
-            {{`mesh: {{metadata.labels.stamp}}
-            network: {{name}}
-            cluster: {{name}}
-            domain: {{metadata.labels.stamp}}.local
-            trustDomain: {{metadata.labels.stamp}}.local`}}
+          valuesObject:
+            mesh: {{`'{{metadata.labels.stamp}}'`}}
+            network: {{`'{{name}}'`}}
+            cluster: {{`'{{name}}'`}}
+            domain: {{`'{{metadata.labels.stamp}}.local'`}}
+            trustDomain: {{`'{{metadata.labels.stamp}}.local'`}}
       destination:
         server: {{`'{{server}}'`}}
         namespace: istio-system

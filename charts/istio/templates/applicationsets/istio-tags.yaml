@@ -23,7 +23,7 @@ spec:
         path: charts/tags
         helm:
           releaseName: istio-tags
-          values: |
+          valuesObject:
             revisionTags: ['stable']
       destination:
         server: {{`'{{server}}'`}}

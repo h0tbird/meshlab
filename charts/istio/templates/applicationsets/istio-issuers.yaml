@@ -23,9 +23,9 @@ spec:
         path: charts/issuers
         helm:
           releaseName: istio-issuers
-          values: |
-            {{`clusterName: {{name}}
-            stampName: {{metadata.labels.stamp}}`}}
+          valuesObject:
+            clusterName: {{`'{{name}}'`}}
+            stampName: {{`'{{metadata.labels.stamp}}'`}}
             roleID: {{.Values.roleID}}
             secretID: {{.Values.secretID}}
       destination:

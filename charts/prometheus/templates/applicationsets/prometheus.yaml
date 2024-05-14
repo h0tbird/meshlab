@@ -23,7 +23,7 @@ spec:
         chart: prometheus
         helm:
           releaseName: prometheus
-          values: |
+          valuesObject:
             alertmanager:
               enabled: false
             kube-state-metrics:

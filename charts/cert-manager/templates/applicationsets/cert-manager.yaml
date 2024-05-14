@@ -23,7 +23,7 @@ spec:
         chart: cert-manager
         helm:
           releaseName: cert-manager
-          values: |
+          valuesObject:
             installCRDs: true
             clusterResourceNamespace: istio-system
       destination:

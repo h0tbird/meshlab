@@ -181,9 +181,6 @@ argocd context "${MNGR}" 2> /dev/null || {
   done; done
 }
 
-# Cache the ArgoCD apps list
-sleep 2; ALIST=$(argocd app list)
-
 #------------------------------------------------------------------------------
 # [i] Install all the ApplicationSets
 #------------------------------------------------------------------------------
@@ -246,7 +243,7 @@ k0 create secret generic argocd-credentials \
  --dry-run=client -o yaml | k0 -n argocd apply -f -
 
 # Create the bootstrap workflow
-k0 -n argocd create -f - << EOF
+argo --context kube-00 submit -n argocd -w <(cat << EOF
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
@@ -356,9 +353,7 @@ spec:
           - name: selector
             value: name=istio-tags
 EOF
-
-# Wait for the workflow to finish
-k0 -n argocd wait --for=condition=Completed --timeout=360s workflows --all
+)
 
 #------------------------------------------------------------------------------
 # [i] Enable Istio endpoint discovery

@@ -287,7 +287,7 @@ spec:
         arguments:
           parameters:
           - name: vault-address
-            value: http://${IP[${MNGR}]}:8200
+            value: http://vault.vault.svc.cluster.local:8200
           - name: vault-token
             value: root
       - name: istio-issuers
@@ -370,8 +370,25 @@ for STAMP in $(list stamps); do
 done
 
 #------------------------------------------------------------------------------
-# Deploy some workloads
+# [i] Deploy some workloads
 #------------------------------------------------------------------------------
 
 swarmctl --context 'pasta-*|pizza-*' i --istio-revision stable
 swarmctl --context 'pasta-*|pizza-*' w 1:2 --istio-revision stable
+
+#------------------------------------------------------------------------------
+# [i] Echo useful info
+#------------------------------------------------------------------------------
+
+blue "---[ Info ]-------------------------------------------------------------"
+
+echo "ArgoWF WebUI: http://${IP[${MNGR}]}:2746"
+echo
+echo "ArgoCD WebUI: https://${IP[${MNGR}]}"
+echo "ArgoCD User: admin"
+echo "ArgoCD Pass: ${ARGOCD_PASS}"
+echo
+echo "Vault:"
+echo "export VAULT_ADDR=http://${IP[${MNGR}]}:8200"
+echo "export VAULT_TOKEN=root"
+echo

@@ -209,8 +209,22 @@ helm upgrade --install -n argowf --create-namespace --wait --timeout 5m \
   --set 'workflow.serviceAccount.create=true' \
   --set 'workflow.serviceAccount.name=argo-workflow' \
   --set 'workflow.rbac.create=true' \
-  --set 'controller.workflowNamespaces={argowf}' |
+  --set 'controller.workflowNamespaces={argocd}' |
   grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
+
+# Patch the argo-workflow-role to allow patching of the ApplicationSets
+k0 -n argocd patch role argo-workflows-workflow --type json \
+  -p '[
+        {
+          "op": "add",
+          "path": "/rules/-",
+          "value": {
+            "apiGroups":["argoproj.io"],
+            "resources":["applicationsets"],
+            "verbs":["get","watch","patch"]
+          }
+        }
+      ]'
 
 echo
 echo "ArgoWF WebUI: http://${IP[${MNGR}]}:2746"
@@ -222,17 +236,17 @@ echo "ArgoWF WebUI: http://${IP[${MNGR}]}:2746"
 blue "---[ Bootstrap DAG ]----------------------------------------------------"
 
 # Install Argo WorkflowTemplates
-helm template ./charts/wftemplates | k0 -n argowf apply -f -
+helm template ./charts/wftemplates | k0 -n argocd apply -f -
 
 # Create a secret with ArgoCD credentials
 k0 create secret generic argocd-credentials \
  --from-literal=password="${ARGOCD_PASS}" \
  --from-literal=username='admin' \
  --from-literal=token='' \
- --dry-run=client -o yaml | k0 -n argowf apply -f -
+ --dry-run=client -o yaml | k0 -n argocd apply -f -
 
 # Create the bootstrap workflow
-k0 -n argowf create -f - << EOF
+k0 -n argocd create -f - << EOF
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
@@ -291,7 +305,7 @@ spec:
 EOF
 
 # Wait for the workflow to finish
-k0 -n argowf wait --for=condition=Completed --timeout=360s workflows --all
+k0 -n argocd wait --for=condition=Completed --timeout=360s workflows --all
 
 #------------------------------------------------------------------------------
 # [i] Deploy Istio

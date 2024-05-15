@@ -12,7 +12,7 @@ spec:
       - name: vault-address
       - name: vault-token
     script:
-      image: hashicorp/vault
+      image: h0tbird/toolbox
       command: [sh]
       env:
         - name: VAULT_ADDR
@@ -20,7 +20,7 @@ spec:
         - name: VAULT_TOKEN
           value: {{`"{{inputs.parameters.vault-token}}"`}}
       source: |
-        apk add --no-cache jq
+        set -x
 
         while ! vault status &>/dev/null; do sleep 1; done
 
@@ -76,3 +76,17 @@ spec:
           -f "auth/approle/role/mesh-cert-manager/secret-id" | \
           jq -r '.data.secret_id' | base64 -w0
         )
+
+        # Patch the istio-issuers ApplicationSet with the RoleID and SecretID
+        kubectl -n argocd patch applicationset istio-issuers --type merge \
+        --patch "$(cat - << EOF
+        spec:
+          template:
+            spec:
+              source:
+                helm:
+                  valuesObject:
+                    roleID: ${ROLE_ID}
+                    secretID: ${SECRET_ID_B64}
+        EOF
+        )"

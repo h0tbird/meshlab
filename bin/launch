@@ -375,22 +375,3 @@ done
 
 swarmctl --context 'pasta-*|pizza-*' i --istio-revision stable
 swarmctl --context 'pasta-*|pizza-*' w 1:2 --istio-revision stable
-
-#------------------------------------------------------------------------------
-# [i] Echo useful info
-#------------------------------------------------------------------------------
-
-blue "---[ Info ]-------------------------------------------------------------"
-
-echo "ArgoCD WebUI: https://${IP[${MNGR}]}"
-echo "ArgoCD User: admin"
-echo "ArgoCD Pass: ${ARGOCD_PASS}"
-echo
-echo "Vault:"
-echo "export VAULT_ADDR=${VAULT_ADDR}"
-echo "export VAULT_TOKEN=${VAULT_TOKEN}"
-echo
-
-# Toolbox
-# Populate vault
-# Use kubectl to update ApplicationSet ValuesObject with ROLE_ID and SECRET_ID_B64

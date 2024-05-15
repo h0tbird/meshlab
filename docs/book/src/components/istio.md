@@ -14,5 +14,5 @@ istioctl --context pasta-1 remote-clusters
 
 Access the `istiod` WebUI:
 ```console
-istioctl --context pasta-1 dashboard controlz deployment/istiod-1-21-2.istio-system
+istioctl --context pasta-1 dashboard controlz deployment/istiod-1-22-0.istio-system
 ```

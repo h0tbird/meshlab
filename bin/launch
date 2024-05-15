@@ -302,91 +302,62 @@ spec:
           parameters:
           - name: selector
             value: name=istio-issuers
+      - name: istio-base
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selector
+            value: name=istio-base
+      - name: istio-cni
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selector
+            value: name=istio-cni
+      - name: istio-pilot
+        dependencies: [istio-base, istio-issuers]
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selector
+            value: name=istio-pilot
+      - name: istio-igws
+        dependencies: [istio-pilot]
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selector
+            value: name=istio-igws
+      - name: istio-ewgw
+        dependencies: [istio-pilot]
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selector
+            value: name=istio-ewgw
+      - name: istio-tags
+        dependencies: [istio-pilot]
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selector
+            value: name=istio-tags
 EOF
 
 # Wait for the workflow to finish
 k0 -n argocd wait --for=condition=Completed --timeout=360s workflows --all
-
-#------------------------------------------------------------------------------
-# [i] Deploy Istio
-#------------------------------------------------------------------------------
-
-blue "---[ Istio ]------------------------------------------------------------"
-
-# # Set the Vault address and token
-# export VAULT_ADDR="http://${IP[${MNGR}]}:8200"
-# export VAULT_TOKEN=root
-# 
-# # Get the cert-manager's RoleID
-# ROLE_ID=$(
-#   vault read -format json \
-#   "auth/approle/role/mesh-cert-manager/role-id" | \
-#   jq -r '.data.role_id'
-# )
-# 
-# # Get the cert-manager's SecretID
-# SECRET_ID_B64=$(
-#   vault write -format json \
-#   -f "auth/approle/role/mesh-cert-manager/secret-id" | \
-#   jq -r '.data.secret_id' | base64 -w0
-# )
-# 
-# # Install Istio
-# helm template ./charts/istio \
-# --set roleID="${ROLE_ID}" \
-# --set secretID="${SECRET_ID_B64}" |
-# k0 apply -f -
-# 
-# # Issuers
-# [ "$(echo "${ALIST}" | grep istio-issuers | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
-#   echo "argocd app sync -l name=istio-issuers --async"
-#   argocd app sync -l name=istio-issuers --async > /dev/null
-#   argocd app wait -l name=istio-issuers --resource '*:Certificate:*' --health --degraded > /dev/null; sleep 1
-#   argocd app wait -l name=istio-issuers --resource '*:Certificate:*' --health --degraded > /dev/null; sleep 1
-#   argocd app wait -l name=istio-issuers > /dev/null
-# }
-
-# Base
-[ "$(echo "${ALIST}" | grep istio-base | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
-  echo "argocd app sync -l name=istio-base --async"
-  argocd app sync -l name=istio-base --async > /dev/null
-  argocd app wait -l name=istio-base > /dev/null
-}
-
-# Cni
-[ "$(echo "${ALIST}" | grep istio-cni | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
-  echo "argocd app sync -l name=istio-cni --async"
-  argocd app sync -l name=istio-cni --async > /dev/null
-  argocd app wait -l name=istio-cni > /dev/null
-}
-
-# Pilot
-[ "$(echo "${ALIST}" | grep istio-pilot | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
- echo "argocd app sync -l name=istio-pilot --async"
- argocd app sync -l name=istio-pilot --async > /dev/null
- argocd app wait -l name=istio-pilot > /dev/null
-}
-
-# IngressGateways
-[ "$(echo "${ALIST}" | grep istio-igws | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
-  echo "argocd app sync -l name=istio-igws --async"
-  argocd app sync -l name=istio-igws --async > /dev/null
-  argocd app wait -l name=istio-igws > /dev/null
-}
-
-# EastWestGateways
-[ "$(echo "${ALIST}" | grep istio-ewgw | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
-  echo "argocd app sync -l name=istio-ewgw --async"
-  argocd app sync -l name=istio-ewgw --async > /dev/null
-  argocd app wait -l name=istio-ewgw > /dev/null
-}
-
-# Tag
-[ "$(echo "${ALIST}" | grep istio-tags | grep -c 'Synced  Healthy')" -eq "${N}" ] || {
-  echo "argocd app sync -l name=istio-tags --async"
-  argocd app sync -l name=istio-tags --async > /dev/null
-  argocd app wait -l name=istio-tags > /dev/null
-}
 
 #------------------------------------------------------------------------------
 # [i] Enable Istio endpoint discovery

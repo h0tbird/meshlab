@@ -311,6 +311,7 @@ spec:
           - name: selector
             value: name=istio-base
       - name: istio-cni
+        dependencies: [istio-base]
         templateRef:
           name: argocd-sync-and-wait
           template: argocd-sync-and-wait

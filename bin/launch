@@ -22,6 +22,13 @@ source lib/common.sh
 source lib/misc.sh
 
 #------------------------------------------------------------------------------
+# [i] Versions
+#------------------------------------------------------------------------------
+
+ARGOCD_CHART_VERSION='6.9.0'
+ARGOWF_CHART_VERSION='0.41.4'
+
+#------------------------------------------------------------------------------
 # [i] Pull-through image cache
 #------------------------------------------------------------------------------
 
@@ -137,7 +144,7 @@ blue "---[ ArgoCD ]-----------------------------------------------------------"
 
 # Install ArgoCD
 helm upgrade --install -n argocd --create-namespace --wait --timeout 5m \
-argocd oci://ghcr.io/argoproj/argo-helm/argo-cd --version 6.9.0 \
+argocd oci://ghcr.io/argoproj/argo-helm/argo-cd --version "${ARGOCD_CHART_VERSION}" \
 --set 'server.service.type=LoadBalancer' \
 -f - << EOF | grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
 configs:
@@ -200,7 +207,7 @@ blue "---[ ArgoWF ]-----------------------------------------------------------"
 
 # Install Argo Workflows
 helm upgrade --install -n argowf --create-namespace --wait --timeout 5m \
-  argo-workflows argo/argo-workflows --version 0.41.4 \
+  argo-workflows argo/argo-workflows --version "${ARGOWF_CHART_VERSION}" \
   --set 'server.serviceType=LoadBalancer' \
   --set 'server.authModes={server}' \
   --set 'workflow.serviceAccount.create=true' \
@@ -243,7 +250,7 @@ k0 create secret generic argocd-credentials \
  --dry-run=client -o yaml | k0 -n argocd apply -f -
 
 # Create the bootstrap workflow
-argo --context kube-00 submit -n argocd -w <(cat << EOF
+argo --context kube-00 submit -n argocd -w - << EOF
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
@@ -347,7 +354,6 @@ spec:
           - name: selectors
             value: name=istio-tags
 EOF
-)
 
 #------------------------------------------------------------------------------
 # [i] Enable Istio endpoint discovery

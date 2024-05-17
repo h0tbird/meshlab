@@ -261,7 +261,7 @@ spec:
           template: argocd-sync-and-wait
         arguments:
           parameters:
-          - name: selector
+          - name: selectors
             value: name=prometheus
       - name: vault
         templateRef:
@@ -269,7 +269,7 @@ spec:
           template: argocd-sync-and-wait
         arguments:
           parameters:
-          - name: selector
+          - name: selectors
             value: name=vault
       - name: cert-manager
         templateRef:
@@ -277,19 +277,13 @@ spec:
           template: argocd-sync-and-wait
         arguments:
           parameters:
-          - name: selector
+          - name: selectors
             value: name=cert-manager
       - name: populate-vault
         dependencies: [vault]
         templateRef:
           name: populate-vault
           template: populate-vault
-        arguments:
-          parameters:
-          - name: vault-address
-            value: http://vault.vault.svc.cluster.local:8200
-          - name: vault-token
-            value: root
       - name: istio-issuers
         dependencies: [populate-vault, cert-manager]
         templateRef:
@@ -297,7 +291,7 @@ spec:
           template: argocd-sync-and-wait
         arguments:
           parameters:
-          - name: selector
+          - name: selectors
             value: name=istio-issuers
       - name: istio-base
         templateRef:
@@ -305,7 +299,7 @@ spec:
           template: argocd-sync-and-wait
         arguments:
           parameters:
-          - name: selector
+          - name: selectors
             value: name=istio-base
       - name: istio-cni
         dependencies: [istio-base]
@@ -314,7 +308,7 @@ spec:
           template: argocd-sync-and-wait
         arguments:
           parameters:
-          - name: selector
+          - name: selectors
             value: name=istio-cni
       - name: istio-pilot
         dependencies: [istio-base, istio-issuers]
@@ -323,7 +317,7 @@ spec:
           template: argocd-sync-and-wait
         arguments:
           parameters:
-          - name: selector
+          - name: selectors
             value: name=istio-pilot
       - name: istio-igws
         dependencies: [istio-pilot]
@@ -332,7 +326,7 @@ spec:
           template: argocd-sync-and-wait
         arguments:
           parameters:
-          - name: selector
+          - name: selectors
             value: name=istio-igws
       - name: istio-ewgw
         dependencies: [istio-pilot]
@@ -341,7 +335,7 @@ spec:
           template: argocd-sync-and-wait
         arguments:
           parameters:
-          - name: selector
+          - name: selectors
             value: name=istio-ewgw
       - name: istio-tags
         dependencies: [istio-pilot]
@@ -350,7 +344,7 @@ spec:
           template: argocd-sync-and-wait
         arguments:
           parameters:
-          - name: selector
+          - name: selectors
             value: name=istio-tags
 EOF
 )

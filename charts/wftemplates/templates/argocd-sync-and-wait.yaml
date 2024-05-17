@@ -22,9 +22,7 @@ spec:
         value: ""
       - name: revision
         value: HEAD
-      - name: selector
-        value: ""
-      - name: parameters
+      - name: selectors
         value: ""
       - name: argocd-server-address
         value: argocd-server.argocd.svc.cluster.local:443
@@ -57,8 +55,8 @@ spec:
       source: |
         set -x
 
-        function params() {
-          echo "$(for p in {{`{{inputs.parameters.parameters}}`}}; do echo -n " -p ${p}"; done)"
+        function selectors() {
+          echo "$(for i in {{`{{inputs.parameters.selectors}}`}}; do echo -n " -l ${i}"; done)"
         }
 
         if [[ -z "${ARGOCD_AUTH_TOKEN}" ]] && [[ -z "${ARGOCD_USERNAME}" || -z "${ARGOCD_PASSWORD}" ]]; then
@@ -70,16 +68,5 @@ spec:
           yes | argocd login "${ARGOCD_SERVER}" --username="${ARGOCD_USERNAME}" --password="${ARGOCD_PASSWORD}"
         fi
 
-        if [[ -n "{{`{{inputs.parameters.parameters}}`}}" ]]; then
-          if [[ -n "{{`{{inputs.parameters.selector}}`}}" ]]; then
-            for APP in $(argocd app list -l {{`{{inputs.parameters.selector}}`}} -o name); do
-              argocd app set "${APP}" $(params)
-            done
-          fi
-          if [[ -n "{{`{{inputs.parameters.application-name}}`}}" ]]; then
-            argocd app set {{`{{inputs.parameters.application-name}}`}} -p {{`{{inputs.parameters.parameters}}`}}
-          fi
-        fi
-
-        {{`argocd app sync {{inputs.parameters.application-name}} -l {{inputs.parameters.selector}}`}}
-        {{`argocd app wait {{inputs.parameters.application-name}} --health -l {{inputs.parameters.selector}}`}}
+        argocd app sync {{`{{inputs.parameters.application-name}}`}} $(selectors)
+        argocd app wait {{`{{inputs.parameters.application-name}}`}} --health $(selectors)

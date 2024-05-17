@@ -10,7 +10,9 @@ spec:
     inputs:
       parameters:
       - name: vault-address
+        value: http://vault.vault.svc.cluster.local:8200
       - name: vault-token
+        value: root
     script:
       image: h0tbird/toolbox
       command: [sh]

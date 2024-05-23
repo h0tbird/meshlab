@@ -16,7 +16,7 @@ spec:
       labels:
         name: prometheus
     spec:
-      project: prometheus
+      project: monitoring
       source:
         repoURL: https://prometheus-community.github.io/helm-charts
         targetRevision: 25.21.0

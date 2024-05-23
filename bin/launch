@@ -100,6 +100,10 @@ function k0 {
   kubectl --context "${MNGR}" "${@}"
 }
 
+function h0 {
+  helm --kube-context "${MNGR}" "${@}"
+}
+
 echo "${K8SCFG}" | tr ':' '\n'
 
 #------------------------------------------------------------------------------
@@ -143,7 +147,7 @@ done
 blue "---[ ArgoCD ]-----------------------------------------------------------"
 
 # Install ArgoCD
-helm upgrade --install -n argocd --create-namespace --wait --timeout 5m \
+h0 upgrade --install -n argocd --create-namespace --wait --timeout 5m \
 argocd oci://ghcr.io/argoproj/argo-helm/argo-cd --version "${ARGOCD_CHART_VERSION}" \
 --set 'server.service.type=LoadBalancer' \
 -f - << EOF | grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
@@ -195,6 +199,7 @@ argocd context "${MNGR}" 2> /dev/null || {
 blue "---[ ApplicationSets ]-------------------------------------------------"
 
 helm template ./charts/prometheus | k0 apply -f -
+helm template ./charts/grafana | k0 apply -f -
 helm template ./charts/vault | k0 apply -f -
 helm template ./charts/cert-manager | k0 apply -f -
 helm template ./charts/istio | k0 apply -f -
@@ -206,7 +211,7 @@ helm template ./charts/istio | k0 apply -f -
 blue "---[ ArgoWF ]-----------------------------------------------------------"
 
 # Install Argo Workflows
-helm upgrade --install -n argowf --create-namespace --wait --timeout 5m \
+h0 upgrade --install -n argowf --create-namespace --wait --timeout 5m \
   argo-workflows argo/argo-workflows --version "${ARGOWF_CHART_VERSION}" \
   --set 'server.serviceType=LoadBalancer' \
   --set 'server.authModes={server}' \

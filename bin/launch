@@ -275,6 +275,14 @@ spec:
           parameters:
           - name: selectors
             value: name=prometheus
+      - name: grafana
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selectors
+            value: name=grafana
       - name: vault
         templateRef:
           name: argocd-sync-and-wait

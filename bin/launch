@@ -202,6 +202,7 @@ blue "---[ ApplicationSets ]-------------------------------------------------"
 
 helm template ./charts/prometheus | k0 apply -f -
 helm template ./charts/grafana | k0 apply -f -
+helm template ./charts/otel-collector | k0 apply -f -
 helm template ./charts/vault | k0 apply -f -
 helm template ./charts/cert-manager | k0 apply -f -
 helm template ./charts/istio | k0 apply -f -
@@ -280,6 +281,7 @@ spec:
           - name: selectors
             value: name=prometheus
       - name: grafana
+        dependencies: [prometheus]
         templateRef:
           name: argocd-sync-and-wait
           template: argocd-sync-and-wait
@@ -287,6 +289,15 @@ spec:
           parameters:
           - name: selectors
             value: name=grafana
+      - name: otel-collector
+        dependencies: [prometheus]
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selectors
+            value: name=otel-collector
       - name: vault
         templateRef:
           name: argocd-sync-and-wait

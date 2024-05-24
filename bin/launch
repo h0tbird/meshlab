@@ -113,7 +113,8 @@ echo "${K8SCFG}" | tr ':' '\n'
 blue "---[ Wait for clusters ]------------------------------------------------"
 
 for CLUSTER in $(list clusters all); do
-  until kubectl --context "${CLUSTER}" wait --for=condition=Ready pods --all -A 2>/dev/null; do
+  until kubectl --context "${CLUSTER}" wait --for=condition=Ready pods \
+  -l workflows.argoproj.io/completed!=true --all -A 2>/dev/null; do
     sleep 2
   done &
 done; wait
@@ -131,6 +132,7 @@ kubectl --context "${CLUSTER}" -n kube-system create cm coredns-custom \
   hosts {
     ttl 60
     ${IP[${MNGR}]} vault.demo.lab
+    ${IP[${MNGR}]} prometheus.demo.lab
     fallthrough
   }
 }" | kubectl --context "${CLUSTER}" -n kube-system apply -f -
@@ -256,6 +258,7 @@ k0 create secret generic argocd-credentials \
  --dry-run=client -o yaml | k0 -n argocd apply -f -
 
 # Create the bootstrap workflow
+argo --context kube-00 list -n argocd | grep -q bootstrap || \
 argo --context kube-00 submit -n argocd -w - << EOF
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow

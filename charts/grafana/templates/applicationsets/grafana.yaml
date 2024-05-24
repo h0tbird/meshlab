@@ -23,6 +23,22 @@ spec:
         chart: grafana
         helm:
           releaseName: grafana
+          valuesObject:
+            adminPassword: admin
+            adminUser: admin
+            datasources:
+              datasources.yaml:
+                apiVersion: 1
+                datasources:
+                - name: Prometheus
+                  type: prometheus
+                  access: proxy
+                  orgId: 1
+                  url: http://prometheus-server.prometheus.svc:83
+                  isDefault: true
+            service:
+              type: LoadBalancer
+              port: 84
       destination:
         server: {{`'{{url}}'`}}
         namespace: grafana

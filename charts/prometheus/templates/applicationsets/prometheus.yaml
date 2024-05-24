@@ -33,6 +33,9 @@ spec:
             prometheus-pushgateway:
               enabled: false
             server:
+              service:
+                type: LoadBalancer
+                port: 83
               extraArgs:
                 web.enable-remote-write-receiver: null
       destination:

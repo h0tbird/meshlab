@@ -215,6 +215,7 @@ h0 upgrade --install -n argowf --create-namespace --wait --timeout 5m \
   argo-workflows argo/argo-workflows --version "${ARGOWF_CHART_VERSION}" \
   --set 'server.serviceType=LoadBalancer' \
   --set 'server.authModes={server}' \
+  --set 'server.servicePort=81' \
   --set 'workflow.serviceAccount.create=true' \
   --set 'workflow.serviceAccount.name=argo-workflow' \
   --set 'workflow.rbac.create=true' \
@@ -236,7 +237,7 @@ k0 -n argocd patch role argo-workflows-workflow --type json \
       ]'
 
 echo
-echo "ArgoWF WebUI: http://${IP[${MNGR}]}:2746"
+echo "ArgoWF WebUI: http://${IP[${MNGR}]}:81"
 
 #------------------------------------------------------------------------------
 # [i] Bootstrap DAG

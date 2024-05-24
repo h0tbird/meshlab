@@ -30,6 +30,7 @@ spec:
                 devRootToken: root
               service:
                 type: LoadBalancer
+                port: 82
       destination:
         server: {{`'{{url}}'`}}
         namespace: vault

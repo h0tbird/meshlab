@@ -403,6 +403,6 @@ echo "ArgoCD User: admin"
 echo "ArgoCD Pass: ${ARGOCD_PASS}"
 echo
 echo "Vault:"
-echo "export VAULT_ADDR=http://${IP[${MNGR}]}:8200"
+echo "export VAULT_ADDR=http://${IP[${MNGR}]}:82"
 echo "export VAULT_TOKEN=root"
 echo

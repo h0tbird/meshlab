@@ -25,7 +25,7 @@ spec:
           releaseName: opentelemetry-collector
           values: |
             image:
-              repository: otel/opentelemetry-collector-k8s
+              repository: otel/opentelemetry-collector-contrib
             mode: daemonset
             presets:
               kubernetesAttributes:
@@ -38,10 +38,19 @@ spec:
               receivers:
                 jaeger: null
                 zipkin: null
+              exporters:
+                prometheusremotewrite:
+                  endpoint: http://prometheus.demo.lab:83/api/v1/write
+                  tls:
+                    insecure: true
               service:
                 pipelines:
                   traces: null
                   logs: null
+                  metrics:
+                    receivers: [prometheus]
+                    processors: [batch]
+                    exporters: [prometheusremotewrite]
             ports:
               jaeger-compact:
                 enabled: false

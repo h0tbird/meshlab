@@ -112,12 +112,12 @@ echo "${K8SCFG}" | tr ':' '\n'
 
 blue "---[ Wait for clusters ]------------------------------------------------"
 
-for CLUSTER in $(list clusters all); do
-  until kubectl --context "${CLUSTER}" wait --for=condition=Ready pods \
-  -l workflows.argoproj.io/completed!=true --all -A 2>/dev/null; do
-    sleep 2
-  done &
-done; wait
+# for CLUSTER in $(list clusters all); do
+#   until kubectl --context "${CLUSTER}" wait --for=condition=Ready pods \
+#   -l workflows.argoproj.io/completed!=true --all -A 2>/dev/null; do
+#     sleep 2
+#   done &
+# done; wait
 
 #------------------------------------------------------------------------------
 # [i] Setup CoreDNS server DNS entries for demo.lab

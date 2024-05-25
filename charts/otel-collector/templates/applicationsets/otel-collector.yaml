@@ -23,10 +23,34 @@ spec:
         chart: opentelemetry-collector
         helm:
           releaseName: opentelemetry-collector
-          valuesObject:
+          values: |
             image:
               repository: otel/opentelemetry-collector-k8s
             mode: daemonset
+            config:
+              receivers:
+                jaeger: null
+                otlp: null
+                prometheus: null
+                zipkin: null
+              service:
+                pipelines:
+                  traces: null
+                  metrics: null
+                  logs: null
+            ports:
+              jaeger-compact:
+                enabled: false
+              jaeger-thrift:
+                enabled: false
+              jaeger-grpc:
+                enabled: false
+              otlp:
+                enabled: false
+              otlp-http:
+                enabled: false
+              zipkin:
+                enabled: false
       destination:
         server: {{`'{{server}}'`}}
         namespace: monitoring

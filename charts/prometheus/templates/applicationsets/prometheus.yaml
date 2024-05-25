@@ -36,8 +36,8 @@ spec:
               service:
                 type: LoadBalancer
                 servicePort: 83
-              extraArgs:
-                web.enable-remote-write-receiver: null
+              extraFlags:
+                - web.enable-remote-write-receiver
             serverFiles:
               prometheus.yml:
                 scrape_configs:

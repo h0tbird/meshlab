@@ -42,6 +42,15 @@ spec:
                 pipelines:
                   traces: null
                   logs: null
+            ports:
+              jaeger-compact:
+                enabled: false
+              jaeger-thrift:
+                enabled: false
+              jaeger-grpc:
+                enabled: false
+              zipkin:
+                enabled: false
       destination:
         server: {{`'{{server}}'`}}
         namespace: monitoring

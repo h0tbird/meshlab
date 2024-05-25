@@ -38,6 +38,13 @@ spec:
                 servicePort: 83
               extraArgs:
                 web.enable-remote-write-receiver: null
+            serverFiles:
+              prometheus.yml:
+                scrape_configs:
+                  - job_name: 'dummy'
+                    metrics_path: /nonexistent
+                    static_configs:
+                      - targets: ['localhost:65535']
       destination:
         server: {{`'{{url}}'`}}
         namespace: prometheus

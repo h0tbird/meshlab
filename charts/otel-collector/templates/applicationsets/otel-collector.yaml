@@ -34,6 +34,12 @@ spec:
                 enabled: true
               hostMetrics:
                 enabled: true
+            config:
+              receivers:
+                jaeger: null
+              service:
+                pipelines:
+                  traces: null
       destination:
         server: {{`'{{server}}'`}}
         namespace: monitoring

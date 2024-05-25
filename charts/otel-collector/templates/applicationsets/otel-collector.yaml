@@ -37,6 +37,7 @@ spec:
             config:
               receivers:
                 jaeger: null
+                zipkin: null
               service:
                 pipelines:
                   traces: null

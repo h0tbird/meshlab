@@ -64,7 +64,6 @@ docker start registry-ghcr.io 2>/dev/null || docker run -d -p 5013:5000 \
 blue "---[ Multipass VMs ]----------------------------------------------------"
 
 MPLIST=$(multipass list)
-N=$(list clusters | wc -w)
 
 # Start the management cluster
 echo "${MPLIST}" | grep "${MNGR}" | grep -q Running || {
@@ -192,11 +191,11 @@ argocd context "${MNGR}" 2> /dev/null || {
 
 blue "---[ ApplicationSets ]-------------------------------------------------"
 
-helm template ./charts/prometheus | k0 apply -f -
-helm template ./charts/grafana | k0 apply -f -
-helm template ./charts/otel-collector | k0 apply -f -
-helm template ./charts/vault | k0 apply -f -
-helm template ./charts/cert-manager | k0 apply -f -
+helm template ./charts/prometheus --set "chartVersion=${PROMETHEUS_CHART_VERSION}" | k0 apply -f -
+helm template ./charts/grafana --set "chartVersion=${GRAFANA_CHART_VERSION}" | k0 apply -f -
+helm template ./charts/otel-collector --set "chartVersion=${OTEL_COLLECTOR_CHART_VERSION}" | k0 apply -f -
+helm template ./charts/vault --set "chartVersion=${VAULT_CHART_VERSION}" | k0 apply -f -
+helm template ./charts/cert-manager --set "chartVersion=${CERT_MANAGER_CHART_VERSION}" | k0 apply -f -
 helm template ./charts/istio | k0 apply -f -
 
 #------------------------------------------------------------------------------

@@ -19,7 +19,7 @@ spec:
       project: monitoring
       source:
         repoURL: https://grafana.github.io/helm-charts
-        targetRevision: 7.3.11
+        targetRevision: { .Values.chartVersion }
         chart: grafana
         helm:
           releaseName: grafana

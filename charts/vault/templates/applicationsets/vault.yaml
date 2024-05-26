@@ -19,7 +19,7 @@ spec:
       project: vault
       source:
         repoURL: https://helm.releases.hashicorp.com
-        targetRevision: 0.23.0
+        targetRevision: { .Values.chartVersion }
         chart: vault
         helm:
           releaseName: vault

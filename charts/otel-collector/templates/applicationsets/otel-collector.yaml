@@ -19,7 +19,7 @@ spec:
       project: monitoring
       source:
         repoURL: https://open-telemetry.github.io/opentelemetry-helm-charts
-        targetRevision: { .Values.chartVersion }
+        targetRevision: {{ .Values.chartVersion }}
         chart: opentelemetry-collector
         helm:
           releaseName: opentelemetry-collector

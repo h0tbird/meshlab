@@ -19,7 +19,7 @@ spec:
       project: cert-manager
       source:
         repoURL: https://charts.jetstack.io
-        targetRevision: { .Values.chartVersion }
+        targetRevision: {{ .Values.chartVersion }}
         chart: cert-manager
         helm:
           releaseName: cert-manager

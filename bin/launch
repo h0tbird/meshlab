@@ -1,11 +1,5 @@
 #!/usr/bin/env bash
 
-##-----------------------------------------------------------------------------
-## TODO Create a cli tool that will be installed via brew and will be used to
-## create the VMs and install a controller. VMs will be created by multipass
-## using remote custom images pre-created with packer.
-##-----------------------------------------------------------------------------
-
 #------------------------------------------------------------------------------
 # [i] Initializations
 #------------------------------------------------------------------------------

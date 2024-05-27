@@ -20,7 +20,7 @@ source lib/misc.sh
 #------------------------------------------------------------------------------
 
 ARGOCD_CHART_VERSION='6.9.0'          # https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd
-ARGOWF_CHART_VERSION='0.41.4'         # https://artifacthub.io/packages/helm/argo/argo-workflows
+ARGOWF_CHART_VERSION='0.41.7'         # https://artifacthub.io/packages/helm/argo/argo-workflows
 PROMETHEUS_CHART_VERSION='25.21.0'    # https://artifacthub.io/packages/helm/prometheus-community/prometheus
 GRAFANA_CHART_VERSION='7.3.11'        # https://artifacthub.io/packages/helm/grafana/grafana
 OTEL_COLLECTOR_CHART_VERSION='0.92.0' # https://artifacthub.io/packages/helm/opentelemetry-helm/opentelemetry-collector

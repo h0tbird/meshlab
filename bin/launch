@@ -57,6 +57,7 @@ docker start registry-ghcr.io 2>/dev/null || docker run -d -p 5013:5000 \
 
 blue "---[ Multipass VMs ]----------------------------------------------------"
 
+# Cache the multipass list output
 MPLIST=$(multipass list)
 
 # Start the management cluster

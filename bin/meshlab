@@ -1,0 +1,449 @@
+#!/usr/bin/env bash
+
+#------------------------------------------------------------------------------
+# [i] Initializations
+#------------------------------------------------------------------------------
+
+# Bash strict mode
+set -euo pipefail
+
+# Change to the execution directory
+cd "$(dirname "$0")"/..
+
+# shellcheck source=/dev/null
+source lib/common.sh
+# shellcheck source=/dev/null
+source lib/misc.sh
+
+#------------------------------------------------------------------------------
+# [i] Versions
+#------------------------------------------------------------------------------
+
+ARGOCD_CHART_VERSION='7.1.0'          # https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd
+ARGOWF_CHART_VERSION='0.41.7'         # https://artifacthub.io/packages/helm/argo/argo-workflows
+PROMETHEUS_CHART_VERSION='25.21.0'    # https://artifacthub.io/packages/helm/prometheus-community/prometheus
+GRAFANA_CHART_VERSION='7.3.11'        # https://artifacthub.io/packages/helm/grafana/grafana
+OTEL_COLLECTOR_CHART_VERSION='0.92.0' # https://artifacthub.io/packages/helm/opentelemetry-helm/opentelemetry-collector
+VAULT_CHART_VERSION='0.28.0'          # https://artifacthub.io/packages/helm/hashicorp/vault
+CERT_MANAGER_CHART_VERSION='v1.14.5'  # https://artifacthub.io/packages/helm/cert-manager/cert-manager
+
+#------------------------------------------------------------------------------
+# [i] Validate the command line arguments
+#------------------------------------------------------------------------------
+
+[[ $# -ne 1 || ($1 != "create" && $1 != "suspend" && $1 != "delete") ]] && \
+{ echo "Usage: $0 <create|suspend|delete>"; exit 1; }
+
+#------------------------------------------------------------------------------
+# [i] Suspend or delete
+#------------------------------------------------------------------------------
+
+if [[ $1 == "suspend" || $1 == "delete" ]]; then
+
+  # Suspend all the clusters
+  multipass suspend $(list clusters all) || true
+
+  # Delete all the clusters
+  if [[ $1 == "delete" ]]; then
+
+    # Delete all the clusters
+    multipass delete $(list clusters all) --purge || true
+
+    # Delete the ArgoCD context
+    argocd context --delete "${MNGR}" || true
+
+    # Delete the KUBECONFIG entries
+    for CLUSTER in $(list clusters all); do
+      kubectl config delete-user "${CLUSTER}" || true
+      kubectl config delete-cluster "${CLUSTER}" || true
+      kubectl config delete-context "${CLUSTER}" || true
+    done
+  fi
+
+  # Flush the DHCP leases
+  sudo launchctl stop com.apple.bootpd
+  sudo rm -f /var/db/dhcpd_leases
+  sudo launchctl start com.apple.bootpd
+  exit 0
+fi
+
+#------------------------------------------------------------------------------
+# [i] Pull-through image cache
+#------------------------------------------------------------------------------
+
+blue "---[ Pull-through registries ]------------------------------------------"
+
+docker start registry-docker.io 2>/dev/null || docker run -d -p 5011:5000 \
+  -e REGISTRY_PROXY_REMOTEURL=https://registry-1.docker.io \
+  --restart always \
+  --name registry-docker.io \
+  registry:2
+
+docker start registry-quay.io 2>/dev/null || docker run -d -p 5012:5000 \
+  -e REGISTRY_PROXY_REMOTEURL=https://quay.io \
+  --restart always \
+  --name registry-quay.io \
+  registry:2
+
+docker start registry-ghcr.io 2>/dev/null || docker run -d -p 5013:5000 \
+  -e REGISTRY_PROXY_REMOTEURL=https://ghcr.io \
+  --restart always \
+  --name registry-ghcr.io \
+  registry:2
+
+#------------------------------------------------------------------------------
+# [i] Create clusters
+#------------------------------------------------------------------------------
+
+blue "---[ Multipass VMs ]----------------------------------------------------"
+
+# Cache the multipass list output
+MPLIST=$(multipass list)
+
+# Start the management cluster
+echo "${MPLIST}" | grep "${MNGR}" | grep -q Running || {
+  { multipass start "${MNGR}" 2>/dev/null || (launch_k8s "${MNGR}" "cluster") } &
+  sleep 5
+}
+
+# Start all the stamp clusters
+for STAMP in $(list stamps); do for CLUSTER in ${STAMPS[${STAMP}]}; do
+    echo "${MPLIST}" | grep "${CLUSTER}" | grep -q Running || {
+      { multipass start "${CLUSTER}" 2>/dev/null || (launch_k8s "${CLUSTER}" "${STAMP}") } &
+      sleep 5
+    }
+done; done; wait
+
+# Get all the IPs
+declare -A IP
+for CLUSTER in $(list clusters all); do
+    IP[${CLUSTER}]=$(multipass info "${CLUSTER}" | grep IPv4 | awk '{print $2}')
+    echo "${CLUSTER} = ${IP[${CLUSTER}]}"
+done
+
+#------------------------------------------------------------------------------
+# [i] Setup KUBECONFIG
+#------------------------------------------------------------------------------
+
+blue "---[ KUBECONFIG ]-------------------------------------------------------"
+
+K8SCFG=~/.kube/config
+for CLUSTER in $(list clusters all); do
+  K8SCFG=${K8SCFG}:./tmp/${CLUSTER}/config
+done
+
+KUBECONFIG=${K8SCFG} \
+kubectl config view --flatten > ./tmp/config && cp ./tmp/config ~/.kube/config
+
+function k0 {
+  kubectl --context "${MNGR}" "${@}"
+}
+
+function h0 {
+  helm --kube-context "${MNGR}" "${@}"
+}
+
+echo "${K8SCFG}" | tr ':' '\n'
+
+#------------------------------------------------------------------------------
+# [i] Setup CoreDNS server DNS entries for demo.lab
+#------------------------------------------------------------------------------
+
+blue "---[ CoreDNS ]----------------------------------------------------------"
+
+for CLUSTER in $(list clusters); do
+
+kubectl --context "${CLUSTER}" -n kube-system create cm coredns-custom \
+--dry-run=client -o yaml --from-literal=demo.server="demo.lab {
+  hosts {
+    ttl 60
+    ${IP[${MNGR}]} vault.demo.lab
+    ${IP[${MNGR}]} prometheus.demo.lab
+    fallthrough
+  }
+}" | kubectl --context "${CLUSTER}" -n kube-system apply -f -
+
+# Restart otherwise it takes a while to pick up the new config
+kubectl --context "${CLUSTER}" -n kube-system rollout restart deployment coredns
+
+done
+
+#------------------------------------------------------------------------------
+# [i] Setup ArgoCD
+#------------------------------------------------------------------------------
+
+blue "---[ ArgoCD ]-----------------------------------------------------------"
+
+# Install ArgoCD
+h0 upgrade --install -n argocd --create-namespace --wait --timeout 5m \
+argocd oci://ghcr.io/argoproj/argo-helm/argo-cd --version "${ARGOCD_CHART_VERSION}" \
+--set 'server.service.type=LoadBalancer' \
+-f - << EOF | grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
+configs:
+  cm:
+    resource.customizations.ignoreDifferences.admissionregistration.k8s.io_MutatingWebhookConfiguration: |
+      jqPathExpressions:
+      - '.webhooks[]?.clientConfig.caBundle'
+EOF
+
+# Get the password
+ARGOCD_PASS=$(
+  k0 -n argocd \
+  get secret argocd-initial-admin-secret \
+  -o jsonpath='{.data.password}' | base64 -d
+)
+
+echo
+echo "ArgoCD WebUI: https://${IP[${MNGR}]}"
+echo "ArgoCD User: admin"
+echo "ArgoCD Pass: ${ARGOCD_PASS}"
+
+#------------------------------------------------------------------------------
+# [i] Register clusters to ArgoCD
+#------------------------------------------------------------------------------
+
+blue "---[ Register clusters to ArgoCD ]--------------------------------------"
+
+# Check if the ArgoCD context exists
+argocd context "${MNGR}" 2> /dev/null || {
+
+  # Login to ArgoCD
+  argocd login "${IP[${MNGR}]}" \
+    --insecure \
+    --name "${MNGR}" \
+    --username admin \
+    --password "${ARGOCD_PASS}"
+
+  # Add clusters with labels
+  for STAMP in $(list stamps); do for CLUSTER in ${STAMPS[${STAMP}]}; do
+    argocd cluster list | grep -q "${CLUSTER}" || \
+    argocd cluster add -y "${CLUSTER}" --label name="${CLUSTER}" --label stamp="${STAMP}"
+  done; done
+}
+
+#------------------------------------------------------------------------------
+# [i] Install all the ApplicationSets
+#------------------------------------------------------------------------------
+
+blue "---[ ApplicationSets ]-------------------------------------------------"
+
+helm template ./charts/prometheus --set "chartVersion=${PROMETHEUS_CHART_VERSION}" | k0 apply -f -
+helm template ./charts/grafana --set "chartVersion=${GRAFANA_CHART_VERSION}" | k0 apply -f -
+helm template ./charts/otel-collector --set "chartVersion=${OTEL_COLLECTOR_CHART_VERSION}" | k0 apply -f -
+helm template ./charts/vault --set "chartVersion=${VAULT_CHART_VERSION}" | k0 apply -f -
+helm template ./charts/cert-manager --set "chartVersion=${CERT_MANAGER_CHART_VERSION}" | k0 apply -f -
+helm template ./charts/istio | k0 apply -f -
+
+#------------------------------------------------------------------------------
+# [i] Setup ArgoWF
+#------------------------------------------------------------------------------
+
+blue "---[ ArgoWF ]-----------------------------------------------------------"
+
+# Install Argo Workflows
+h0 upgrade --install -n argowf --create-namespace --wait --timeout 5m \
+  argo-workflows argo/argo-workflows --version "${ARGOWF_CHART_VERSION}" \
+  --set 'server.serviceType=LoadBalancer' \
+  --set 'server.authModes={server}' \
+  --set 'server.servicePort=81' \
+  --set 'workflow.serviceAccount.create=true' \
+  --set 'workflow.serviceAccount.name=argo-workflow' \
+  --set 'workflow.rbac.create=true' \
+  --set 'controller.workflowNamespaces={argocd}' |
+  grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
+
+# Patch the argo-workflow-role to allow patching of the ApplicationSets
+k0 -n argocd patch role argo-workflows-workflow --type json \
+  -p '[
+        {
+          "op": "add",
+          "path": "/rules/-",
+          "value": {
+            "apiGroups":["argoproj.io"],
+            "resources":["applicationsets"],
+            "verbs":["get","watch","patch"]
+          }
+        }
+      ]'
+
+echo
+echo "ArgoWF WebUI: http://${IP[${MNGR}]}:81"
+
+#------------------------------------------------------------------------------
+# [i] Bootstrap DAG
+#------------------------------------------------------------------------------
+
+blue "---[ Bootstrap DAG ]----------------------------------------------------"
+
+# Install Argo WorkflowTemplates
+helm template ./charts/wftemplates | k0 -n argocd apply -f -
+
+# Create a secret with ArgoCD credentials
+k0 create secret generic argocd-credentials \
+ --from-literal=password="${ARGOCD_PASS}" \
+ --from-literal=username='admin' \
+ --from-literal=token='' \
+ --dry-run=client -o yaml | k0 -n argocd apply -f -
+
+# Create the bootstrap workflow
+argo --context kube-00 list -n argocd | grep -q bootstrap || \
+argo --context kube-00 submit -n argocd -w - << EOF
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: bootstrap-
+spec:
+  entrypoint: stages
+  serviceAccountName: argo-workflow
+  templates:
+  - name: stages
+    dag:
+      tasks:
+      - name: prometheus
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selectors
+            value: name=prometheus
+      - name: grafana
+        dependencies: [prometheus]
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selectors
+            value: name=grafana
+      - name: otel-collector
+        dependencies: [prometheus]
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selectors
+            value: name=otel-collector
+      - name: vault
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selectors
+            value: name=vault
+      - name: cert-manager
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selectors
+            value: name=cert-manager
+      - name: populate-vault
+        dependencies: [vault]
+        templateRef:
+          name: populate-vault
+          template: populate-vault
+      - name: istio-issuers
+        dependencies: [populate-vault, cert-manager]
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selectors
+            value: name=istio-issuers
+      - name: istio-base
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selectors
+            value: name=istio-base
+      - name: istio-cni
+        dependencies: [istio-base]
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selectors
+            value: name=istio-cni
+      - name: istio-pilot
+        dependencies: [istio-base, istio-issuers]
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selectors
+            value: name=istio-pilot
+      - name: istio-igws
+        dependencies: [istio-pilot]
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selectors
+            value: name=istio-igws
+      - name: istio-ewgw
+        dependencies: [istio-pilot]
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selectors
+            value: name=istio-ewgw
+      - name: istio-tags
+        dependencies: [istio-pilot]
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selectors
+            value: name=istio-tags
+EOF
+
+#------------------------------------------------------------------------------
+# [i] Enable Istio endpoint discovery
+#------------------------------------------------------------------------------
+
+blue "---[ Istio remote secrets ]---------------------------------------------"
+
+for STAMP in $(list stamps); do
+  CLUS=(${STAMPS[${STAMP}]})
+  istioctl create-remote-secret --context "${CLUS[0]}" --name="${CLUS[0]}" | \
+  kubectl --context "${CLUS[1]}" apply -f -
+  istioctl create-remote-secret --context "${CLUS[1]}" --name="${CLUS[1]}" | \
+  kubectl --context "${CLUS[0]}" apply -f -
+done
+
+#------------------------------------------------------------------------------
+# [i] Deploy some workloads
+#------------------------------------------------------------------------------
+
+blue "---[ Deploy workloads ]-------------------------------------------------"
+
+swarmctl --context 'pasta-*|pizza-*' i --istio-revision stable
+swarmctl --context 'pasta-*|pizza-*' w 1:2 --istio-revision stable
+
+#------------------------------------------------------------------------------
+# [i] Echo useful info
+#------------------------------------------------------------------------------
+
+blue "---[ Info ]-------------------------------------------------------------"
+
+printf "| %-10s | %-30s | %-10s | %-16s |\n" "Service" "URL" "User" "Pass"
+printf "| %-10s | %-30s | %-10s | %-16s |\n" "----------" "------------------------------" "----------" "----------------"
+printf "| %-10s | %-30s | %-10s | %-16s |\n" "ArgoCD" "https://${IP[$MNGR]}" "admin" "${ARGOCD_PASS}"
+printf "| %-10s | %-30s | %-10s | %-16s |\n" "ArgoWF" "http://${IP[$MNGR]}:81" "" ""
+printf "| %-10s | %-30s | %-10s | %-16s |\n" "Vault" "http://${IP[$MNGR]}:82" "Token" "root"
+printf "| %-10s | %-30s | %-10s | %-16s |\n" "Prometheus" "http://${IP[$MNGR]}:83" "" ""
+printf "| %-10s | %-30s | %-10s | %-16s |\n" "Grafana" "http://${IP[$MNGR]}:84" "admin" "admin"
+echo

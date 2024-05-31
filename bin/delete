@@ -8,8 +8,8 @@ source lib/common.sh
 #------------------------------------------------------------------------------
 
 multipass suspend $(list clusters all)
-multipass delete $(list clusters all)
-multipass purge
+# multipass delete $(list clusters all)
+# multipass purge
 
 #------------------------------------------------------------------------------
 # Setup KUBECONFIG

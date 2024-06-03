@@ -430,8 +430,8 @@ done
 
 blue "---[ Deploy workloads ]-------------------------------------------------"
 
-swarmctl --context 'pasta-*|pizza-*' i --istio-revision stable
-swarmctl --context 'pasta-*|pizza-*' w 1:2 --istio-revision stable
+swarmctl --context 'pasta-*|pizza-*' i --yes --istio-revision stable
+swarmctl --context 'pasta-*|pizza-*' w 1:2 --yes --istio-revision stable
 
 #------------------------------------------------------------------------------
 # [i] Echo useful info

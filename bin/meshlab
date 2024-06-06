@@ -447,3 +447,20 @@ printf "| %-10s | %-30s | %-10s | %-16s |\n" "Vault" "http://${IP[$MNGR]}:82" "T
 printf "| %-10s | %-30s | %-10s | %-16s |\n" "Prometheus" "http://${IP[$MNGR]}:83" "" ""
 printf "| %-10s | %-30s | %-10s | %-16s |\n" "Grafana" "http://${IP[$MNGR]}:84" "admin" "admin"
 echo
+
+# TODO: Import the meshlab dashboard
+
+# # Export dashboard ednz5zfxvsikgd
+# curl -s -k \
+#   -H "Authorization: Basic $(echo -n 'admin:admin' | base64)" \
+#   -H 'Content-Type: application/json' \
+#   http://192.168.105.2:84/api/dashboards/uid/ednz5zfxvsikgd |
+# jq '. |= (.folderUid=.meta.folderUid) | del(.meta) | del(.dashboard.id) + {overwrite: true}' \
+# > meshlab.json
+
+# # Import dashboard
+# curl -X POST \
+#   -H "Authorization: Basic $(echo -n 'admin:admin' | base64)" \
+#   -H 'Content-Type: application/json' \
+#   --data @meshlab.json \
+#   http://192.168.105.2:84/api/dashboards/db

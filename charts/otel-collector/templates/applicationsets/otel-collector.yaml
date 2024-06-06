@@ -51,22 +51,34 @@ spec:
                       kubernetes_sd_configs:
                       - role: pod
                       relabel_configs:
+                      - source_labels: [__meta_kubernetes_pod_node_name]
+                        action: keep
+                        regex: ${env:K8S_NODE_NAME}
                       - source_labels: [__meta_kubernetes_pod_container_port_name]
                         action: keep
                         regex: '.*-envoy-prom'
+              processors:
+                resource:
+                  attributes:
+                    - key: k8s.cluster.name
+                      value: {{`'{{name}}'`}}
+                      action: upsert
               exporters:
                 prometheusremotewrite:
                   endpoint: http://prometheus.demo.lab:83/api/v1/write
                   tls:
                     insecure: true
+                debug: {}
+                logging:
+                  loglevel: debug
               service:
                 pipelines:
                   traces: null
                   logs: null
                   metrics:
                     receivers: [prometheus]
-                    processors: [batch]
-                    exporters: [prometheusremotewrite]
+                    processors: [resource, batch]
+                    exporters: [prometheusremotewrite, debug, logging]
             ports:
               jaeger-compact:
                 enabled: false

@@ -30,7 +30,7 @@ spec:
             presets:
               kubernetesAttributes:
                 enabled: true
-              kubeletMetrics:
+              kubeletMetrics: # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/kubeletstatsreceiver/documentation.md
                 enabled: true
             config:
               receivers:

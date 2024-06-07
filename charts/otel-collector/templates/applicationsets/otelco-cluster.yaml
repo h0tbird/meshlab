@@ -28,7 +28,7 @@ spec:
               repository: otel/opentelemetry-collector-contrib
             mode: deployment
             presets:
-              clusterMetrics:
+              clusterMetrics: # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/k8sclusterreceiver/documentation.md
                 enabled: true
             config:
               receivers:

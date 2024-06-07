@@ -80,7 +80,30 @@
               ]
             }
           },
-          "overrides": []
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "informer"
+              },
+              "properties": [
+                {
+                  "id": "custom.axisPlacement",
+                  "value": "hidden"
+                },
+                {
+                  "id": "custom.lineStyle",
+                  "value": {
+                    "dash": [
+                      10,
+                      10
+                    ],
+                    "fill": "dash"
+                  }
+                }
+              ]
+            }
+          ]
         },
         "gridPos": {
           "h": 11,
@@ -98,7 +121,7 @@
           },
           "tooltip": {
             "maxHeight": 600,
-            "mode": "single",
+            "mode": "multi",
             "sort": "none"
           }
         },
@@ -129,21 +152,30 @@
             "expr": "round(sum(irate(istio_requests_total{reporter=~\"destination\", source_cluster=~\"$k8s_cluster\", destination_workload_namespace=\"informer\"}[5m])), 0.001)",
             "hide": false,
             "instant": false,
-            "legendFormat": "__auto",
+            "legendFormat": "informer",
             "range": true,
             "refId": "B"
           }
         ],
-        "title": "$k8s_namespace request rate | Pod and Node count | Clusters: $k8s_cluster",
+        "title": "Request rate originated by $k8s_namespace | Pod and Node count | Clusters: $k8s_cluster",
         "type": "timeseries"
       }
     ],
+    "refresh": "10s",
     "schemaVersion": 39,
     "tags": [],
     "templating": {
       "list": [
         {
-          "current": {},
+          "current": {
+            "selected": false,
+            "text": [
+              "All"
+            ],
+            "value": [
+              "$__all"
+            ]
+          },
           "datasource": {
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
@@ -167,7 +199,15 @@
           "type": "query"
         },
         {
-          "current": {},
+          "current": {
+            "selected": false,
+            "text": [
+              "service-1"
+            ],
+            "value": [
+              "service-1"
+            ]
+          },
           "datasource": {
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
@@ -201,7 +241,7 @@
     "timezone": "browser",
     "title": "MeshLab",
     "uid": "ednz5zfxvsikgd",
-    "version": 1,
+    "version": 7,
     "weekStart": ""
   },
   "folderUid": "",

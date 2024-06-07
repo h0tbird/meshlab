@@ -32,8 +32,6 @@ spec:
                 enabled: true
               kubeletMetrics:
                 enabled: true
-              hostMetrics:
-                enabled: true
             config:
               receivers:
                 jaeger: null
@@ -41,11 +39,6 @@ spec:
                 prometheus:
                   config:
                     scrape_configs:
-                    - job_name: opentelemetry-collector
-                      scrape_interval: 10s
-                      static_configs:
-                      - targets:
-                        - ${env:MY_POD_IP}:8888
                     - job_name: envoy
                       metrics_path: /stats/prometheus
                       kubernetes_sd_configs:

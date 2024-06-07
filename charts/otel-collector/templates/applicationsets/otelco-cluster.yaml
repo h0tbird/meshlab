@@ -55,7 +55,7 @@ spec:
                   traces: null
                   logs: null
                   metrics:
-                    receivers: [prometheus]
+                    receivers: [k8s_cluster]
                     processors: [resource, batch]
                     exporters: [prometheusremotewrite, debug]
             ports:

@@ -316,7 +316,7 @@ spec:
           parameters:
           - name: selectors
             value: name=grafana
-      - name: otel-collector
+      - name: otelco-node
         dependencies: [prometheus]
         templateRef:
           name: argocd-sync-and-wait
@@ -324,7 +324,16 @@ spec:
         arguments:
           parameters:
           - name: selectors
-            value: name=otel-collector
+            value: name=otelco-node
+      - name: otelco-cluster
+        dependencies: [prometheus]
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selectors
+            value: name=otelco-cluster
       - name: vault
         templateRef:
           name: argocd-sync-and-wait

@@ -1,0 +1,95 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: otelco-node
+  namespace: argocd
+spec:
+  generators:
+  - clusters:
+      selector:
+        matchLabels:
+          argocd.argoproj.io/secret-type: cluster
+  template:
+    metadata:
+      name: {{`'{{name}}-otelco-node'`}}
+      labels:
+        name: otelco-node
+    spec:
+      project: monitoring
+      source:
+        repoURL: https://open-telemetry.github.io/opentelemetry-helm-charts
+        targetRevision: {{ .Values.chartVersion }}
+        chart: opentelemetry-collector
+        helm:
+          releaseName: otelco-node
+          values: |
+            image:
+              repository: otel/opentelemetry-collector-contrib
+            mode: daemonset
+            presets:
+              kubernetesAttributes:
+                enabled: true
+              kubeletMetrics:
+                enabled: true
+              hostMetrics:
+                enabled: true
+            config:
+              receivers:
+                jaeger: null
+                zipkin: null
+                prometheus:
+                  config:
+                    scrape_configs:
+                    - job_name: opentelemetry-collector
+                      scrape_interval: 10s
+                      static_configs:
+                      - targets:
+                        - ${env:MY_POD_IP}:8888
+                    - job_name: envoy
+                      metrics_path: /stats/prometheus
+                      kubernetes_sd_configs:
+                      - role: pod
+                      relabel_configs:
+                      - source_labels: [__meta_kubernetes_pod_node_name]
+                        action: keep
+                        regex: ${env:K8S_NODE_NAME}
+                      - source_labels: [__meta_kubernetes_pod_container_port_name]
+                        action: keep
+                        regex: '.*-envoy-prom'
+              processors:
+                resource:
+                  attributes:
+                    - key: k8s.cluster.name
+                      value: {{`'{{name}}'`}}
+                      action: upsert
+              exporters:
+                prometheusremotewrite:
+                  endpoint: http://prometheus.demo.lab:83/api/v1/write
+                  resource_to_telemetry_conversion:
+                    enabled: true
+                  tls:
+                    insecure: true
+              service:
+                pipelines:
+                  traces: null
+                  logs: null
+                  metrics:
+                    receivers: [prometheus]
+                    processors: [resource, batch]
+                    exporters: [prometheusremotewrite]
+            ports:
+              jaeger-compact:
+                enabled: false
+              jaeger-thrift:
+                enabled: false
+              jaeger-grpc:
+                enabled: false
+              zipkin:
+                enabled: false
+      destination:
+        server: {{`'{{server}}'`}}
+        namespace: monitoring
+      syncPolicy:
+        syncOptions:
+        - CreateNamespace=true

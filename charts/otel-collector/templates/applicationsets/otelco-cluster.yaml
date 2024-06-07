@@ -2,7 +2,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: otel-collector
+  name: otelco-cluster
   namespace: argocd
 spec:
   generators:
@@ -12,9 +12,9 @@ spec:
           argocd.argoproj.io/secret-type: cluster
   template:
     metadata:
-      name: {{`'{{name}}-otel-collector'`}}
+      name: {{`'{{name}}-otelco-cluster'`}}
       labels:
-        name: otel-collector
+        name: otelco-cluster
     spec:
       project: monitoring
       source:
@@ -22,41 +22,18 @@ spec:
         targetRevision: {{ .Values.chartVersion }}
         chart: opentelemetry-collector
         helm:
-          releaseName: opentelemetry-collector
+          releaseName: otelco-cluster
           values: |
             image:
               repository: otel/opentelemetry-collector-contrib
-            mode: daemonset
+            mode: deployment
             presets:
-              kubernetesAttributes:
-                enabled: true
-              kubeletMetrics:
-                enabled: true
-              hostMetrics:
+              clusterMetrics:
                 enabled: true
             config:
               receivers:
                 jaeger: null
                 zipkin: null
-                prometheus:
-                  config:
-                    scrape_configs:
-                    - job_name: opentelemetry-collector
-                      scrape_interval: 10s
-                      static_configs:
-                      - targets:
-                        - ${env:MY_POD_IP}:8888
-                    - job_name: envoy
-                      metrics_path: /stats/prometheus
-                      kubernetes_sd_configs:
-                      - role: pod
-                      relabel_configs:
-                      - source_labels: [__meta_kubernetes_pod_node_name]
-                        action: keep
-                        regex: ${env:K8S_NODE_NAME}
-                      - source_labels: [__meta_kubernetes_pod_container_port_name]
-                        action: keep
-                        regex: '.*-envoy-prom'
               processors:
                 resource:
                   attributes:

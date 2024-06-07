@@ -473,3 +473,6 @@ echo
 #   -H 'Content-Type: application/json' \
 #   --data @meshlab.json \
 #   http://192.168.105.2:84/api/dashboards/db
+
+# k --context pasta-1 -n monitoring logs -f ds/otelco-node-opentelemetry-collector-agent | grep -E 'InstrumentationScope|^     -> Name:'
+# k --context pasta-1 -n monitoring logs -f deployments/otelco-cluster-opentelemetry-collector | grep -E 'InstrumentationScope|^     -> Name:'

@@ -47,6 +47,8 @@ spec:
                     enabled: true
                   tls:
                     insecure: true
+                debug:
+                  verbosity: detailed
               service:
                 pipelines:
                   traces: null
@@ -54,7 +56,7 @@ spec:
                   metrics:
                     receivers: [prometheus]
                     processors: [resource, batch]
-                    exporters: [prometheusremotewrite]
+                    exporters: [prometheusremotewrite, debug]
             ports:
               jaeger-compact:
                 enabled: false

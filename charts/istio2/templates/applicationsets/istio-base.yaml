@@ -26,3 +26,6 @@ spec:
       destination:
         server: {{`'{{server}}'`}}
         namespace: istio-system
+      syncPolicy:
+        syncOptions:
+        - CreateNamespace=true

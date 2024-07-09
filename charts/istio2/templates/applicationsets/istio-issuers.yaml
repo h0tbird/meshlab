@@ -1,0 +1,36 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: istio-issuers
+  namespace: argocd
+spec:
+  generators:
+  - clusters:
+      selector:
+        matchLabels:
+          argocd.argoproj.io/secret-type: cluster
+  template:
+    metadata:
+      name: {{`'{{name}}-istio-issuers'`}}
+      labels:
+        name: istio-issuers
+    spec:
+      project: cert-manager
+      source:
+        repoURL: https://github.com/h0tbird/istio.git
+        targetRevision: HEAD
+        path: charts/issuers
+        helm:
+          releaseName: istio-issuers
+          valuesObject:
+            clusterName: {{`'{{name}}'`}}
+            stampName: {{`'{{metadata.labels.stamp}}'`}}
+            roleID: {{.Values.roleID}}
+            secretID: {{.Values.secretID}}
+      destination:
+        server: {{`'{{server}}'`}}
+        namespace: istio-system
+      syncPolicy:
+        syncOptions:
+        - CreateNamespace=true

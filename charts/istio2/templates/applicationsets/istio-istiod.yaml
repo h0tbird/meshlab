@@ -2,7 +2,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: istio-cni
+  name: istio-istiod
   namespace: argocd
 spec:
   generators:
@@ -12,25 +12,17 @@ spec:
           argocd.argoproj.io/secret-type: cluster
   template:
     metadata:
-      name: {{`'{{name}}-istio-cni'`}}
+      name: {{`'{{name}}-istio-base'`}}
       labels:
-        name: istio-cni
+        name: istio-istiod
     spec:
       project: istio
       source:
         repoURL: https://istio-release.storage.googleapis.com/charts
         targetRevision: {{ .Values.chartVersion }}
-        chart: cni
+        chart: istiod
         helm:
-          releaseName: istio-cni
-          valuesObject:
-            cni:
-              cniBinDir: /var/lib/rancher/k3s/data/current/bin
-              cniConfDir: /var/lib/rancher/k3s/agent/etc/cni/net.d
-              pullPolicy: IfNotPresent
-              excludeNamespaces:
-              - istio-system
-              - kube-system
+          releaseName: istio-istiod
       destination:
         server: {{`'{{server}}'`}}
         namespace: istio-system

@@ -12,7 +12,7 @@ spec:
           argocd.argoproj.io/secret-type: cluster
   template:
     metadata:
-      name: {{`'{{name}}-istio-base'`}}
+      name: {{`'{{name}}-istio-istiod'`}}
       labels:
         name: istio-istiod
     spec:

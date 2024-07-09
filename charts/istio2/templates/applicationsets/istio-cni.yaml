@@ -1,0 +1,28 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: istio-cni
+  namespace: argocd
+spec:
+  generators:
+  - clusters:
+      selector:
+        matchLabels:
+          argocd.argoproj.io/secret-type: cluster
+  template:
+    metadata:
+      name: {{`'{{name}}-istio-cni'`}}
+      labels:
+        name: istio-cni
+    spec:
+      project: istio
+      source:
+        repoURL: https://istio-release.storage.googleapis.com/charts
+        targetRevision: {{ .Values.chartVersion }}
+        chart: cni
+        helm:
+          releaseName: istio-cni
+      destination:
+        server: {{`'{{server}}'`}}
+        namespace: istio-system

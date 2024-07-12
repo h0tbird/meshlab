@@ -23,6 +23,20 @@ spec:
         chart: istiod
         helm:
           releaseName: istio-istiod
+          valuesObject:
+            meshConfig:
+              accessLogFile: /dev/stdout
+              accessLogEncoding: JSON
+              trustDomain: pasta.local
+              defaultConfig:
+                holdApplicationUntilProxyStarts: true
+                proxyMetadata:
+                  ISTIO_META_DNS_CAPTURE: "true"
+                  ISTIO_META_DNS_AUTO_ALLOCATE: "true"
+            global:
+              meshID: pasta
+              proxy:
+                clusterDomain: pasta.local
       destination:
         server: {{`'{{server}}'`}}
         namespace: istio-system

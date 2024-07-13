@@ -27,16 +27,16 @@ spec:
             meshConfig:
               accessLogFile: /dev/stdout
               accessLogEncoding: JSON
-              trustDomain: pasta.local
+              trustDomain: {{`'{{metadata.labels.stamp}}.local'`}}
               defaultConfig:
                 holdApplicationUntilProxyStarts: true
                 proxyMetadata:
                   ISTIO_META_DNS_CAPTURE: "true"
                   ISTIO_META_DNS_AUTO_ALLOCATE: "true"
             global:
-              meshID: pasta
+              meshID: {{`'{{metadata.labels.stamp}}'`}}
               proxy:
-                clusterDomain: pasta.local
+                clusterDomain: {{`'{{metadata.labels.stamp}}.local'`}}
       destination:
         server: {{`'{{server}}'`}}
         namespace: istio-system

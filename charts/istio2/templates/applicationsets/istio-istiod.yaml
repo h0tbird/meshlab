@@ -24,6 +24,7 @@ spec:
         helm:
           releaseName: istio-istiod
           valuesObject:
+            revision: {{ .Values.chartVersion | replace "." "-" }}
             meshConfig:
               accessLogFile: /dev/stdout
               accessLogEncoding: JSON

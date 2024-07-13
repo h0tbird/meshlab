@@ -23,6 +23,8 @@ spec:
         chart: base
         helm:
           releaseName: istio-base
+          valuesObject:
+            defaultRevision: {{ .Values.chartVersion | replace "." "-" }}
       destination:
         server: {{`'{{server}}'`}}
         namespace: istio-system

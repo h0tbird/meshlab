@@ -25,6 +25,17 @@ spec:
           releaseName: istio-istiod
           valuesObject:
             revision: {{ .Values.chartVersion | replace "." "-" }}
+            global:
+              meshID: {{`'{{metadata.labels.stamp}}'`}}
+              network: {{`'{{name}}'`}}
+              logAsJson: true
+              multiCluster:
+                enabled: true
+                clusterName: {{`'{{name}}'`}}
+              proxy:
+                privileged: true
+                enableCoreDump: true
+                clusterDomain: {{`'{{metadata.labels.stamp}}.local'`}}
             meshConfig:
               accessLogFile: /dev/stdout
               accessLogEncoding: JSON
@@ -34,10 +45,6 @@ spec:
                 proxyMetadata:
                   ISTIO_META_DNS_CAPTURE: "true"
                   ISTIO_META_DNS_AUTO_ALLOCATE: "true"
-            global:
-              meshID: {{`'{{metadata.labels.stamp}}'`}}
-              proxy:
-                clusterDomain: {{`'{{metadata.labels.stamp}}.local'`}}
       destination:
         server: {{`'{{server}}'`}}
         namespace: istio-system

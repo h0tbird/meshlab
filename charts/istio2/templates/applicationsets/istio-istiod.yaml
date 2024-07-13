@@ -25,6 +25,14 @@ spec:
           releaseName: istio-istiod
           valuesObject:
             revision: {{ .Values.chartVersion | replace "." "-" }}
+            pilot:
+              autoscaleEnabled: false
+              env:
+                AUTO_RELOAD_PLUGIN_CERTS: true
+                PILOT_ENABLE_WORKLOAD_ENTRY_AUTOREGISTRATION: true
+                PILOT_ENABLE_WORKLOAD_ENTRY_HEALTHCHECKS: true
+                ISTIOD_CUSTOM_HOST: {{`'istiod.{{name}}'`}}
+                ENABLE_NATIVE_SIDECARS: true
             global:
               meshID: {{`'{{metadata.labels.stamp}}'`}}
               network: {{`'{{name}}'`}}

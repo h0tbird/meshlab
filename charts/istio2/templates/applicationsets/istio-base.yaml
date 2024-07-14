@@ -29,5 +29,13 @@ spec:
         server: {{`'{{server}}'`}}
         namespace: istio-system
       syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
         syncOptions:
         - CreateNamespace=true
+      ignoreDifferences:
+      - group: admissionregistration.k8s.io
+        kind: ValidatingWebhookConfiguration
+        jsonPointers:
+        - /webhooks/0/failurePolicy

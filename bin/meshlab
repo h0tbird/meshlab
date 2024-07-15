@@ -391,7 +391,7 @@ spec:
           parameters:
           - name: selectors
             value: name=istio-istiod
-      - name: istio-igws
+      - name: istio-nsgw
         dependencies: [istio-istiod]
         templateRef:
           name: argocd-sync-and-wait
@@ -399,7 +399,7 @@ spec:
         arguments:
           parameters:
           - name: selectors
-            value: name=istio-igws
+            value: name=istio-nsgw
       - name: istio-ewgw
         dependencies: [istio-istiod]
         templateRef:
@@ -409,15 +409,6 @@ spec:
           parameters:
           - name: selectors
             value: name=istio-ewgw
-      - name: istio-tags
-        dependencies: [istio-istiod]
-        templateRef:
-          name: argocd-sync-and-wait
-          template: argocd-sync-and-wait
-        arguments:
-          parameters:
-          - name: selectors
-            value: name=istio-tags
 EOF
 
 #------------------------------------------------------------------------------

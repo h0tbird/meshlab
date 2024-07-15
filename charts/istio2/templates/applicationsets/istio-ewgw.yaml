@@ -1,0 +1,35 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: istio-ewgw
+  namespace: argocd
+spec:
+  generators:
+  - clusters:
+      selector:
+        matchLabels:
+          argocd.argoproj.io/secret-type: cluster
+  template:
+    metadata:
+      name: {{`'{{name}}-istio-ewgw'`}}
+      labels:
+        name: istio-ewgw
+    spec:
+      project: istio
+      source:
+        repoURL: https://istio-release.storage.googleapis.com/charts
+        targetRevision: {{ .Values.chartVersion }}
+        chart: gateway
+        helm:
+          releaseName: istio-ewgw
+          valuesObject:
+            revision: {{ .Values.chartVersion | replace "." "-" }}
+            autoscaling:
+              enabled: false
+      destination:
+        server: {{`'{{server}}'`}}
+        namespace: istio-system
+      syncPolicy:
+        syncOptions:
+        - CreateNamespace=true

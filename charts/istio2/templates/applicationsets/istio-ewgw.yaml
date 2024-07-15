@@ -25,8 +25,25 @@ spec:
           releaseName: istio-ewgw
           valuesObject:
             revision: {{ .Values.chartVersion | replace "." "-" }}
+            service:
+              type: LoadBalancer
+              ports:
+              - name: status-port
+                port: 15022
+                targetPort: 15021
+              - name: tls
+                port: 15443
+                targetPort: 15443
+              - name: tls-istiod
+                port: 15012
+                targetPort: 15012
+              - name: tls-webhook
+                port: 15017
+                targetPort: 15017
             autoscaling:
               enabled: false
+            env:
+              ISTIO_META_REQUESTED_NETWORK_VIEW: {{`'{{name}}'`}}
       destination:
         server: {{`'{{server}}'`}}
         namespace: istio-system

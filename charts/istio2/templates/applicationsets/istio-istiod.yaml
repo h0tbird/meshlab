@@ -57,9 +57,6 @@ spec:
       destination:
         server: {{`'{{server}}'`}}
         namespace: istio-system
-      syncPolicy:
-        syncOptions:
-        - CreateNamespace=true
       ignoreDifferences:
       - group: admissionregistration.k8s.io
         kind: ValidatingWebhookConfiguration

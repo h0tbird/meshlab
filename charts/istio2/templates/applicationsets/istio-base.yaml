@@ -34,6 +34,9 @@ spec:
           selfHeal: true
         syncOptions:
         - CreateNamespace=true
+        managedNamespaceMetadata:
+          labels:
+            topology.istio.io/network: {{`'{{name}}'`}}
       ignoreDifferences:
       - group: admissionregistration.k8s.io
         kind: ValidatingWebhookConfiguration

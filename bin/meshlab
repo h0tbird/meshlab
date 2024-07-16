@@ -435,6 +435,25 @@ swarmctl --context 'pasta-*|pizza-*' i --yes --istio-revision stable
 swarmctl --context 'pasta-*|pizza-*' w 1:2 --yes --istio-revision stable
 
 #------------------------------------------------------------------------------
+# [i] Import the meshlab Grafana dashboard
+#------------------------------------------------------------------------------
+
+blue "---[ Import Grafana dashboard ]-----------------------------------------"
+
+curl -sX POST \
+  -H "Authorization: Basic $(echo -n 'admin:admin' | base64)" \
+  -H 'Content-Type: application/json' \
+  --data @conf/dashboard.json \
+  http://192.168.105.2:84/api/dashboards/db | jq
+
+# curl -sk \
+#   -H "Authorization: Basic $(echo -n 'admin:admin' | base64)" \
+#   -H 'Content-Type: application/json' \
+#   http://192.168.105.2:84/api/dashboards/uid/ednz5zfxvsikgd |
+# jq '. |= (.folderUid=.meta.folderUid) | del(.meta) | del(.dashboard.id) + {overwrite: true}' \
+# > conf/dashboard.json
+
+#------------------------------------------------------------------------------
 # [i] Echo useful info
 #------------------------------------------------------------------------------
 
@@ -448,23 +467,6 @@ printf "| %-10s | %-30s | %-10s | %-16s |\n" "Vault" "http://${IP[$MNGR]}:82" "T
 printf "| %-10s | %-30s | %-10s | %-16s |\n" "Prometheus" "http://${IP[$MNGR]}:83" "" ""
 printf "| %-10s | %-30s | %-10s | %-16s |\n" "Grafana" "http://${IP[$MNGR]}:84" "admin" "admin"
 echo
-
-# TODO: Import the meshlab dashboard
-
-# # Export dashboard ednz5zfxvsikgd
-# curl -s -k \
-#   -H "Authorization: Basic $(echo -n 'admin:admin' | base64)" \
-#   -H 'Content-Type: application/json' \
-#   http://192.168.105.2:84/api/dashboards/uid/ednz5zfxvsikgd |
-# jq '. |= (.folderUid=.meta.folderUid) | del(.meta) | del(.dashboard.id) + {overwrite: true}' \
-# > meshlab.json
-
-# # Import dashboard
-# curl -X POST \
-#   -H "Authorization: Basic $(echo -n 'admin:admin' | base64)" \
-#   -H 'Content-Type: application/json' \
-#   --data @meshlab.json \
-#   http://192.168.105.2:84/api/dashboards/db
 
 # k --context pasta-1 -n monitoring logs -f ds/otelco-node-opentelemetry-collector-agent | grep -E 'InstrumentationScope|^     -> Name:'
 # k --context pasta-1 -n monitoring logs -f deployments/otelco-cluster-opentelemetry-collector | grep -E 'InstrumentationScope|^     -> Name:'

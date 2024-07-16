@@ -12,7 +12,7 @@ Manually sync applications:
 argocd app sync -l name=istio-issuers --async
 argocd app sync -l name=istio-base --async
 argocd app sync -l name=istio-cni --async
-argocd app sync -l name=istio-pilot --async
-argocd app sync -l name=istio-igws --async
+argocd app sync -l name=istio-istiod --async
+argocd app sync -l name=istio-nsgw --async
 argocd app sync -l name=istio-ewgw --async
 ```

@@ -459,14 +459,7 @@ curl -sX POST \
 
 blue "---[ Info ]-------------------------------------------------------------"
 
-printf "| %-10s | %-30s | %-10s | %-16s |\n" "Service" "URL" "User" "Pass"
-printf "| %-10s | %-30s | %-10s | %-16s |\n" "----------" "------------------------------" "----------" "----------------"
-printf "| %-10s | %-30s | %-10s | %-16s |\n" "ArgoCD" "https://${IP[$MNGR]}" "admin" "${ARGOCD_PASS}"
-printf "| %-10s | %-30s | %-10s | %-16s |\n" "ArgoWF" "http://${IP[$MNGR]}:81" "" ""
-printf "| %-10s | %-30s | %-10s | %-16s |\n" "Vault" "http://${IP[$MNGR]}:82" "Token" "root"
-printf "| %-10s | %-30s | %-10s | %-16s |\n" "Prometheus" "http://${IP[$MNGR]}:83" "" ""
-printf "| %-10s | %-30s | %-10s | %-16s |\n" "Grafana" "http://${IP[$MNGR]}:84" "admin" "admin"
-echo
+./bin/info
 
 # k --context pasta-1 -n monitoring logs -f ds/otelco-node-opentelemetry-collector-agent | grep -E 'InstrumentationScope|^     -> Name:'
 # k --context pasta-1 -n monitoring logs -f deployments/otelco-cluster-opentelemetry-collector | grep -E 'InstrumentationScope|^     -> Name:'

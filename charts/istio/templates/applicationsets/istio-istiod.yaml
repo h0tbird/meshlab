@@ -1,0 +1,64 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: istio-istiod
+  namespace: argocd
+spec:
+  generators:
+  - clusters:
+      selector:
+        matchLabels:
+          argocd.argoproj.io/secret-type: cluster
+  template:
+    metadata:
+      name: {{`'{{name}}-istio-istiod'`}}
+      labels:
+        name: istio-istiod
+    spec:
+      project: istio
+      source:
+        repoURL: https://istio-release.storage.googleapis.com/charts
+        targetRevision: {{ .Values.chartVersion }}
+        chart: istiod
+        helm:
+          releaseName: istio-istiod
+          valuesObject:
+            revision: {{ .Values.chartVersion | replace "." "-" }}
+            revisionTags: [ "stable", "canary" ]
+            pilot:
+              autoscaleEnabled: false
+              env:
+                AUTO_RELOAD_PLUGIN_CERTS: true
+                PILOT_ENABLE_WORKLOAD_ENTRY_AUTOREGISTRATION: true
+                PILOT_ENABLE_WORKLOAD_ENTRY_HEALTHCHECKS: true
+                ISTIOD_CUSTOM_HOST: {{`'istiod.{{name}}'`}}
+                ENABLE_NATIVE_SIDECARS: true
+            global:
+              meshID: {{`'{{metadata.labels.stamp}}'`}}
+              network: {{`'{{name}}'`}}
+              logAsJson: true
+              multiCluster:
+                enabled: true
+                clusterName: {{`'{{name}}'`}}
+              proxy:
+                privileged: true
+                enableCoreDump: true
+                clusterDomain: {{`'{{metadata.labels.stamp}}.local'`}}
+            meshConfig:
+              accessLogFile: /dev/stdout
+              accessLogEncoding: JSON
+              trustDomain: {{`'{{metadata.labels.stamp}}.local'`}}
+              defaultConfig:
+                holdApplicationUntilProxyStarts: true
+                proxyMetadata:
+                  ISTIO_META_DNS_CAPTURE: "true"
+                  ISTIO_META_DNS_AUTO_ALLOCATE: "true"
+      destination:
+        server: {{`'{{server}}'`}}
+        namespace: istio-system
+      ignoreDifferences:
+      - group: admissionregistration.k8s.io
+        kind: ValidatingWebhookConfiguration
+        jsonPointers:
+        - /webhooks/0/failurePolicy

@@ -14,4 +14,6 @@ Argo Workflows and ArgoCD are used to deploy:
 - [Vault](https://artifacthub.io/packages/helm/hashicorp/vault)
 - [cert-manager](https://artifacthub.io/packages/helm/cert-manager/cert-manager)
 - [Prometheus](https://artifacthub.io/packages/helm/prometheus-community/prometheus)
-- [Istio](https://github.com/h0tbird/istio)
+- [Grafana](https://artifacthub.io/packages/helm/grafana/grafana)
+- [OTEL Collector](https://artifacthub.io/packages/helm/opentelemetry-helm/opentelemetry-collector)
+- [Istio](https://artifacthub.io/packages/helm/istio-official/base)

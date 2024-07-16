@@ -1,5 +1,0 @@
-apiVersion: v2
-name: istio
-description: istio
-type: application
-version: 0.1.0

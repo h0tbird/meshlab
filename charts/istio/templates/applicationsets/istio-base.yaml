@@ -18,17 +18,27 @@ spec:
     spec:
       project: istio
       source:
-        repoURL: https://github.com/h0tbird/istio.git
-        targetRevision: HEAD
-        path: charts/base
+        repoURL: https://istio-release.storage.googleapis.com/charts
+        targetRevision: {{ .Values.chartVersion }}
+        chart: base
         helm:
           releaseName: istio-base
           valuesObject:
-            mesh: {{`'{{name}}'`}}
-            network: {{`'{{name}}'`}}
-            cluster: {{`'{{name}}'`}}
-            domain: {{`'{{metadata.labels.stamp}}.local'`}}
-            trustDomain: {{`'{{metadata.labels.stamp}}.local'`}}
+            defaultRevision: {{ .Values.chartVersion | replace "." "-" }}
       destination:
         server: {{`'{{server}}'`}}
         namespace: istio-system
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+        - CreateNamespace=true
+        managedNamespaceMetadata:
+          labels:
+            topology.istio.io/network: {{`'{{name}}'`}}
+      ignoreDifferences:
+      - group: admissionregistration.k8s.io
+        kind: ValidatingWebhookConfiguration
+        jsonPointers:
+        - /webhooks/0/failurePolicy

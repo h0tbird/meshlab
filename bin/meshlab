@@ -233,7 +233,7 @@ helm template ./charts/grafana --set "chartVersion=${GRAFANA_CHART_VERSION}" | k
 helm template ./charts/otel-collector --set "chartVersion=${OTEL_COLLECTOR_CHART_VERSION}" | k0 apply -f -
 helm template ./charts/vault --set "chartVersion=${VAULT_CHART_VERSION}" | k0 apply -f -
 helm template ./charts/cert-manager --set "chartVersion=${CERT_MANAGER_CHART_VERSION}" | k0 apply -f -
-helm template ./charts/istio2 --set "chartVersion=${ISTIO_CHART_VERSION}" | k0 apply -f -
+helm template ./charts/istio --set "chartVersion=${ISTIO_CHART_VERSION}" | k0 apply -f -
 
 #------------------------------------------------------------------------------
 # [i] Setup ArgoWF

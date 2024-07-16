@@ -18,17 +18,22 @@ spec:
     spec:
       project: istio
       source:
-        repoURL: https://github.com/h0tbird/istio.git
-        targetRevision: HEAD
-        path: charts/cni
+        repoURL: https://istio-release.storage.googleapis.com/charts
+        targetRevision: {{ .Values.chartVersion }}
+        chart: cni
         helm:
           releaseName: istio-cni
           valuesObject:
-            mesh: {{`'{{metadata.labels.stamp}}'`}}
-            network: {{`'{{name}}'`}}
-            cluster: {{`'{{name}}'`}}
-            domain: {{`'{{metadata.labels.stamp}}.local'`}}
-            trustDomain: {{`'{{metadata.labels.stamp}}.local'`}}
+            cni:
+              cniBinDir: /var/lib/rancher/k3s/data/current/bin
+              cniConfDir: /var/lib/rancher/k3s/agent/etc/cni/net.d
+              pullPolicy: IfNotPresent
+              excludeNamespaces:
+              - istio-system
+              - kube-system
       destination:
         server: {{`'{{server}}'`}}
         namespace: istio-system
+      syncPolicy:
+        syncOptions:
+        - CreateNamespace=true

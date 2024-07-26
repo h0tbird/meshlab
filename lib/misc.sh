@@ -53,6 +53,7 @@ function launch_k8s {
 
   NAME="$1"
   STAMP="$2"
+  VERSION="$3"
 
   # Base64 encoded config files
   REG_CONFIG=$(base64 -w0 conf/registries.yaml)
@@ -86,7 +87,8 @@ function launch_k8s {
 	  # Install k3s
 	  #-------------
 
-	  curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--cluster-domain ${STAMP}.local" sh -s -
+	  curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=${VERSION} \
+	  INSTALL_K3S_EXEC="--cluster-domain ${STAMP}.local" sh -s -
 
 	  #----------------
 	  # Topology setup

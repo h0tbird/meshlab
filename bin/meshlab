@@ -20,6 +20,7 @@ source lib/misc.sh
 #------------------------------------------------------------------------------
 
 K3S_VERSION='v1.30.2+k3s2'            # https://github.com/k3s-io/k3s/releases
+CILIUM_CHART_VERSION='1.16.0'         # https://artifacthub.io/packages/helm/cilium/cilium
 ARGOCD_CHART_VERSION='7.3.11'         # https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd
 ARGOWF_CHART_VERSION='0.41.11'        # https://artifacthub.io/packages/helm/argo/argo-workflows
 PROMETHEUS_CHART_VERSION='25.24.1'    # https://artifacthub.io/packages/helm/prometheus-community/prometheus
@@ -158,9 +159,11 @@ for CLUSTER in $(list clusters all); do
 
  {
   helm template cilium/cilium \
-    --version 1.16.0 \
+    --version "${CILIUM_CHART_VERSION}" \
     --namespace kube-system \
     --set envoy.enabled=false \
+    --set operator.replicas=1 \
+    --set cni.exclusive=false \
     --set ipam.operator.clusterPoolIPv4PodCIDRList="10.42.0.0/16" |
     kubectl --context "${CLUSTER}" apply -f -
 

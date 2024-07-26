@@ -154,24 +154,16 @@ echo "${K8SCFG}" | tr ':' '\n'
 
 blue "---[ Cilium CNI ]--------------------------------------------------------"
 
-# TODO: Create an ArgoCD applicationset for Cilium and use its values for the
-#       this initial installation.
-
 # Install the Cilium CNI
 for CLUSTER in $(list clusters all); do
 
- {
-  helm template cilium/cilium \
+ { helm template cilium/cilium \
     --version "${CILIUM_CHART_VERSION}" \
     --namespace kube-system \
-    --set envoy.enabled=false \
-    --set operator.replicas=1 \
-    --set cni.exclusive=false \
-    --set ipam.operator.clusterPoolIPv4PodCIDRList="10.42.0.0/16" |
+    --values ./charts/cilium/values.yaml |
     kubectl --context "${CLUSTER}" apply -f -
 
-  kubectl wait --for=condition=Ready nodes --all --timeout=60s
-  } &
+  kubectl wait --for=condition=Ready nodes --all --timeout=60s; } &
 
 done; wait
 

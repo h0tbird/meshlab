@@ -1,1 +1,10 @@
 ---
+envoy:
+  enabled: false
+operator:
+  replicas: 1
+cni:
+  exclusive: false
+ipam:
+  operator:
+    clusterPoolIPv4PodCIDRList: "10.42.0.0/16"

@@ -27,16 +27,17 @@ spec:
         chart: cilium
         helm:
           releaseName: cilium
+          valueFiles: [values.yaml]
           valuesObject:
             envoy:
-              enabled: false
+              enabled: {{ .Values.envoy.enabled }}
             operator:
-              replicas: 1
+              replicas: {{ .Values.operator.replicas }}
             cni:
-              exclusive: false
+              exclusive: {{ .Values.cni.exclusive }}
             ipam:
               operator:
-                clusterPoolIPv4PodCIDRList: "10.42.0.0/16"
+                clusterPoolIPv4PodCIDRList: {{ .Values.ipam.operator.clusterPoolIPv4PodCIDRList }}
       destination:
         server: {{`'{{server}}'`}}
         namespace: kube-system

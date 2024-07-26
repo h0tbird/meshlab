@@ -154,6 +154,9 @@ echo "${K8SCFG}" | tr ':' '\n'
 
 blue "---[ Cilium CNI ]--------------------------------------------------------"
 
+# TODO: Create an ArgoCD applicationset for Cilium and use its values for the
+#       this initial installation.
+
 # Install the Cilium CNI
 for CLUSTER in $(list clusters all); do
 

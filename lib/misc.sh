@@ -107,6 +107,5 @@ function launch_k8s {
 	EOF
 
 	# Copy the kubeconfig to the host
-	mkdir -p ./tmp/"${NAME}"
-	multipass transfer "${NAME}:/home/ubuntu/config" "tmp/${NAME}"
+	multipass transfer --parents "${NAME}:/home/ubuntu/config" "./tmp/${NAME}"
 }

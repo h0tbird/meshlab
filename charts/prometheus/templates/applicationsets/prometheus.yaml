@@ -8,11 +8,11 @@ spec:
   generators:
   - list:
       elements:
-      - cluster: kube-00
-        url: https://kubernetes.default.svc
+      - name: kube-00
+        server: https://kubernetes.default.svc
   template:
     metadata:
-      name: {{`'{{cluster}}-prometheus'`}}
+      name: {{`'{{name}}-prometheus'`}}
       labels:
         name: prometheus
     spec:
@@ -47,7 +47,7 @@ spec:
                     static_configs:
                       - targets: ['localhost:65535']
       destination:
-        server: {{`'{{url}}'`}}
+        server: {{`'{{server}}'`}}
         namespace: prometheus
       syncPolicy:
         syncOptions:

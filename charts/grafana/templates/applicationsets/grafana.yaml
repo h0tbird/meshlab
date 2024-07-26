@@ -8,11 +8,11 @@ spec:
   generators:
   - list:
       elements:
-      - cluster: kube-00
-        url: https://kubernetes.default.svc
+      - name: kube-00
+        server: https://kubernetes.default.svc
   template:
     metadata:
-      name: {{`'{{cluster}}-grafana'`}}
+      name: {{`'{{name}}-grafana'`}}
       labels:
         name: grafana
     spec:
@@ -40,7 +40,7 @@ spec:
               type: LoadBalancer
               port: 84
       destination:
-        server: {{`'{{url}}'`}}
+        server: {{`'{{server}}'`}}
         namespace: grafana
       syncPolicy:
         syncOptions:

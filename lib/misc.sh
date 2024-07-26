@@ -87,7 +87,6 @@ function launch_k8s {
 	  #-------------
 
 	  curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--cluster-domain ${STAMP}.local" sh -s -
-	  sleep 5; kubectl wait --for=condition=Ready nodes --all --timeout=60s
 
 	  #----------------
 	  # Topology setup

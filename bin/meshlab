@@ -257,6 +257,7 @@ argocd context "${MNGR}" 2> /dev/null || {
 
 blue "---[ ApplicationSets ]-------------------------------------------------"
 
+helm template ./charts/cilium --set "chartVersion=${CILIUM_CHART_VERSION}" | k0 apply -f -
 helm template ./charts/prometheus --set "chartVersion=${PROMETHEUS_CHART_VERSION}" | k0 apply -f -
 helm template ./charts/grafana --set "chartVersion=${GRAFANA_CHART_VERSION}" | k0 apply -f -
 helm template ./charts/otel-collector --set "chartVersion=${OTEL_COLLECTOR_CHART_VERSION}" | k0 apply -f -
@@ -329,6 +330,14 @@ spec:
   - name: stages
     dag:
       tasks:
+      - name: cilium
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selectors
+            value: name=cilium
       - name: prometheus
         templateRef:
           name: argocd-sync-and-wait
@@ -395,6 +404,7 @@ spec:
           - name: selectors
             value: name=istio-issuers
       - name: istio-base
+        dependencies: [cilium]
         templateRef:
           name: argocd-sync-and-wait
           template: argocd-sync-and-wait

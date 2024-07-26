@@ -11,7 +11,7 @@
   - [Hypervisor](./components/hypervisor.md)
   - [Cloud-init](./components/cloud-init.md)
   - [k3s](./components/k3s.md)
-  - [Flannel](./components/flannel.md)
+  - [Cilium](./components/cilium.md)
   - [ArgoCD](./components/argocd.md)
   - [CoreDNS](./components/coredns.md)
   - [Vault](./components/vault.md)

@@ -1,4 +1,5 @@
 ---
-flannel-backend: "host-gw"
+flannel-backend: "none"
+disable-network-policy: true
 write-kubeconfig-mode: "0644"
 disable: ["traefik"]

@@ -1,0 +1,43 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: cilium
+  namespace: argocd
+spec:
+  generators:
+  - list:
+      elements:
+      - name: kube-00
+        server: https://kubernetes.default.svc
+  - clusters:
+      selector:
+        matchLabels:
+          argocd.argoproj.io/secret-type: cluster
+  template:
+    metadata:
+      name: {{`'{{name}}-cilium'`}}
+      labels:
+        name: cilium
+    spec:
+      project: cilium
+      source:
+        repoURL: https://helm.cilium.io
+        targetRevision: {{ .Values.chartVersion }}
+        chart: cilium
+        helm:
+          releaseName: cilium
+          valueFiles: [values.yaml]
+          valuesObject:
+            envoy:
+              enabled: {{ .Values.envoy.enabled }}
+            operator:
+              replicas: {{ .Values.operator.replicas }}
+            cni:
+              exclusive: {{ .Values.cni.exclusive }}
+            ipam:
+              operator:
+                clusterPoolIPv4PodCIDRList: {{ .Values.ipam.operator.clusterPoolIPv4PodCIDRList }}
+      destination:
+        server: {{`'{{server}}'`}}
+        namespace: kube-system

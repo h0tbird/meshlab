@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# shellcheck source=/dev/null
+source lib/common.sh
+
 #------------------------------------------------------------------------------
 # Used to provision virt-01
 #------------------------------------------------------------------------------
@@ -54,7 +57,6 @@ function launch_k8s {
   NAME="$1"
   CELL="$2"
   VERSION="$3"
-  CIDR="$4"
 
   # Base64 encoded config files
   REG_CONFIG=$(base64 -w0 conf/registries.yaml)
@@ -89,7 +91,7 @@ function launch_k8s {
 	  #-------------
 
 	  while ! curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=${VERSION} \
-	  INSTALL_K3S_EXEC="--cluster-domain ${CELL}.local --cluster-cidr ${CIDR}" \
+	  INSTALL_K3S_EXEC="--cluster-domain ${CELL}.local --cluster-cidr ${CLUSTERS[${NAME}_podsubnet]}" \
 	  sh -s -; do sleep 1; done; while ! kubectl get nodes; do sleep 1; done
 
 	  #----------------

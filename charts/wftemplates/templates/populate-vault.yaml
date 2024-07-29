@@ -26,7 +26,7 @@ spec:
 
         while ! vault status &>/dev/null; do sleep 1; done
 
-        # One root CA for all the stamps
+        # One root CA for all the cells
         vault secrets list | grep -q "mesh" || {
           vault secrets enable --path "mesh" \
           -description "PKI for the mesh" pki

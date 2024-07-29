@@ -25,7 +25,7 @@ spec:
           releaseName: istio-issuers
           valuesObject:
             clusterName: {{`'{{name}}'`}}
-            stampName: {{`'{{metadata.labels.stamp}}'`}}
+            stampName: {{`'{{metadata.labels.cell}}'`}}
             roleID: {{.Values.roleID}}
             secretID: {{.Values.secretID}}
       destination:

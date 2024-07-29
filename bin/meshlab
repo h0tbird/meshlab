@@ -109,10 +109,10 @@ echo "${MPLIST}" | grep "${MNGR}" | grep -q Running || {
   sleep 5
 }
 
-# Start all the stamp clusters
-for STAMP in $(list stamps); do for CLUSTER in ${STAMPS[${STAMP}]}; do
+# Start all the clusters
+for CELL in $(list cells); do for CLUSTER in ${CELLS[${CELL}]}; do
     echo "${MPLIST}" | grep "${CLUSTER}" | grep -q Running || {
-      { multipass start "${CLUSTER}" 2>/dev/null || (launch_k8s "${CLUSTER}" "${STAMP}" "${K3S_VERSION}") } &
+      { multipass start "${CLUSTER}" 2>/dev/null || (launch_k8s "${CLUSTER}" "${CELL}" "${K3S_VERSION}") } &
       sleep 5
     }
 done; done; wait
@@ -237,9 +237,9 @@ argocd context "${MNGR}" 2> /dev/null || {
     --password "${ARGOCD_PASS}"
 
   # Add clusters with labels
-  for STAMP in $(list stamps); do for CLUSTER in ${STAMPS[${STAMP}]}; do
+  for CELL in $(list cells); do for CLUSTER in ${CELLS[${CELL}]}; do
     argocd cluster list | grep -q "${CLUSTER}" || \
-    argocd cluster add -y "${CLUSTER}" --label name="${CLUSTER}" --label stamp="${STAMP}"
+    argocd cluster add -y "${CLUSTER}" --label name="${CLUSTER}" --label cell="${CELL}"
   done; done
 }
 
@@ -448,8 +448,8 @@ EOF
 
 blue "---[ Istio remote secrets ]---------------------------------------------"
 
-for STAMP in $(list stamps); do
-  CLUS=(${STAMPS[${STAMP}]})
+for CELL in $(list cells); do
+  CLUS=(${CELLS[${CELL}]})
   istioctl create-remote-secret --context "${CLUS[0]}" --name="${CLUS[0]}" | \
   kubectl --context "${CLUS[1]}" apply -f -
   istioctl create-remote-secret --context "${CLUS[1]}" --name="${CLUS[1]}" | \

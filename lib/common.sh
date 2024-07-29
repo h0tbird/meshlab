@@ -1,30 +1,30 @@
 #!/usr/bin/env bash
 
 #------------------------------------------------------------------------------
-# Define stamps and clusters
+# Define cells and clusters
 #------------------------------------------------------------------------------
 
 export MNGR="kube-00"
 
-export -A STAMPS=(
+export -A CELLS=(
   [pasta]="pasta-1 pasta-2"
   #[pizza]="pizza-1 pizza-2"
 )
 
 #------------------------------------------------------------------------------
-# List clusters and stamps
+# List clusters and cells
 #------------------------------------------------------------------------------
 
 function list {
   case $1 in
     "clusters")
-      [ "${2:-stamp}" == "all" ] && echo -n "${MNGR} "
-      for STAMP in "${!STAMPS[@]}"; do
-        echo -n "${STAMPS[${STAMP}]} "
+      [ "${2:-cell}" == "all" ] && echo -n "${MNGR} "
+      for CELL in "${!CELLS[@]}"; do
+        echo -n "${CELLS[${CELL}]} "
       done ;;
-    "stamps")
-      for STAMP in "${!STAMPS[@]}"; do
-        echo -n "${STAMP} "
+    "cells")
+      for CELL in "${!CELLS[@]}"; do
+        echo -n "${CELL} "
       done ;;
   esac
 }

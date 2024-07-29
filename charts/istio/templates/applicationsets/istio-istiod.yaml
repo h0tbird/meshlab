@@ -35,7 +35,7 @@ spec:
                 ISTIOD_CUSTOM_HOST: {{`'istiod.{{name}}'`}}
                 ENABLE_NATIVE_SIDECARS: true
             global:
-              meshID: {{`'{{metadata.labels.stamp}}'`}}
+              meshID: {{`'{{metadata.labels.cell}}'`}}
               network: {{`'{{name}}'`}}
               logAsJson: true
               multiCluster:
@@ -44,11 +44,11 @@ spec:
               proxy:
                 privileged: true
                 enableCoreDump: true
-                clusterDomain: {{`'{{metadata.labels.stamp}}.local'`}}
+                clusterDomain: {{`'{{metadata.labels.cell}}.local'`}}
             meshConfig:
               accessLogFile: /dev/stdout
               accessLogEncoding: JSON
-              trustDomain: {{`'{{metadata.labels.stamp}}.local'`}}
+              trustDomain: {{`'{{metadata.labels.cell}}.local'`}}
               defaultConfig:
                 holdApplicationUntilProxyStarts: true
                 proxyMetadata:

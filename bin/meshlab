@@ -105,14 +105,14 @@ MPLIST=$(multipass list)
 
 # Start the management cluster
 echo "${MPLIST}" | grep "${MNGR}" | grep -q Running || {
-  { multipass start "${MNGR}" 2>/dev/null || (launch_k8s "${MNGR}" "cluster" "${K3S_VERSION}") } &
+  { multipass start "${MNGR}" 2>/dev/null || (launch_k8s "${MNGR}" "cluster" "${K3S_VERSION}" "${CLUSTERS[${MNGR}_podsubnet]}") } &
   sleep 5
 }
 
 # Start all the clusters
 for CELL in $(list cells); do for CLUSTER in ${CELLS[${CELL}]}; do
     echo "${MPLIST}" | grep "${CLUSTER}" | grep -q Running || {
-      { multipass start "${CLUSTER}" 2>/dev/null || (launch_k8s "${CLUSTER}" "${CELL}" "${K3S_VERSION}") } &
+      { multipass start "${CLUSTER}" 2>/dev/null || (launch_k8s "${CLUSTER}" "${CELL}" "${K3S_VERSION}" "${CLUSTERS[${CLUSTER}_podsubnet]}") } &
       sleep 5
     }
 done; done; wait

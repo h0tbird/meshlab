@@ -14,6 +14,13 @@ Restart multipassd:
 sudo launchctl kickstart -k system/com.canonical.multipassd
 ```
 
+Directories of interest:
+```console
+sudo tree /var/root/Library/Caches/multipassd
+sudo tree /var/root/Library/Application\ Support/multipassd
+sudo tree /Library/Application\ Support/com.canonical.multipass
+```
+
 List all available instances:
 ```console
 multipass list

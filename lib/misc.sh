@@ -87,8 +87,9 @@ function launch_k8s {
 	  # Install k3s
 	  #-------------
 
-	  curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=${VERSION} \
-	  INSTALL_K3S_EXEC="--cluster-domain ${CELL}.local" sh -s -
+	  while ! curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=${VERSION} \
+	  INSTALL_K3S_EXEC="--cluster-domain ${CELL}.local" sh -s -; do sleep 1; done
+	  while ! kubectl get nodes; do sleep 1; done
 
 	  #----------------
 	  # Topology setup
@@ -107,5 +108,5 @@ function launch_k8s {
 	EOF
 
 	# Copy the kubeconfig to the host
-      multipass transfer --parents "${NAME}:/home/ubuntu/config" "./tmp/${NAME}"
+	multipass transfer --parents "${NAME}:/home/ubuntu/config" "./tmp/${NAME}"
 }

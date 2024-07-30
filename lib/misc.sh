@@ -91,7 +91,7 @@ function launch_k8s {
 	  #-------------
 
 	  while ! curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=${VERSION} \
-	  INSTALL_K3S_EXEC="--cluster-domain ${CELL}.local --cluster-cidr ${CLUSTERS[${NAME}_podsubnet]}" \
+	  INSTALL_K3S_EXEC="--cluster-domain ${CELL}.local --cluster-cidr $(clusterCIDR "${NAME}")" \
 	  sh -s -; do sleep 1; done; while ! kubectl get nodes; do sleep 1; done
 
 	  #----------------

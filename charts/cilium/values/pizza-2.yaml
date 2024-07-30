@@ -1,4 +1,7 @@
 ---
+cluster:
+  name: pizza-2
+  id: 2
 ipam:
   operator:
     clusterPoolIPv4PodCIDRList: "10.62.0.0/16"

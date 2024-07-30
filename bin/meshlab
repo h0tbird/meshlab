@@ -157,7 +157,7 @@ blue "---[ Cilium CNI ]--------------------------------------------------------"
 # Install the Cilium CNI
 for CLUSTER in $(list clusters all); do
 
- { helm template cilium/cilium \
+ { helm template cilium cilium/cilium \
     --version "${CILIUM_CHART_VERSION}" \
     --namespace kube-system \
     --values ./charts/cilium/values.yaml \

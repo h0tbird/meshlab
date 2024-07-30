@@ -21,23 +21,18 @@ spec:
         name: cilium
     spec:
       project: cilium
-      source:
-        repoURL: https://helm.cilium.io
+      sources:
+      - repoURL: https://helm.cilium.io
         targetRevision: {{ .Values.chartVersion }}
         chart: cilium
         helm:
           releaseName: cilium
-          valueFiles: [values.yaml]
-          valuesObject:
-            envoy:
-              enabled: {{ .Values.envoy.enabled }}
-            operator:
-              replicas: {{ .Values.operator.replicas }}
-            cni:
-              exclusive: {{ .Values.cni.exclusive }}
-            ipam:
-              operator:
-                clusterPoolIPv4PodCIDRList: {{ .Values.ipam.operator.clusterPoolIPv4PodCIDRList }}
+          valueFiles:
+          - $values/charts/cilium/values.yaml
+          - {{`'$values/charts/cilium/values/{{name}}.yaml'`}}
+      - repoURL: https://github.com/h0tbird/meshlab.git
+        targetRevision: master
+        ref: values
       destination:
         server: {{`'{{server}}'`}}
         namespace: kube-system

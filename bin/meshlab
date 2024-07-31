@@ -162,7 +162,8 @@ for CLUSTER in $(list clusters all); do
      --version "${CILIUM_CHART_VERSION}" \
      --namespace kube-system \
      --values ./charts/cilium/values.yaml \
-     --values ./charts/cilium/values/"${CLUSTER}".yaml
+     --values ./charts/cilium/values/"${CLUSTER}".yaml \
+     --set k8sServiceHost="${IP[${CLUSTER}]}"
 
    kubectl --context "${CLUSTER}" \
      wait --for=condition=Ready nodes \
@@ -497,3 +498,5 @@ blue "---[ Info ]-------------------------------------------------------------"
 
 # k --context pasta-1 -n monitoring logs -f ds/otelco-node-opentelemetry-collector-agent | grep -E 'InstrumentationScope|^     -> Name:'
 # k --context pasta-1 -n monitoring logs -f deployments/otelco-cluster-opentelemetry-collector | grep -E 'InstrumentationScope|^     -> Name:'
+# istioctl --context pasta-1 -n istio-system pc endpoints deploy/istio-nsgw | grep -E '^ENDPOINT|service-1'
+# k --context pasta-1 -n istio-system exec -it deployments/istio-nsgw -- curl -X POST localhost:15000/clusters | grep '^outbound|80||worker.service-1' | grep -E 'zone|region|::priority|::weight' | sort

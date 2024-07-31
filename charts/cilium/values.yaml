@@ -5,3 +5,7 @@ operator:
   replicas: 1
 cni:
   exclusive: false
+socketLB:
+  hostNamespaceOnly: true
+kubeProxyReplacement: true
+k8sServicePort: 6443

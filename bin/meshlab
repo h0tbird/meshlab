@@ -496,6 +496,11 @@ blue "---[ Info ]-------------------------------------------------------------"
 
 ./bin/info
 
+# cilium clustermesh enable --context pasta-1 --service-type LoadBalancer
+# cilium clustermesh enable --context pasta-2 --service-type LoadBalancer
+# cilium clustermesh connect --context pasta-1 --destination-context pasta-2
+# cilium --context pasta-1 clustermesh status --wait
+
 # k --context pasta-1 -n monitoring logs -f ds/otelco-node-opentelemetry-collector-agent | grep -E 'InstrumentationScope|^     -> Name:'
 # k --context pasta-1 -n monitoring logs -f deployments/otelco-cluster-opentelemetry-collector | grep -E 'InstrumentationScope|^     -> Name:'
 # istioctl --context pasta-1 -n istio-system pc endpoints deploy/istio-nsgw | grep -E '^ENDPOINT|service-1'

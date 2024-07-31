@@ -158,7 +158,7 @@ blue "---[ Cilium CNI ]--------------------------------------------------------"
 for CLUSTER in $(list clusters all); do
 
  { helm --kube-context "${CLUSTER}" \
-     install cilium cilium/cilium \
+     upgrade -i cilium cilium/cilium \
      --version "${CILIUM_CHART_VERSION}" \
      --namespace kube-system \
      --values ./charts/cilium/values.yaml \

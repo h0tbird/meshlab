@@ -157,15 +157,16 @@ blue "---[ Cilium CNI ]--------------------------------------------------------"
 # Install the Cilium CNI
 for CLUSTER in $(list clusters all); do
 
- { helm --kube-context "${CLUSTER}" install cilium cilium/cilium \
-    --version "${CILIUM_CHART_VERSION}" \
-    --namespace kube-system \
-    --values ./charts/cilium/values.yaml \
-    --values ./charts/cilium/values/"${CLUSTER}".yaml # |
-    #kubectl --context "${CLUSTER}" apply -f -
+ { helm --kube-context "${CLUSTER}" \
+     install cilium cilium/cilium \
+     --version "${CILIUM_CHART_VERSION}" \
+     --namespace kube-system \
+     --values ./charts/cilium/values.yaml \
+     --values ./charts/cilium/values/"${CLUSTER}".yaml
 
-  kubectl --context "${CLUSTER}" \
-  wait --for=condition=Ready nodes --all --timeout=60s; } &
+   kubectl --context "${CLUSTER}" \
+     wait --for=condition=Ready nodes \
+     --all --timeout=60s; } &
 
 done; wait
 

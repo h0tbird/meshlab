@@ -36,3 +36,11 @@ spec:
       destination:
         server: {{`'{{server}}'`}}
         namespace: kube-system
+      ignoreDifferences:
+        - group: ""
+          kind: Secret
+          name: hubble-server-certs
+          jsonPointers:
+          - /data/ca.crt
+          - /data/tls.crt
+          - /data/tls.key

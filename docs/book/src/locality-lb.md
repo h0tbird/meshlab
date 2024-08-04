@@ -7,16 +7,9 @@ of the service, reducing network hops and improving performance, while also
 providing fault tolerance and resilience. LLB is important for managing
 microservices architectures.
 
-`applab-blau` priority and weight from the point of view of the `istio-ingressgateway`:
+`service-1` priority and weight from the point of view of the `istio-ingressgateway`:
 ```console
-watch "istioctl --context pasta-1 -n istio-system pc endpoint deploy/istio-ingressgateway | grep -E '^END|applab-blau'; echo; k --context pasta-1 -n istio-system exec -it deployment/istio-ingressgateway -- curl -X POST localhost:15000/clusters | grep '^outbound.*applab-blau' | grep -E 'zone|region|::priority|::weight' | sort | sed -e '/:zone:/s/$/\n/'"
-watch "istioctl --context pasta-2 -n istio-system pc endpoint deploy/istio-ingressgateway | grep -E '^END|applab-blau'; echo; k --context pasta-2 -n istio-system exec -it deployment/istio-ingressgateway -- curl -X POST localhost:15000/clusters | grep '^outbound.*applab-blau' | grep -E 'zone|region|::priority|::weight' | sort | sed -e '/:zone:/s/$/\n/'"
-```
-
-`applab-blau` workloads, priority and weight from the point of view of the `sleep` pod:
-```console
-watch "k --context pasta-1 -n applab-blau get po -o wide; echo; istioctl --context pasta-1 -n applab-blau pc endpoint deploy/sleep | grep -E '^END|applab-blau'; echo; k --context pasta-1 -n applab-blau exec -it deployment/sleep -c istio-proxy -- curl -X POST localhost:15000/clusters | grep '^outbound.*applab-blau' | grep -E 'zone|region|::priority|::weight' | sort | sed -e '/:zone:/s/$/\n/'"
-watch "k --context pasta-2 -n applab-blau get po -o wide; echo; istioctl --context pasta-2 -n applab-blau pc endpoint deploy/sleep | grep -E '^END|applab-blau'; echo; k --context pasta-2 -n applab-blau exec -it deployment/sleep -c istio-proxy -- curl -X POST localhost:15000/clusters | grep '^outbound.*applab-blau' | grep -E 'zone|region|::priority|::weight' | sort | sed -e '/:zone:/s/$/\n/'"
+watch "istioctl --context pasta-1 -n istio-system pc endpoint deploy/istio-nsgw | grep -E '^END|service-1'; echo; k --context pasta-1 -n istio-system exec -it deployment/istio-nsgw -- curl -X POST localhost:15000/clusters | grep '^outbound.*service-1' | grep -E 'zone|region|::priority|::weight' | sort | sed -e '/:zone:/s/$/\n/'"
 ```
 
 `VM`: patch the `workloadentries` object with locality metadata (bug?):

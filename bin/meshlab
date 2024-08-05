@@ -23,7 +23,7 @@ K3S_VERSION='v1.30.2+k3s2'             # https://github.com/k3s-io/k3s/releases
 CILIUM_CHART_VERSION='1.16.0'          # https://artifacthub.io/packages/helm/cilium/cilium
 ARGOCD_CHART_VERSION='7.3.11'          # https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd
 ARGOWF_CHART_VERSION='0.41.14'         # https://artifacthub.io/packages/helm/argo/argo-workflows
-PROMETHEUS_CHART_VERSION='25.25.1'     # https://artifacthub.io/packages/helm/prometheus-community/prometheus
+PROMETHEUS_CHART_VERSION='25.25.0'     # https://artifacthub.io/packages/helm/prometheus-community/prometheus
 GRAFANA_CHART_VERSION='8.4.1'          # https://artifacthub.io/packages/helm/grafana/grafana
 OTEL_COLLECTOR_CHART_VERSION='0.101.1' # https://artifacthub.io/packages/helm/opentelemetry-helm/opentelemetry-collector
 VAULT_CHART_VERSION='0.28.1'           # https://artifacthub.io/packages/helm/hashicorp/vault
@@ -170,6 +170,19 @@ for CLUSTER in $(list clusters all); do
      --all --timeout=60s; } &
 
 done; wait
+
+#------------------------------------------------------------------------------
+# [i] Install ClusterMesh
+#------------------------------------------------------------------------------
+
+blue "---[ ClusterMesh ]------------------------------------------------------"
+
+for CELL in $(list cells); do
+  CLUS=(${CELLS[${CELL}]})
+  cilium clustermesh enable --context "${CLUS[0]}" --service-type LoadBalancer
+  cilium clustermesh enable --context "${CLUS[1]}" --service-type LoadBalancer
+  cilium clustermesh connect --context "${CLUS[0]}" --destination-context "${CLUS[1]}"
+done
 
 #------------------------------------------------------------------------------
 # [i] Setup CoreDNS server DNS entries for demo.lab

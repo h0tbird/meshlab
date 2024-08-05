@@ -466,8 +466,8 @@ done
 
 blue "---[ Deploy workloads ]-------------------------------------------------"
 
-swarmctl --context 'pasta-*|pizza-*' i --yes --istio-revision stable
-swarmctl --context 'pasta-*|pizza-*' w 1:2 --yes --istio-revision stable
+swarmctl --context 'pasta-*|pizza-*' i --yes --istio-revision stable --image-tag main
+swarmctl --context 'pasta-*|pizza-*' w 1:2 --yes --istio-revision stable --image-tag main
 
 #------------------------------------------------------------------------------
 # [i] Import the meshlab Grafana dashboard

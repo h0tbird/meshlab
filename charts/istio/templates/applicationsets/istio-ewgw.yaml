@@ -43,7 +43,7 @@ spec:
             autoscaling:
               enabled: false
             env:
-              ISTIO_META_REQUESTED_NETWORK_VIEW: {{`'{{name}}'`}}
+              ISTIO_META_REQUESTED_NETWORK_VIEW: {{`'{{metadata.labels.cell}}'`}}
       destination:
         server: {{`'{{server}}'`}}
         namespace: istio-system

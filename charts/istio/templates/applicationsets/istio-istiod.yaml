@@ -36,7 +36,7 @@ spec:
                 ENABLE_NATIVE_SIDECARS: true
             global:
               meshID: {{`'{{metadata.labels.cell}}'`}}
-              network: {{`'{{name}}'`}}
+              network: {{`'{{metadata.labels.cell}}'`}}
               logAsJson: true
               multiCluster:
                 enabled: true

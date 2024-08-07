@@ -85,3 +85,6 @@ spec:
       destination:
         server: {{`'{{server}}'`}}
         namespace: monitoring
+      syncPolicy:
+        syncOptions:
+        - CreateNamespace=true

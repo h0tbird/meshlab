@@ -1,0 +1,28 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: kubernetes-replicator
+  namespace: argocd
+spec:
+  generators:
+  - clusters:
+      selector:
+        matchLabels:
+          argocd.argoproj.io/secret-type: cluster
+  template:
+    metadata:
+      name: {{`'{{name}}-kubernetes-replicator'`}}
+      labels:
+        name: kubernetes-replicator
+    spec:
+      project: kubernetes-replicator
+      source:
+        repoURL: https://helm.mittwald.de
+        targetRevision: {{ .Values.chartVersion }}
+        chart: kubernetes-replicator
+        helm:
+          releaseName: kubernetes-replicator
+      destination:
+        server: {{`'{{server}}'`}}
+        namespace: kube-system

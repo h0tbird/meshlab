@@ -19,16 +19,17 @@ source lib/misc.sh
 # [i] Versions
 #------------------------------------------------------------------------------
 
-K3S_VERSION='v1.30.2+k3s2'             # https://github.com/k3s-io/k3s/releases
-CILIUM_CHART_VERSION='1.16.0'          # https://artifacthub.io/packages/helm/cilium/cilium
-ARGOCD_CHART_VERSION='7.3.11'          # https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd
-ARGOWF_CHART_VERSION='0.41.14'         # https://artifacthub.io/packages/helm/argo/argo-workflows
-PROMETHEUS_CHART_VERSION='25.25.0'     # https://artifacthub.io/packages/helm/prometheus-community/prometheus
-GRAFANA_CHART_VERSION='8.4.1'          # https://artifacthub.io/packages/helm/grafana/grafana
-OTEL_COLLECTOR_CHART_VERSION='0.101.1' # https://artifacthub.io/packages/helm/opentelemetry-helm/opentelemetry-collector
-VAULT_CHART_VERSION='0.28.1'           # https://artifacthub.io/packages/helm/hashicorp/vault
-CERT_MANAGER_CHART_VERSION='v1.15.2'   # https://artifacthub.io/packages/helm/cert-manager/cert-manager
-ISTIO_CHART_VERSION='1.22.3'           # https://artifacthub.io/packages/helm/istio-official/base
+K3S_VERSION='v1.30.2+k3s2'                    # https://github.com/k3s-io/k3s/releases
+CILIUM_CHART_VERSION='1.16.0'                 # https://artifacthub.io/packages/helm/cilium/cilium
+ARGOCD_CHART_VERSION='7.3.11'                 # https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd
+ARGOWF_CHART_VERSION='0.41.14'                # https://artifacthub.io/packages/helm/argo/argo-workflows
+PROMETHEUS_CHART_VERSION='25.25.0'            # https://artifacthub.io/packages/helm/prometheus-community/prometheus
+GRAFANA_CHART_VERSION='8.4.1'                 # https://artifacthub.io/packages/helm/grafana/grafana
+OTEL_COLLECTOR_CHART_VERSION='0.101.1'        # https://artifacthub.io/packages/helm/opentelemetry-helm/opentelemetry-collector
+VAULT_CHART_VERSION='0.28.1'                  # https://artifacthub.io/packages/helm/hashicorp/vault
+CERT_MANAGER_CHART_VERSION='v1.15.2'          # https://artifacthub.io/packages/helm/cert-manager/cert-manager
+KUBERNETES_REPLICATOR_CHART_VERSION='2.10.1'  # https://artifacthub.io/packages/helm/kubernetes-replicator/kubernetes-replicator
+ISTIO_CHART_VERSION='1.22.3'                  # https://artifacthub.io/packages/helm/istio-official/base
 
 #------------------------------------------------------------------------------
 # [i] Validate the command line arguments
@@ -272,6 +273,7 @@ helm template ./charts/grafana --set "chartVersion=${GRAFANA_CHART_VERSION}" | k
 helm template ./charts/otel-collector --set "chartVersion=${OTEL_COLLECTOR_CHART_VERSION}" | k0 apply -f -
 helm template ./charts/vault --set "chartVersion=${VAULT_CHART_VERSION}" | k0 apply -f -
 helm template ./charts/cert-manager --set "chartVersion=${CERT_MANAGER_CHART_VERSION}" | k0 apply -f -
+helm template ./charts/kubernetes-replicator --set "chartVersion=${KUBERNETES_REPLICATOR_CHART_VERSION}" | k0 apply -f -
 helm template ./charts/istio --set "chartVersion=${ISTIO_CHART_VERSION}" | k0 apply -f -
 
 #------------------------------------------------------------------------------
@@ -348,6 +350,7 @@ spec:
           - name: selectors
             value: name=cilium
       - name: prometheus
+        dependencies: [cilium]
         templateRef:
           name: argocd-sync-and-wait
           template: argocd-sync-and-wait
@@ -383,6 +386,7 @@ spec:
           - name: selectors
             value: name=otelco-cluster
       - name: vault
+        dependencies: [cilium]
         templateRef:
           name: argocd-sync-and-wait
           template: argocd-sync-and-wait
@@ -391,6 +395,7 @@ spec:
           - name: selectors
             value: name=vault
       - name: cert-manager
+        dependencies: [cilium]
         templateRef:
           name: argocd-sync-and-wait
           template: argocd-sync-and-wait
@@ -398,6 +403,15 @@ spec:
           parameters:
           - name: selectors
             value: name=cert-manager
+      - name: kubernetes-replicator
+        dependencies: [cilium]
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selectors
+            value: name=kubernetes-replicator
       - name: populate-vault
         dependencies: [vault]
         templateRef:

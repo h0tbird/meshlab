@@ -453,6 +453,15 @@ spec:
           parameters:
           - name: selectors
             value: name=istio-istiod
+      - name: istio-ztunnel
+        dependencies: [istio-istiod]
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selectors
+            value: name=istio-ztunnel
       - name: istio-nsgw
         dependencies: [istio-istiod]
         templateRef:

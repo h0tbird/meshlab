@@ -2,7 +2,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: istio-cni
+  name: istio-ztunnel
   namespace: argocd
 spec:
   generators:
@@ -12,27 +12,21 @@ spec:
           argocd.argoproj.io/secret-type: cluster
   template:
     metadata:
-      name: {{`'{{name}}-istio-cni'`}}
+      name: {{`'{{name}}-istio-ztunnel'`}}
       labels:
-        name: istio-cni
+        name: istio-ztunnel
     spec:
       project: istio
       source:
         repoURL: https://istio-release.storage.googleapis.com/charts
         targetRevision: {{ .Values.chartVersion }}
-        chart: cni
+        chart: ztunnel
         helm:
-          releaseName: istio-cni
+          releaseName: istio-ztunnel
           valuesObject:
-            profile: ambient
-            cni:
-              pullPolicy: IfNotPresent
-              excludeNamespaces:
-              - istio-system
-              - kube-system
+            revision: {{ .Values.chartVersion | replace "." "-" }}
+            multiCluster:
+              clusterName: {{`'{{name}}'`}}
       destination:
         server: {{`'{{server}}'`}}
         namespace: istio-system
-      syncPolicy:
-        syncOptions:
-        - CreateNamespace=true

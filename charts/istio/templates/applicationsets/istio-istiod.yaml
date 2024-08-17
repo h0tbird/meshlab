@@ -24,6 +24,7 @@ spec:
         helm:
           releaseName: istio-istiod
           valuesObject:
+            profile: ambient
             revision: {{ .Values.chartVersion | replace "." "-" }}
             revisionTags: [ "stable", "canary" ]
             pilot:
@@ -43,7 +44,6 @@ spec:
                 clusterName: {{`'{{name}}'`}}
               proxy:
                 privileged: true
-                enableCoreDump: true
                 clusterDomain: {{`'{{metadata.labels.cell}}.local'`}}
             meshConfig:
               accessLogFile: /dev/stdout

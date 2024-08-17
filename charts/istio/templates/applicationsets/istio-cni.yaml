@@ -24,6 +24,7 @@ spec:
         helm:
           releaseName: istio-cni
           valuesObject:
+            profile: ambient
             cni:
               pullPolicy: IfNotPresent
               excludeNamespaces:

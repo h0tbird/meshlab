@@ -488,6 +488,22 @@ EOF
 
 blue "---[ Istio remote secrets ]---------------------------------------------"
 
+# Bug? Patch the Istio reader ClusterRole.
+# TODO: Remove this if fixed by upstream.
+# https://github.com/istio/istio/issues/52739
+for CLUSTER in $(list clusters); do
+
+  # Continue if already patched
+  k --context "${CLUSTER}" get clusterrole \
+  "istio-reader-clusterrole-${ISTIO_CHART_VERSION//./-}-istio-system" \
+  -o jsonpath='{.rules[1].resources}' | grep -q configmaps && continue
+
+  # Patch
+  k --context "${CLUSTER}" patch clusterrole \
+  "istio-reader-clusterrole-${ISTIO_CHART_VERSION//./-}-istio-system" \
+  --type='json' -p='[{"op": "add", "path": "/rules/1/resources/-", "value": "configmaps"}]'
+done
+
 for CELL in $(list cells); do
   CLUS=(${CELLS[${CELL}]})
   istioctl create-remote-secret --context "${CLUS[0]}" --name="${CLUS[0]}" | \

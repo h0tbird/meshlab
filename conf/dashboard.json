@@ -25,23 +25,28 @@
     "panels": [
       {
         "datasource": {
+          "default": true,
           "type": "prometheus",
           "uid": "PBFA97CFB590B2093"
         },
+        "description": "",
         "fieldConfig": {
           "defaults": {
             "color": {
-              "mode": "palette-classic"
+              "fixedColor": "blue",
+              "mode": "shades",
+              "seriesBy": "max"
             },
             "custom": {
               "axisBorderShow": false,
-              "axisCenteredZero": false,
+              "axisCenteredZero": true,
               "axisColorMode": "text",
               "axisLabel": "rps",
               "axisPlacement": "auto",
               "barAlignment": 0,
+              "barWidthFactor": 0.6,
               "drawStyle": "line",
-              "fillOpacity": 0,
+              "fillOpacity": 30,
               "gradientMode": "opacity",
               "hideFrom": {
                 "legend": false,
@@ -50,6 +55,9 @@
               },
               "insertNulls": false,
               "lineInterpolation": "smooth",
+              "lineStyle": {
+                "fill": "solid"
+              },
               "lineWidth": 1,
               "pointSize": 5,
               "scaleDistribution": {
@@ -59,12 +67,13 @@
               "spanNulls": false,
               "stacking": {
                 "group": "A",
-                "mode": "none"
+                "mode": "normal"
               },
               "thresholdsStyle": {
                 "mode": "off"
               }
             },
+            "fieldMinMax": true,
             "mappings": [],
             "thresholds": {
               "mode": "absolute",
@@ -72,33 +81,28 @@
                 {
                   "color": "green",
                   "value": null
-                },
-                {
-                  "color": "red",
-                  "value": 80
                 }
               ]
-            }
+            },
+            "unit": "reqps"
           },
           "overrides": [
             {
               "matcher": {
-                "id": "byName",
-                "options": "informer"
+                "id": "byFrameRefID",
+                "options": "InReq"
               },
               "properties": [
                 {
-                  "id": "custom.axisPlacement",
-                  "value": "hidden"
+                  "id": "custom.transform",
+                  "value": "negative-Y"
                 },
                 {
-                  "id": "custom.lineStyle",
+                  "id": "color",
                   "value": {
-                    "dash": [
-                      10,
-                      10
-                    ],
-                    "fill": "dash"
+                    "fixedColor": "green",
+                    "mode": "shades",
+                    "seriesBy": "max"
                   }
                 }
               ]
@@ -106,23 +110,27 @@
           ]
         },
         "gridPos": {
-          "h": 11,
+          "h": 18,
           "w": 24,
           "x": 0,
           "y": 0
         },
-        "id": 1,
+        "id": 3,
         "options": {
           "legend": {
-            "calcs": [],
-            "displayMode": "list",
+            "calcs": [
+              "max"
+            ],
+            "displayMode": "table",
             "placement": "bottom",
-            "showLegend": false
+            "showLegend": false,
+            "sortBy": "Max",
+            "sortDesc": false
           },
           "tooltip": {
-            "maxHeight": 600,
+            "maxHeight": 596,
             "mode": "multi",
-            "sort": "none"
+            "sort": "desc"
           }
         },
         "targets": [
@@ -133,14 +141,15 @@
             },
             "disableTextWrap": false,
             "editorMode": "code",
-            "expr": "round(sum(irate(istio_requests_total{reporter=~\"source\", source_cluster=~\"$k8s_cluster\", source_workload_namespace=~\"$k8s_namespace\"}[5m])) by (destination_workload_namespace, response_code), 0.001)",
+            "exemplar": false,
+            "expr": "round(sum(irate(istio_requests_total{reporter=~\"source\", source_cluster=~\"$k8s_cluster\", source_workload_namespace=~\"$k8s_namespace\"}[5m])) by (destination_workload_namespace, response_code, destination_cluster), 0.001)",
             "fullMetaSearch": false,
             "includeNullMetadata": true,
             "instant": false,
             "interval": "",
-            "legendFormat": "{{destination_workload_namespace}} - {{response_code}}",
+            "legendFormat": "{{destination_cluster}} / {{destination_workload_namespace}} - {{response_code}}",
             "range": true,
-            "refId": "A",
+            "refId": "OutReq",
             "useBackend": false
           },
           {
@@ -149,15 +158,16 @@
               "uid": "PBFA97CFB590B2093"
             },
             "editorMode": "code",
-            "expr": "round(sum(irate(istio_requests_total{reporter=~\"destination\", source_cluster=~\"$k8s_cluster\", destination_workload_namespace=\"informer\"}[5m])), 0.001)",
+            "expr": "round(sum(irate(istio_requests_total{reporter=~\"destination\", destination_cluster=~\"$k8s_cluster\", destination_workload_namespace=~\"$k8s_namespace\"}[5m])) by (source_workload_namespace, response_code, source_cluster), 0.001)",
             "hide": false,
             "instant": false,
-            "legendFormat": "informer",
+            "interval": "",
+            "legendFormat": "{{source_cluster}} / {{source_workload_namespace}} - {{response_code}}",
             "range": true,
-            "refId": "B"
+            "refId": "InReq"
           }
         ],
-        "title": "Request rate originated by $k8s_namespace | Pod and Node count | Clusters: $k8s_cluster",
+        "title": "OutReq (blue) InReq (green) as reported by $k8s_namespace workload(s)",
         "type": "timeseries"
       }
     ],
@@ -180,7 +190,7 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "definition": "label_values(target_info,k8s_cluster_name)",
+          "definition": "label_values(k8s_namespace_phase,k8s_cluster_name)",
           "hide": 0,
           "includeAll": true,
           "label": "k8s_cluster",
@@ -189,7 +199,7 @@
           "options": [],
           "query": {
             "qryType": 1,
-            "query": "label_values(target_info,k8s_cluster_name)",
+            "query": "label_values(k8s_namespace_phase,k8s_cluster_name)",
             "refId": "PrometheusVariableQueryEditor-VariableQuery"
           },
           "refresh": 1,
@@ -212,7 +222,7 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "definition": "label_values(istio_requests_total,source_workload_namespace)",
+          "definition": "label_values(istio_requests_total,destination_workload_namespace)",
           "hide": 0,
           "includeAll": true,
           "label": "k8s_namespace",
@@ -221,7 +231,7 @@
           "options": [],
           "query": {
             "qryType": 1,
-            "query": "label_values(istio_requests_total,source_workload_namespace)",
+            "query": "label_values(istio_requests_total,destination_workload_namespace)",
             "refId": "PrometheusVariableQueryEditor-VariableQuery"
           },
           "refresh": 1,
@@ -236,7 +246,6 @@
       "from": "now-30m",
       "to": "now"
     },
-    "timeRangeUpdatedDuringEditOrView": false,
     "timepicker": {},
     "timezone": "browser",
     "title": "MeshLab",

@@ -38,7 +38,7 @@ spec:
                 mountPath: /etc/istio/custom-bootstrap
       - repoURL: https://github.com/h0tbird/meshlab.git
         targetRevision: master
-        path: conf/istio-ns-custom-bootstrap.yaml
+        path: conf/istio
       destination:
         server: {{`'{{server}}'`}}
         namespace: istio-system

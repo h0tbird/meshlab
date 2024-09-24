@@ -1,0 +1,11 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: istio-ns-custom-bootstrap
+  namespace: istio-system
+data:
+  custom_bootstrap.json: |
+    {
+      "enable_dispatcher_stats": true
+    }

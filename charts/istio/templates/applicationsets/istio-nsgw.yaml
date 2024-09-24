@@ -17,8 +17,8 @@ spec:
         name: istio-nsgw
     spec:
       project: istio
-      source:
-        repoURL: https://istio-release.storage.googleapis.com/charts
+      sources:
+      - repoURL: https://istio-release.storage.googleapis.com/charts
         targetRevision: {{ .Values.chartVersion }}
         chart: gateway
         helm:
@@ -27,6 +27,18 @@ spec:
             revision: {{ .Values.chartVersion | replace "." "-" }}
             autoscaling:
               enabled: false
+            env:
+              ISTIO_BOOTSTRAP_OVERRIDE: /etc/istio/custom-bootstrap/custom_bootstrap.json
+            volumes:
+              - name: custom-bootstrap
+                configMap:
+                  name: istio-ns-custom-bootstrap
+            volumeMounts:
+              - name: custom-bootstrap
+                mountPath: /etc/istio/custom-bootstrap
+      - repoURL: https://github.com/h0tbird/meshlab.git
+        targetRevision: master
+        path: conf/istio-ns-custom-bootstrap.yaml
       destination:
         server: {{`'{{server}}'`}}
         namespace: istio-system

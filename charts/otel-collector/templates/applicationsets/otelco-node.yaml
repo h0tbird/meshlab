@@ -43,13 +43,22 @@ spec:
                       metrics_path: /stats/prometheus
                       kubernetes_sd_configs:
                       - role: pod
-                      relabel_configs:
+                      relabel_configs: # Before scrape; select targets.
                       - source_labels: [__meta_kubernetes_pod_node_name]
                         action: keep
-                        regex: ${env:K8S_NODE_NAME}
+                        regex: '${env:K8S_NODE_NAME}'
                       - source_labels: [__meta_kubernetes_pod_container_port_name]
                         action: keep
                         regex: '.*-envoy-prom'
+                      metric_relabel_configs: # Before ingest; manipulate metrics.
+                      - source_labels: [__name__]
+                        regex: 'envoy_listener_manager_worker_(.*)_dispatcher_(?:loop_duration|poll_delay)_us_(?:bucket|count|sum)'
+                        target_label: worker
+                        replacement: '$${1}'
+                      - source_labels: [__name__]
+                        regex: '(envoy_listener_manager)_worker_(?:.*)_(dispatcher_(?:loop_duration|poll_delay)_us)_(bucket|count|sum)'
+                        target_label: __name__
+                        replacement: '$${1}_$${2}_$${3}'
               processors:
                 resource:
                   attributes:

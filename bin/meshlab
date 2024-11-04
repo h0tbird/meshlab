@@ -19,17 +19,17 @@ source lib/misc.sh
 # [i] Versions
 #------------------------------------------------------------------------------
 
-K3S_VERSION='v1.31.1+k3s1'                    # https://github.com/k3s-io/k3s/releases
-CILIUM_CHART_VERSION='1.16.1'                 # https://artifacthub.io/packages/helm/cilium/cilium
-ARGOCD_CHART_VERSION='7.6.2'                  # https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd
-ARGOWF_CHART_VERSION='0.42.3'                 # https://artifacthub.io/packages/helm/argo/argo-workflows
-PROMETHEUS_CHART_VERSION='25.27.0'            # https://artifacthub.io/packages/helm/prometheus-community/prometheus
-GRAFANA_CHART_VERSION='8.5.1'                 # https://artifacthub.io/packages/helm/grafana/grafana
-OTEL_COLLECTOR_CHART_VERSION='0.106.1'        # https://artifacthub.io/packages/helm/opentelemetry-helm/opentelemetry-collector
+K3S_VERSION='v1.31.2+k3s1'                    # https://github.com/k3s-io/k3s/releases
+CILIUM_CHART_VERSION='1.16.3'                 # https://artifacthub.io/packages/helm/cilium/cilium
+ARGOCD_CHART_VERSION='7.6.12'                 # https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd
+ARGOWF_CHART_VERSION='0.42.7'                 # https://artifacthub.io/packages/helm/argo/argo-workflows
+PROMETHEUS_CHART_VERSION='25.28.0'            # https://artifacthub.io/packages/helm/prometheus-community/prometheus
+GRAFANA_CHART_VERSION='8.5.11'                # https://artifacthub.io/packages/helm/grafana/grafana
+OTEL_COLLECTOR_CHART_VERSION='0.108.0'        # https://artifacthub.io/packages/helm/opentelemetry-helm/opentelemetry-collector
 VAULT_CHART_VERSION='0.28.1'                  # https://artifacthub.io/packages/helm/hashicorp/vault
-CERT_MANAGER_CHART_VERSION='v1.15.3'          # https://artifacthub.io/packages/helm/cert-manager/cert-manager
+CERT_MANAGER_CHART_VERSION='v1.16.1'          # https://artifacthub.io/packages/helm/cert-manager/cert-manager
 KUBERNETES_REPLICATOR_CHART_VERSION='2.10.2'  # https://artifacthub.io/packages/helm/kubernetes-replicator/kubernetes-replicator
-ISTIO_CHART_VERSION='1.23.2'                  # https://artifacthub.io/packages/helm/istio-official/base
+ISTIO_CHART_VERSION='1.23.3'                  # https://artifacthub.io/packages/helm/istio-official/base
 
 #------------------------------------------------------------------------------
 # [i] Validate the command line arguments
@@ -150,6 +150,14 @@ function h0 {
 echo "${K8SCFG}" | tr ':' '\n'
 
 #------------------------------------------------------------------------------
+# [i] Update the Helm repositories
+#------------------------------------------------------------------------------
+
+blue "---[ Helm repo update ]-------------------------------------------------"
+
+helm repo update
+
+#------------------------------------------------------------------------------
 # [i] Install the Cilium CNI
 #------------------------------------------------------------------------------
 
@@ -213,6 +221,9 @@ done
 #------------------------------------------------------------------------------
 
 blue "---[ ArgoCD ]-----------------------------------------------------------"
+
+# Login to the GitHub Container Registry
+echo "${GITHUB_TOKEN}" | docker login ghcr.io -u "${USER}" --password-stdin
 
 # Install ArgoCD
 h0 upgrade --install -n argocd --create-namespace --wait --timeout 5m \

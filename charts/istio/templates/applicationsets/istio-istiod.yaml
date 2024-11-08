@@ -39,6 +39,8 @@ spec:
               meshID: {{`'{{metadata.labels.cell}}'`}}
               network: {{`'{{metadata.labels.cell}}'`}}
               logAsJson: true
+              defaultPodDisruptionBudget:
+                enabled: false
               multiCluster:
                 enabled: true
                 clusterName: {{`'{{name}}'`}}
@@ -54,6 +56,17 @@ spec:
                 proxyMetadata:
                   ISTIO_META_DNS_CAPTURE: "true"
                   ISTIO_META_DNS_AUTO_ALLOCATE: "true"
+              enableTracing: true
+              extensionProviders:
+              - name: otel-tracing
+                opentelemetry:
+                  port: 4318
+                  service: otelco-cluster-opentelemetry-collector.monitoring.svc.cluster.local
+                  http:
+                    path: "/v1/traces"
+                    timeout: 5s
+                  resource_detectors:
+                    environment: {}
       destination:
         server: {{`'{{server}}'`}}
         namespace: istio-system

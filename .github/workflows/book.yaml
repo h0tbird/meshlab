@@ -1,0 +1,40 @@
+name: Deploy Book
+on:
+  push:
+    branches:
+      - master
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write 
+      pull-requests: write
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: Install
+      run: |
+        TAG=$(curl -s 'https://api.github.com/repos/rust-lang/mdbook/releases/latest' | jq -r '.tag_name')
+        URL="https://github.com/rust-lang/mdbook/releases/download/${TAG}/mdbook-${TAG}-x86_64-unknown-linux-gnu.tar.gz"
+        mkdir mdbook
+        curl -sSL ${URL} | tar -xz --directory=./mdbook
+        echo $(pwd)/mdbook >> ${GITHUB_PATH}
+    - name: Build
+      run: |
+        cd docs/book
+        mdbook build
+    - name: Deploy
+      run: |
+        cd docs/book
+        git worktree add gh-pages
+        git config user.name "Deploy from CI"
+        git config user.email ""
+        cd gh-pages
+        git update-ref -d refs/heads/gh-pages
+        rm -rf *
+        mv ../book/* .
+        git add .
+        git commit -m "Deploy $GITHUB_SHA to gh-pages"
+        git push --force --set-upstream origin gh-pages

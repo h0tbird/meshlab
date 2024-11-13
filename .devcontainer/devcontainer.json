@@ -3,7 +3,8 @@
 	"image": "mcr.microsoft.com/devcontainers/base:bullseye",
 	"features": {
 		"ghcr.io/nils-geistmann/devcontainers-features/zsh:0": {},
-		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+		"ghcr.io/devcontainers-extra/features/kind:1": {}
 	},
 	"remoteEnv": {
 		"LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}"
@@ -14,5 +15,7 @@
 				"eamodio.gitlens"
 			]
 		}
-	}
+	},
+	"remoteUser": "root",
+	"postCreateCommand": "git config --global --add safe.directory /workspaces/meshlab"
 }

@@ -3,7 +3,6 @@
 Install `devcontainer`:
 ```
 brew install devcontainer
-git config --global --add safe.directory /workspaces/meshlab
 ```
 
 Open `zsh` inside the container:

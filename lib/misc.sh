@@ -63,7 +63,7 @@ function launch_k8s {
   K3S_CONFIG=$(base64 -w0 conf/k3s.yaml)
 
   # Setup the VM with cloud-config
-  multipass launch --name "${NAME}" --cpus 2 --memory 5G --disk 10G --cloud-init - <<- EOF
+  multipass launch --name "${NAME}" --cpus 2 --memory 5G --disk 12G --cloud-init - <<- EOF
 	#cloud-config
 
 	write_files:

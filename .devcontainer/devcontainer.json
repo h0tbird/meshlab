@@ -17,5 +17,13 @@
 	"containerEnv": {
 		"GITHUB_TOKEN": "${localEnv:GITHUB_TOKEN}",
 		"GITHUB_USER": "${localEnv:GITHUB_USER}"
-	}
+	},
+	"forwardPorts": [30080],
+	"portsAttributes": {
+        "30080": {
+            "label": "argocd",
+            "onAutoForward": "notify",
+            "protocol": "http"
+        }
+    }
 }

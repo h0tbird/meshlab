@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+
+#------------------------------------------------------------------------------
+# [i] Initializations
+#------------------------------------------------------------------------------
+
+# Bash strict mode
+set -euo pipefail
+
+# Change to the execution directory
+cd "$(dirname "$0")"/..
+
+# shellcheck source=/dev/null
+source lib/common.sh
+
+#------------------------------------------------------------------------------
+# [i] Versions
+#------------------------------------------------------------------------------
+
+ARGOCD_CHART_VERSION='7.7.6' # https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd
+
+#------------------------------------------------------------------------------
+# [ ] Create a manager cluster
+#------------------------------------------------------------------------------
+
+kind get clusters | grep -q mngr-00 || kind create cluster --name mngr-00 --config=<(cat <<EOF
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 30080
+        hostPort: 30080
+        protocol: TCP
+EOF
+)
+
+function k0 {
+  kubectl --context kind-mngr-00 "${@}"
+}
+
+function h0 {
+  helm --kube-context kind-mngr-00 "${@}"
+}
+
+#------------------------------------------------------------------------------
+# [i] Setup ArgoCD
+#------------------------------------------------------------------------------
+
+blue "---[ ArgoCD ]-----------------------------------------------------------"
+
+# Login to the GitHub Container Registry
+echo "${GITHUB_TOKEN}" | docker login ghcr.io -u "${GITHUB_USER}" --password-stdin
+
+# Install ArgoCD
+h0 upgrade --install -n argocd --create-namespace --wait --timeout 5m \
+argocd oci://ghcr.io/argoproj/argo-helm/argo-cd --version "${ARGOCD_CHART_VERSION}" \
+--set 'server.service.type=NodePort' \
+--set 'server.service.nodePortHttp=30080' \
+-f - << EOF | grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
+configs:
+  cm:
+    resource.customizations.ignoreDifferences.admissionregistration.k8s.io_MutatingWebhookConfiguration: |
+      jqPathExpressions:
+      - '.webhooks[]?.clientConfig.caBundle'
+EOF
+
+# Get the password
+ARGOCD_PASS=$(
+  k0 -n argocd \
+  get secret argocd-initial-admin-secret \
+  -o jsonpath='{.data.password}' | base64 -d
+)
+
+echo
+echo "ArgoCD WebUI: https://localhost:30080"
+echo "ArgoCD User: admin"
+echo "ArgoCD Pass: ${ARGOCD_PASS}"

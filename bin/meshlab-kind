@@ -20,7 +20,13 @@ source lib/common.sh
 ARGOCD_CHART_VERSION='7.7.6' # https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd
 
 #------------------------------------------------------------------------------
-# [ ] Create a manager cluster
+# [i] Ports
+#------------------------------------------------------------------------------
+
+ARGOCD_PORT=30080
+
+#------------------------------------------------------------------------------
+# [i] Create a manager cluster
 #------------------------------------------------------------------------------
 
 kind get clusters | grep -q mngr-00 || kind create cluster --name mngr-00 --config=<(cat <<EOF
@@ -29,8 +35,8 @@ apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
   - role: control-plane
     extraPortMappings:
-      - containerPort: 30080
-        hostPort: 30080
+      - containerPort: ${ARGOCD_PORT}
+        hostPort: ${ARGOCD_PORT}
         protocol: TCP
 EOF
 )
@@ -56,7 +62,7 @@ echo "${GITHUB_TOKEN}" | docker login ghcr.io -u "${GITHUB_USER}" --password-std
 h0 upgrade --install -n argocd --create-namespace --wait --timeout 5m \
 argocd oci://ghcr.io/argoproj/argo-helm/argo-cd --version "${ARGOCD_CHART_VERSION}" \
 --set 'server.service.type=NodePort' \
---set 'server.service.nodePortHttp=30080' \
+--set "server.service.nodePortHttp=${ARGOCD_PORT}" \
 -f - << EOF | grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
 configs:
   cm:

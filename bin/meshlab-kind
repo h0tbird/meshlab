@@ -135,6 +135,19 @@ for CLUSTER in $(list clusters all); do
 done; wait
 
 #------------------------------------------------------------------------------
+# [i] Install ClusterMesh
+#------------------------------------------------------------------------------
+
+blue "---[ ClusterMesh ]------------------------------------------------------"
+
+for CELL in $(list cells); do
+  CLUS=(${CELLS[${CELL}]})
+  cilium clustermesh enable --context "kind-${CLUS[0]}" --service-type NodePort
+  cilium clustermesh enable --context "kind-${CLUS[1]}" --service-type NodePort
+  cilium clustermesh connect --context "kind-${CLUS[0]}" --destination-context "kind-${CLUS[1]}"
+done
+
+#------------------------------------------------------------------------------
 # [i] Setup ArgoCD
 #------------------------------------------------------------------------------
 

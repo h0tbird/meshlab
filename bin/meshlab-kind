@@ -26,10 +26,13 @@ ARGOCD_CHART_VERSION='7.7.6' # https://artifacthub.io/packages/helm/argo-cd-oci/
 ARGOCD_PORT=30080
 
 #------------------------------------------------------------------------------
-# [i] Create a manager cluster
+# [i] Create the clusters
 #------------------------------------------------------------------------------
 
-kind get clusters | grep -q mngr-00 || kind create cluster --name mngr-00 --config=<(cat <<EOF
+blue "---[ KinD clusters ]----------------------------------------------------"
+
+# Create the mngr-00 cluster
+( kind get clusters | grep -q mngr-00 || kind create cluster --name mngr-00 --config=<(cat <<EOF
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
@@ -39,7 +42,16 @@ nodes:
         hostPort: ${ARGOCD_PORT}
         protocol: TCP
 EOF
-)
+) ) &
+
+# Create the pasta-1 and pasta-2 clusters
+( kind get clusters | grep -q pasta-1 || kind create cluster --name pasta-1 ) &
+( kind get clusters | grep -q pasta-2 || kind create cluster --name pasta-2 ) &
+wait
+
+#------------------------------------------------------------------------------
+# [i] Aliases
+#------------------------------------------------------------------------------
 
 function k0 {
   kubectl --context kind-mngr-00 "${@}"
@@ -48,6 +60,18 @@ function k0 {
 function h0 {
   helm --kube-context kind-mngr-00 "${@}"
 }
+
+#------------------------------------------------------------------------------
+# [i] Helm repositories
+#------------------------------------------------------------------------------
+
+blue "---[ Helm repos ]-------------------------------------------------------"
+
+#------------------------------------------------------------------------------
+# [i] Install the Cilium CNI
+#------------------------------------------------------------------------------
+
+blue "---[ Cilium CNI ]--------------------------------------------------------"
 
 #------------------------------------------------------------------------------
 # [i] Setup ArgoCD

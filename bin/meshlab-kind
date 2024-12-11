@@ -32,7 +32,7 @@ ARGOCD_PORT=30080
 blue "---[ KinD clusters ]----------------------------------------------------"
 
 # Create the configurations
-cat << EOF > ./tmp/kind-mngr-00.yaml
+cat << EOF > ./tmp/kind-kube-00.yaml
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
@@ -54,21 +54,22 @@ apiVersion: kind.x-k8s.io/v1alpha4
 EOF
 
 # Create the clusters
-( kind get clusters | grep -q mngr-00 || kind create cluster --name mngr-00 --config ./tmp/kind-mngr-00.yaml ) &
-( kind get clusters | grep -q pasta-1 || kind create cluster --name pasta-1 --config ./tmp/kind-pasta-1.yaml ) &
-( kind get clusters | grep -q pasta-2 || kind create cluster --name pasta-2 --config ./tmp/kind-pasta-2.yaml ) &
-wait
+for CLUSTER in $(list clusters all); do
+  if ! kind get clusters | grep -q "${CLUSTER}"; then
+    ( kind create cluster --name "${CLUSTER}" --config "./tmp/kind-${CLUSTER}.yaml" ) &
+  fi
+done; wait
 
 #------------------------------------------------------------------------------
 # [i] Aliases
 #------------------------------------------------------------------------------
 
 function k0 {
-  kubectl --context kind-mngr-00 "${@}"
+  kubectl --context kind-kube-00 "${@}"
 }
 
 function h0 {
-  helm --kube-context kind-mngr-00 "${@}"
+  helm --kube-context kind-kube-00 "${@}"
 }
 
 #------------------------------------------------------------------------------

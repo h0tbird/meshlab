@@ -17,8 +17,16 @@ source lib/common.sh
 # [i] Versions
 #------------------------------------------------------------------------------
 
-ARGOCD_CHART_VERSION='7.7.6'  # https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd
-CILIUM_CHART_VERSION='1.16.4' # https://artifacthub.io/packages/helm/cilium/cilium
+ARGOCD_CHART_VERSION='7.7.6'                  # https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd
+CILIUM_CHART_VERSION='1.16.4'                 # https://artifacthub.io/packages/helm/cilium/cilium
+ARGOWF_CHART_VERSION='0.45.0'                 # https://artifacthub.io/packages/helm/argo/argo-workflows
+PROMETHEUS_CHART_VERSION='26.0.0'             # https://artifacthub.io/packages/helm/prometheus-community/prometheus
+GRAFANA_CHART_VERSION='8.6.4'                 # https://artifacthub.io/packages/helm/grafana/grafana
+OTEL_COLLECTOR_CHART_VERSION='0.110.3'        # https://artifacthub.io/packages/helm/opentelemetry-helm/opentelemetry-collector
+VAULT_CHART_VERSION='0.29.1'                  # https://artifacthub.io/packages/helm/hashicorp/vault
+CERT_MANAGER_CHART_VERSION='v1.16.2'          # https://artifacthub.io/packages/helm/cert-manager/cert-manager
+KUBERNETES_REPLICATOR_CHART_VERSION='2.11.0'  # https://artifacthub.io/packages/helm/kubernetes-replicator/kubernetes-replicator
+ISTIO_CHART_VERSION='1.24.1'                  # https://artifacthub.io/packages/helm/istio-official/base
 
 #------------------------------------------------------------------------------
 # [i] Ports
@@ -240,3 +248,18 @@ argocd context "${MNGR}" 2> /dev/null || {
     argocd cluster add -y "kind-${CLUSTER}" --label name="${CLUSTER}" --label cell="${CELL}"
   done; done
 }
+
+#------------------------------------------------------------------------------
+# [i] Install all the ApplicationSets
+#------------------------------------------------------------------------------
+
+blue "---[ ApplicationSets ]-------------------------------------------------"
+
+helm template ./charts/cilium --set "chartVersion=${CILIUM_CHART_VERSION}" | k0 apply -f -
+helm template ./charts/prometheus --set "chartVersion=${PROMETHEUS_CHART_VERSION}" | k0 apply -f -
+helm template ./charts/grafana --set "chartVersion=${GRAFANA_CHART_VERSION}" | k0 apply -f -
+helm template ./charts/otel-collector --set "chartVersion=${OTEL_COLLECTOR_CHART_VERSION}" | k0 apply -f -
+helm template ./charts/vault --set "chartVersion=${VAULT_CHART_VERSION}" | k0 apply -f -
+helm template ./charts/cert-manager --set "chartVersion=${CERT_MANAGER_CHART_VERSION}" | k0 apply -f -
+helm template ./charts/kubernetes-replicator --set "chartVersion=${KUBERNETES_REPLICATOR_CHART_VERSION}" | k0 apply -f -
+helm template ./charts/istio --set "chartVersion=${ISTIO_CHART_VERSION}" | k0 apply -f -

@@ -87,6 +87,14 @@ for CLUSTER in $(list clusters all); do
   fi
 done; wait
 
+# Get all the IPs
+declare -A IP
+for CLUSTER in $(list clusters all); do
+  IP[${CLUSTER}]=$(docker inspect "${CLUSTER}-control-plane" |
+    jq -r '.[].NetworkSettings.Networks.kind.IPAddress')
+  echo "${CLUSTER} = ${IP[${CLUSTER}]}"
+done
+
 #------------------------------------------------------------------------------
 # [i] Aliases
 #------------------------------------------------------------------------------
@@ -117,20 +125,17 @@ blue "---[ Cilium CNI ]--------------------------------------------------------"
 # Install the Cilium CNI
 for CLUSTER in $(list clusters all); do
 
- IP="$(docker inspect "${CLUSTER}-control-plane" |
- jq -r '.[].NetworkSettings.Networks.kind.IPAddress')"
-
  { helm --kube-context "kind-${CLUSTER}" \
      upgrade -i cilium cilium/cilium \
      --version "${CILIUM_CHART_VERSION}" \
      --namespace kube-system \
      --values ./charts/cilium/values.yaml \
      --values ./charts/cilium/values/"${CLUSTER}".yaml \
-     --set k8sServiceHost="${IP}"
+     --set k8sServiceHost="${IP[${CLUSTER}]}"
 
    kubectl --context "kind-${CLUSTER}" \
      wait --for=condition=Ready nodes \
-     --all --timeout=60s; } &
+     --all --timeout=120s; } &
 
 done; wait
 

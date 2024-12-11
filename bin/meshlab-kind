@@ -53,6 +53,9 @@ blue "---[ KinD clusters ]----------------------------------------------------"
 cat << EOF > ./tmp/kind-kube-00.yaml
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
+networking:
+  disableDefaultCNI: true
+  kubeProxyMode: "none"
 nodes:
   - role: control-plane
     extraPortMappings:
@@ -64,11 +67,17 @@ EOF
 cat << EOF > ./tmp/kind-pasta-1.yaml
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
+networking:
+  disableDefaultCNI: true
+  kubeProxyMode: "none"
 EOF
 
 cat << EOF > ./tmp/kind-pasta-2.yaml
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
+networking:
+  disableDefaultCNI: true
+  kubeProxyMode: "none"
 EOF
 
 # Create the clusters
@@ -108,12 +117,16 @@ blue "---[ Cilium CNI ]--------------------------------------------------------"
 # Install the Cilium CNI
 for CLUSTER in $(list clusters all); do
 
+ IP="$(docker inspect "${CLUSTER}-control-plane" |
+ jq -r '.[].NetworkSettings.Networks.kind.IPAddress')"
+
  { helm --kube-context "kind-${CLUSTER}" \
      upgrade -i cilium cilium/cilium \
      --version "${CILIUM_CHART_VERSION}" \
      --namespace kube-system \
      --values ./charts/cilium/values.yaml \
-     --values ./charts/cilium/values/"${CLUSTER}".yaml
+     --values ./charts/cilium/values/"${CLUSTER}".yaml \
+     --set k8sServiceHost="${IP}"
 
    kubectl --context "kind-${CLUSTER}" \
      wait --for=condition=Ready nodes \

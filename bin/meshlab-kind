@@ -38,6 +38,7 @@ ARGOCD_PORT=30080
 #------------------------------------------------------------------------------
 
 if [[ $1 == "delete" ]]; then
+  argocd context --delete "${MNGR}" || true
   kind delete clusters --all
   rm -rf ./tmp/*
   exit 0
@@ -153,6 +154,29 @@ for CELL in $(list cells); do
 done
 
 #------------------------------------------------------------------------------
+# [i] Setup CoreDNS server DNS entries for demo.lab
+#------------------------------------------------------------------------------
+
+blue "---[ CoreDNS ]----------------------------------------------------------"
+
+for CLUSTER in $(list clusters); do
+
+kubectl --context "kind-${CLUSTER}" -n kube-system create cm coredns-custom \
+--dry-run=client -o yaml --from-literal=demo.server="demo.lab {
+  hosts {
+    ttl 60
+    ${IP[${MNGR}]} vault.demo.lab
+    ${IP[${MNGR}]} prometheus.demo.lab
+    fallthrough
+  }
+}" | kubectl --context "kind-${CLUSTER}" -n kube-system apply -f -
+
+# Restart otherwise it takes a while to pick up the new config
+kubectl --context "kind-${CLUSTER}" -n kube-system rollout restart deployment coredns
+
+done
+
+#------------------------------------------------------------------------------
 # [i] Setup ArgoCD
 #------------------------------------------------------------------------------
 
@@ -185,3 +209,26 @@ echo
 echo "ArgoCD WebUI: https://localhost:30080"
 echo "ArgoCD User: admin"
 echo "ArgoCD Pass: ${ARGOCD_PASS}"
+
+#------------------------------------------------------------------------------
+# [i] Register clusters to ArgoCD
+#------------------------------------------------------------------------------
+
+blue "---[ Register clusters to ArgoCD ]--------------------------------------"
+
+# Check if the ArgoCD context exists
+argocd context "${MNGR}" 2> /dev/null || {
+
+  # Login to ArgoCD
+  argocd login "${IP[${MNGR}]}:${ARGOCD_PORT}" \
+    --insecure \
+    --name "${MNGR}" \
+    --username admin \
+    --password "${ARGOCD_PASS}"
+
+  # Add clusters with labels
+  for CELL in $(list cells); do for CLUSTER in ${CELLS[${CELL}]}; do
+    argocd cluster list | grep -q "${CLUSTER}" || \
+    argocd cluster add -y "${CLUSTER}" --label name="${CLUSTER}" --label cell="${CELL}"
+  done; done
+}

@@ -17,7 +17,8 @@ source lib/common.sh
 # [i] Versions
 #------------------------------------------------------------------------------
 
-ARGOCD_CHART_VERSION='7.7.6' # https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd
+ARGOCD_CHART_VERSION='7.7.6'  # https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd
+CILIUM_CHART_VERSION='1.16.4' # https://artifacthub.io/packages/helm/cilium/cilium
 
 #------------------------------------------------------------------------------
 # [i] Ports
@@ -78,11 +79,29 @@ function h0 {
 
 blue "---[ Helm repos ]-------------------------------------------------------"
 
+helm repo add cilium https://helm.cilium.io/
+
 #------------------------------------------------------------------------------
 # [i] Install the Cilium CNI
 #------------------------------------------------------------------------------
 
 blue "---[ Cilium CNI ]--------------------------------------------------------"
+
+# Install the Cilium CNI
+for CLUSTER in $(list clusters all); do
+
+ { helm --kube-context "kind-${CLUSTER}" \
+     upgrade -i cilium cilium/cilium \
+     --version "${CILIUM_CHART_VERSION}" \
+     --namespace kube-system \
+     --values ./charts/cilium/values.yaml \
+     --values ./charts/cilium/values/"${CLUSTER}".yaml
+
+   kubectl --context "kind-${CLUSTER}" \
+     wait --for=condition=Ready nodes \
+     --all --timeout=60s; } &
+
+done; wait
 
 #------------------------------------------------------------------------------
 # [i] Setup ArgoCD

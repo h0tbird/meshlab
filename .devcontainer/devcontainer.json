@@ -39,5 +39,6 @@
 				"remote.autoForwardPorts":false
 			}
 		}
-	}
+	},
+	"postCreateCommand": "ln -s /usr/local/bin/kubectl /usr/local/bin/k"
 }

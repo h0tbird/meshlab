@@ -1,0 +1,44 @@
+{
+	"name": "meshlab",
+	"image": "mcr.microsoft.com/devcontainers/base:bullseye",
+	"features": {
+		"ghcr.io/nils-geistmann/devcontainers-features/zsh:0": {},
+		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+		"ghcr.io/devcontainers-extra/features/kind:1": {},
+		"ghcr.io/audacioustux/devcontainers/cilium:1": {},
+		"ghcr.io/devcontainers-extra/features/argo-cd:1": {},
+		"ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
+			"version": "latest",
+			"helm": "latest",
+			"minikube": "none"
+		}
+	},
+	"remoteEnv": {
+		"LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}"
+	},
+	"containerEnv": {
+		"GITHUB_TOKEN": "${localEnv:GITHUB_TOKEN}",
+		"GITHUB_USER": "${localEnv:GITHUB_USER}"
+	},
+	"remoteUser": "root",
+	"runArgs": ["--network", "host"],
+	"forwardPorts": [30080],
+	"portsAttributes": {
+        "30080": {
+            "label": "argocd",
+            "onAutoForward": "notify",
+            "protocol": "http"
+        }
+    },
+	"otherPortsAttributes": {
+		"onAutoForward" : "ignore"
+	},
+	"customizations": {
+		"vscode": {
+			"settings": {
+				"remote.autoForwardPorts":false
+			}
+		}
+	},
+	"postCreateCommand": "ln -s /usr/local/bin/kubectl /usr/local/bin/k"
+}

@@ -1,6 +1,6 @@
 ### Experimenting with `devcontainer`
 
-Install `devcontainer`:
+0. Install `devcontainer`:
 ```
 brew install devcontainer
 ```

@@ -245,7 +245,10 @@ argocd context "${MNGR}" 2> /dev/null || {
   # Add clusters with labels
   for CELL in $(list cells); do for CLUSTER in ${CELLS[${CELL}]}; do
     argocd cluster list | grep -q "${CLUSTER}" || \
-    argocd cluster add -y "kind-${CLUSTER}" --label name="${CLUSTER}" --label cell="${CELL}"
+    argocd cluster add -y "kind-${CLUSTER}" \
+      --name "${CLUSTER}" \
+      --label name="${CLUSTER}" \
+      --label cell="${CELL}"
   done; done
 }
 

@@ -39,6 +39,11 @@ RUN VERSION="v0.16.22" && ARCH=$(dpkg --print-architecture) && \
     wget -qO- https://github.com/cilium/cilium-cli/releases/download/${VERSION}/cilium-linux-${ARCH}.tar.gz | tar -xz -C /usr/local/bin/ && \
     chmod +x /usr/local/bin/cilium
 
+# Install kind
+RUN VERSION="v0.25.0" && ARCH=$(dpkg --print-architecture) && \
+    wget https://github.com/kubernetes-sigs/kind/releases/download/${VERSION}/kind-linux-${ARCH} -O /usr/local/bin/kind && \
+    chmod +x /usr/local/bin/kind
+
 # Install packages
 RUN apt-get update && \
     apt-get install -y kubectl && \

@@ -364,3 +364,19 @@ k0 -n argocd patch role argo-workflows-workflow --type json \
 
 echo
 echo "ArgoWF WebUI: http://localhost:${ARGOWF_PORT}"
+
+#------------------------------------------------------------------------------
+# [i] Bootstrap DAG
+#------------------------------------------------------------------------------
+
+blue "---[ Bootstrap DAG ]----------------------------------------------------"
+
+# Install Argo WorkflowTemplates
+helm template ./charts/wftemplates | k0 -n argocd apply -f -
+
+# Create a secret with ArgoCD credentials
+k0 create secret generic argocd-credentials \
+ --from-literal=password="${ARGOCD_PASS}" \
+ --from-literal=username='admin' \
+ --from-literal=token='' \
+ --dry-run=client -o yaml | k0 -n argocd apply -f -

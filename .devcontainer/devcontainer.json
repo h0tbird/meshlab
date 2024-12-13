@@ -7,6 +7,7 @@
 		"ghcr.io/devcontainers-extra/features/kind:1": {},
 		"ghcr.io/audacioustux/devcontainers/cilium:1": {},
 		"ghcr.io/devcontainers-extra/features/argo-cd:1": {},
+		"ghcr.io/devcontainers-extra/features/argo-workflows:1": {},
 		"ghcr.io/larsnieuwenhuizen/features/jqyq:0": {},
 		"ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
 			"version": "latest",

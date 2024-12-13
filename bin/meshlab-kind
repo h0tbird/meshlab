@@ -380,3 +380,158 @@ k0 create secret generic argocd-credentials \
  --from-literal=username='admin' \
  --from-literal=token='' \
  --dry-run=client -o yaml | k0 -n argocd apply -f -
+
+# Create the bootstrap workflow
+argo --context kube-00 list -n argocd | grep -q bootstrap || \
+argo --context kube-00 submit -n argocd -w - << EOF
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: bootstrap-
+spec:
+  entrypoint: stages
+  serviceAccountName: argo-workflow
+  templates:
+  - name: stages
+    dag:
+      tasks:
+      - name: cilium
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selectors
+            value: name=cilium
+      - name: prometheus
+        dependencies: [cilium]
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selectors
+            value: name=prometheus
+      - name: grafana
+        dependencies: [prometheus]
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selectors
+            value: name=grafana
+      - name: otelco-node
+        dependencies: [prometheus]
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selectors
+            value: name=otelco-node
+      - name: otelco-cluster
+        dependencies: [prometheus]
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selectors
+            value: name=otelco-cluster
+      - name: vault
+        dependencies: [cilium]
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selectors
+            value: name=vault
+      - name: cert-manager
+        dependencies: [cilium]
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selectors
+            value: name=cert-manager
+      - name: kubernetes-replicator
+        dependencies: [cilium]
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selectors
+            value: name=kubernetes-replicator
+      - name: populate-vault
+        dependencies: [vault]
+        templateRef:
+          name: populate-vault
+          template: populate-vault
+      - name: istio-issuers
+        dependencies: [populate-vault, cert-manager]
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selectors
+            value: name=istio-issuers
+      - name: istio-base
+        dependencies: [cilium]
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selectors
+            value: name=istio-base
+      - name: istio-cni
+        dependencies: [istio-base]
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selectors
+            value: name=istio-cni
+      - name: istio-istiod
+        dependencies: [istio-base, istio-issuers]
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selectors
+            value: name=istio-istiod
+      - name: istio-ztunnel
+        dependencies: [istio-istiod]
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selectors
+            value: name=istio-ztunnel
+      - name: istio-nsgw
+        dependencies: [istio-istiod]
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selectors
+            value: name=istio-nsgw
+      - name: istio-ewgw
+        dependencies: [istio-istiod]
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selectors
+            value: name=istio-ewgw
+EOF

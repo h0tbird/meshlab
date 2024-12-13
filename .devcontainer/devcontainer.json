@@ -26,10 +26,15 @@
 		"--name", "devcontainer",
 		"--network", "host"
 	],
-	"forwardPorts": [30080],
+	"forwardPorts": [30080, 30081],
 	"portsAttributes": {
         "30080": {
             "label": "argocd",
+            "onAutoForward": "notify",
+            "protocol": "http"
+        },
+        "30081": {
+            "label": "argowf",
             "onAutoForward": "notify",
             "protocol": "http"
         }

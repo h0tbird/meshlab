@@ -33,6 +33,7 @@ ISTIO_CHART_VERSION='1.24.1'                  # https://artifacthub.io/packages/
 #------------------------------------------------------------------------------
 
 ARGOCD_PORT=30080
+ARGOWF_PORT=30081
 
 #------------------------------------------------------------------------------
 # [i] Validate the command line arguments
@@ -189,6 +190,7 @@ function h0 {
 blue "---[ Helm repos ]-------------------------------------------------------"
 
 helm repo add cilium https://helm.cilium.io/
+helm repo add argo https://argoproj.github.io/argo-helm
 helm repo update
 
 #------------------------------------------------------------------------------
@@ -334,9 +336,9 @@ blue "---[ ArgoWF ]-----------------------------------------------------------"
 # Install Argo Workflows
 h0 upgrade --install -n argowf --create-namespace --wait --timeout 5m \
   argo-workflows argo/argo-workflows --version "${ARGOWF_CHART_VERSION}" \
-  --set 'server.serviceType=LoadBalancer' \
+  --set 'server.serviceType=NodePort' \
   --set 'server.authModes={server}' \
-  --set 'server.servicePort=81' \
+  --set "server.servicePort=${ARGOWF_PORT}" \
   --set 'workflow.serviceAccount.create=true' \
   --set 'workflow.serviceAccount.name=argo-workflow' \
   --set 'workflow.rbac.create=true' \
@@ -358,4 +360,4 @@ k0 -n argocd patch role argo-workflows-workflow --type json \
       ]'
 
 echo
-echo "ArgoWF WebUI: http://${IP[${MNGR}]}:81"
+echo "ArgoWF WebUI: http://localhost:${ARGOWF_PORT}"

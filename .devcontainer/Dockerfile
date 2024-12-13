@@ -24,6 +24,11 @@ RUN VERSION="v4.44.6" && ARCH=$(dpkg --print-architecture) && \
     wget https://github.com/mikefarah/yq/releases/download/${VERSION}/yq_linux_${ARCH} -O /usr/local/bin/yq && \
     chmod +x /usr/local/bin/yq
 
+# Install argocd
+RUN VERSION="v2.13.2" && ARCH=$(dpkg --print-architecture) && \
+    wget https://github.com/argoproj/argo-cd/releases/download/${VERSION}/argocd-linux-${ARCH} -O /usr/local/bin/argocd && \
+    chmod +x /usr/local/bin/argocd
+
 # Install packages
 RUN apt-get update && \
     apt-get install -y kubectl && \

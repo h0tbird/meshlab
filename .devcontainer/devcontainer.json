@@ -22,7 +22,10 @@
 		"GITHUB_USER": "${localEnv:GITHUB_USER}"
 	},
 	"remoteUser": "root",
-	"runArgs": ["--network", "host"],
+	"runArgs": [
+		"--name", "devcontainer",
+		"--network", "host"
+	],
 	"forwardPorts": [30080],
 	"portsAttributes": {
         "30080": {

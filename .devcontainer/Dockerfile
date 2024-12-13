@@ -34,6 +34,11 @@ RUN VERSION="v3.6.2" && ARCH=$(dpkg --print-architecture) && \
     wget -qO- https://github.com/argoproj/argo-workflows/releases/download/${VERSION}/argo-linux-${ARCH}.gz | gunzip -c > /usr/local/bin/argo && \
     chmod +x /usr/local/bin/argo
 
+# Install cilium-cli
+RUN VERSION="v0.16.22" && ARCH=$(dpkg --print-architecture) && \
+    wget -qO- https://github.com/cilium/cilium-cli/releases/download/${VERSION}/cilium-linux-${ARCH}.tar.gz | tar -xz -C /usr/local/bin/ && \
+    chmod +x /usr/local/bin/cilium
+
 # Install packages
 RUN apt-get update && \
     apt-get install -y kubectl && \

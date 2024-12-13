@@ -29,17 +29,17 @@
 	],
 	"forwardPorts": [30080, 30081],
 	"portsAttributes": {
-        "30080": {
-            "label": "argocd",
-            "onAutoForward": "notify",
-            "protocol": "http"
-        },
-        "30081": {
-            "label": "argowf",
-            "onAutoForward": "notify",
-            "protocol": "http"
-        }
-    },
+		"30080": {
+			"label": "argocd",
+			"onAutoForward": "notify",
+			"protocol": "http"
+		},
+		"30081": {
+			"label": "argowf",
+			"onAutoForward": "notify",
+			"protocol": "http"
+		}
+	},
 	"otherPortsAttributes": {
 		"onAutoForward" : "ignore"
 	},
@@ -52,7 +52,7 @@
 	},
 	"postCreateCommand": "ln -s /usr/local/bin/kubectl /usr/local/bin/k",
 	"hostRequirements": {
-        "cpus": 4,
-        "memory": "16gb"
-    }
+		"cpus": 4,
+		"memory": "16gb"
+	}
 }

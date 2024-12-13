@@ -44,5 +44,9 @@
 			}
 		}
 	},
-	"postCreateCommand": "ln -s /usr/local/bin/kubectl /usr/local/bin/k"
+	"postCreateCommand": "ln -s /usr/local/bin/kubectl /usr/local/bin/k",
+	"hostRequirements": {
+        "cpus": 4,
+        "memory": "16gb"
+    }
 }

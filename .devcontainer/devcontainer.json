@@ -1,6 +1,8 @@
 {
 	"name": "meshlab",
-	"image": "mcr.microsoft.com/devcontainers/base:bullseye",
+	"build": {
+		"dockerfile": "Dockerfile"
+	},
 	"features": {
 		"ghcr.io/nils-geistmann/devcontainers-features/zsh:0": {},
 		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
@@ -50,7 +52,6 @@
 			}
 		}
 	},
-	"postCreateCommand": "ln -s /usr/local/bin/kubectl /usr/local/bin/k",
 	"hostRequirements": {
 		"cpus": 4,
 		"memory": "16gb"

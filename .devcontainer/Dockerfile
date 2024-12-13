@@ -29,6 +29,11 @@ RUN VERSION="v2.13.2" && ARCH=$(dpkg --print-architecture) && \
     wget https://github.com/argoproj/argo-cd/releases/download/${VERSION}/argocd-linux-${ARCH} -O /usr/local/bin/argocd && \
     chmod +x /usr/local/bin/argocd
 
+# Install argo
+RUN VERSION="v3.6.2" && ARCH=$(dpkg --print-architecture) && \
+    wget -qO- https://github.com/argoproj/argo-workflows/releases/download/${VERSION}/argo-linux-${ARCH}.gz | gunzip -c > /usr/local/bin/argo && \
+    chmod +x /usr/local/bin/argo
+
 # Install packages
 RUN apt-get update && \
     apt-get install -y kubectl && \

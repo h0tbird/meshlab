@@ -47,7 +47,7 @@ ARGOWF_PORT=30081
 #------------------------------------------------------------------------------
 
 if [[ $1 == "delete" ]]; then
-  argocd context --delete "${MNGR}" || true
+  argocd context --delete "${MNGR}" 2>/dev/null || true
   kind delete clusters --all
   rm -rf ./tmp/*
   exit 0
@@ -111,6 +111,9 @@ nodes:
     extraPortMappings:
       - containerPort: ${ARGOCD_PORT}
         hostPort: ${ARGOCD_PORT}
+        protocol: TCP
+      - containerPort: ${ARGOWF_PORT}
+        hostPort: ${ARGOWF_PORT}
         protocol: TCP
 EOF
 
@@ -337,8 +340,8 @@ blue "---[ ArgoWF ]-----------------------------------------------------------"
 h0 upgrade --install -n argowf --create-namespace --wait --timeout 5m \
   argo-workflows argo/argo-workflows --version "${ARGOWF_CHART_VERSION}" \
   --set 'server.serviceType=NodePort' \
+  --set "server.serviceNodePort=${ARGOWF_PORT}" \
   --set 'server.authModes={server}' \
-  --set "server.servicePort=${ARGOWF_PORT}" \
   --set 'workflow.serviceAccount.create=true' \
   --set 'workflow.serviceAccount.name=argo-workflow' \
   --set 'workflow.rbac.create=true' \

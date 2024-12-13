@@ -49,4 +49,4 @@ RUN VERSION="v1.32" && \
     apt-get update && apt-get install -y --no-install-recommends kubectl && \
     apt-get autoremove -y && apt-get clean -y && \
     rm -rf /var/lib/apt/lists/* && \
-    ln -s /usr/local/bin/kubectl /usr/local/bin/k
+    ln -s /usr/bin/kubectl /usr/bin/k

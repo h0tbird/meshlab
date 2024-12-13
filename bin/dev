@@ -1,4 +1,11 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
-devcontainer up --dotfiles-repository https://github.com/h0tbird/devcontainer.git --workspace-folder . &> /dev/null
+PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+
+# Create and run dev container
+devcontainer up \
+  --dotfiles-repository https://github.com/h0tbird/devcontainer.git \
+  --workspace-folder . &>/dev/null
+
+# Execute zsh on the dev container
 devcontainer exec --workspace-folder . zsh

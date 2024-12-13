@@ -58,6 +58,8 @@ fi
 
 blue "---[ Pull-through registries ]------------------------------------------"
 
+docker network create kind --subnet 172.18.0.0/16 2>/dev/null || true
+
 docker start registry-docker.io 2>/dev/null || docker run -d \
   -e REGISTRY_PROXY_REMOTEURL=https://registry-1.docker.io \
   --restart always \
@@ -85,7 +87,10 @@ docker start registry-ghcr.io 2>/dev/null || docker run -d \
 
 blue "---[ KinD clusters ]----------------------------------------------------"
 
-# Create the configurations
+# Create the temporary directory
+[ -d ./tmp ] || mkdir -p ./tmp
+
+# Configure kube-00
 cat << EOF > ./tmp/kind-kube-00.yaml
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
@@ -108,6 +113,7 @@ nodes:
         protocol: TCP
 EOF
 
+# Configure pasta-1
 cat << EOF > ./tmp/kind-pasta-1.yaml
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
@@ -124,6 +130,7 @@ containerdConfigPatches:
       endpoint = ["http://registry-ghcr.io:5000"]
 EOF
 
+# Configure pasta-2
 cat << EOF > ./tmp/kind-pasta-2.yaml
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4

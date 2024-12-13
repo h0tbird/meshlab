@@ -324,3 +324,38 @@ helm template ./charts/vault --set "chartVersion=${VAULT_CHART_VERSION}" | k0 ap
 helm template ./charts/cert-manager --set "chartVersion=${CERT_MANAGER_CHART_VERSION}" | k0 apply -f -
 helm template ./charts/kubernetes-replicator --set "chartVersion=${KUBERNETES_REPLICATOR_CHART_VERSION}" | k0 apply -f -
 helm template ./charts/istio --set "chartVersion=${ISTIO_CHART_VERSION}" | k0 apply -f -
+
+#------------------------------------------------------------------------------
+# [i] Setup ArgoWF
+#------------------------------------------------------------------------------
+
+blue "---[ ArgoWF ]-----------------------------------------------------------"
+
+# Install Argo Workflows
+h0 upgrade --install -n argowf --create-namespace --wait --timeout 5m \
+  argo-workflows argo/argo-workflows --version "${ARGOWF_CHART_VERSION}" \
+  --set 'server.serviceType=LoadBalancer' \
+  --set 'server.authModes={server}' \
+  --set 'server.servicePort=81' \
+  --set 'workflow.serviceAccount.create=true' \
+  --set 'workflow.serviceAccount.name=argo-workflow' \
+  --set 'workflow.rbac.create=true' \
+  --set 'controller.workflowNamespaces={argocd}' |
+  grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
+
+# Patch the argo-workflow-role to allow patching of the ApplicationSets
+k0 -n argocd patch role argo-workflows-workflow --type json \
+  -p '[
+        {
+          "op": "add",
+          "path": "/rules/-",
+          "value": {
+            "apiGroups":["argoproj.io"],
+            "resources":["applicationsets"],
+            "verbs":["get","watch","patch"]
+          }
+        }
+      ]'
+
+echo
+echo "ArgoWF WebUI: http://${IP[${MNGR}]}:81"

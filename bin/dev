@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+devcontainer up --dotfiles-repository https://github.com/h0tbird/devcontainer.git --workspace-folder . &> /dev/null
+devcontainer exec --workspace-folder . zsh

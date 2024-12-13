@@ -6,13 +6,18 @@ RUN apt-get update \
     && apt-get install -y apt-transport-https ca-certificates curl gnupg
 
 # Install kubectl repo
-RUN KUBECTL_MINOR_VERSION=v1.31 \
+RUN KUBECTL_MINOR_VERSION="v1.32" \
     && curl -fsSL https://pkgs.k8s.io/core:/stable:/${KUBECTL_MINOR_VERSION}/deb/Release.key | \
       gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg \
     && chmod 644 /etc/apt/keyrings/kubernetes-apt-keyring.gpg \
     && echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/${KUBECTL_MINOR_VERSION}/deb/ /" \
       >> /etc/apt/sources.list.d/kubernetes.list \
     && chmod 644 /etc/apt/sources.list.d/kubernetes.list
+
+# Install helm
+RUN HELM_VERSION="v3.16.3" && \
+    curl -fsSLo /tmp/get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 && \
+    chmod 700 /tmp/get_helm.sh && /tmp/get_helm.sh --version ${HELM_VERSION} && rm -f /tmp/get_helm.sh
 
 # Install packages
 RUN apt-get update \

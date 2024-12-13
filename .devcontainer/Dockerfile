@@ -3,7 +3,9 @@ FROM mcr.microsoft.com/devcontainers/base:bullseye
 # Install base packages
 RUN apt-get update && \
     install -m 0755 -d /etc/apt/keyrings && \
-    apt-get install -y apt-transport-https ca-certificates curl gnupg jq
+    apt-get install -y --no-install-recommends \
+    apt-transport-https ca-certificates curl gnupg jq && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install kubectl repo
 RUN VERSION="v1.32" && \
@@ -46,7 +48,7 @@ RUN VERSION="v0.25.0" && ARCH=$(dpkg --print-architecture) && \
 
 # Install packages
 RUN apt-get update && \
-    apt-get install -y kubectl && \
+    apt-get install -y --no-install-recommends kubectl && \
     apt-get autoremove -y && \
     apt-get clean -y && \
     rm -rf /var/lib/apt/lists/*

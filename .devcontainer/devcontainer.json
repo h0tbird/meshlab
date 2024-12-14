@@ -4,7 +4,6 @@
 		"dockerfile": "Dockerfile"
 	},
 	"features": {
-		"ghcr.io/nils-geistmann/devcontainers-features/zsh:0": {},
 		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
 	},
 	"remoteEnv": {

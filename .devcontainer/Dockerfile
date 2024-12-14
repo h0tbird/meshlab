@@ -39,14 +39,6 @@ RUN VERSION="v0.25.0" && ARCH=$(dpkg --print-architecture) && \
     chmod +x /usr/local/bin/kind
 
 # Install kubectl
-RUN VERSION="v1.32" && \
-    curl -fsSL https://pkgs.k8s.io/core:/stable:/${VERSION}/deb/Release.key | \
-    gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg && \
-    chmod 644 /etc/apt/keyrings/kubernetes-apt-keyring.gpg && \
-    echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/${VERSION}/deb/ /" \
-    >> /etc/apt/sources.list.d/kubernetes.list && \
-    chmod 644 /etc/apt/sources.list.d/kubernetes.list && \
-    apt-get update && apt-get install -y --no-install-recommends kubectl && \
-    apt-get autoremove -y && apt-get clean -y && \
-    rm -rf /var/lib/apt/lists/* && \
-    ln -s /usr/bin/kubectl /usr/bin/k
+RUN VERSION="v1.31.2" && ARCH=$(dpkg --print-architecture) && \
+    wget https://dl.k8s.io/release/${VERSION}/bin/linux/${ARCH}/kubectl -O /usr/local/bin/kubectl && \
+    chmod +x /usr/local/bin/kubectl && ln -s /usr/local/bin/kubectl /usr/local/bin/k

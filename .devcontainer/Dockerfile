@@ -2,11 +2,19 @@ FROM mcr.microsoft.com/devcontainers/base:bullseye
 
 # Install base packages
 RUN apt-get update && \
-    install -m 0755 -d /etc/apt/keyrings && \
-    apt-get install -y --no-install-recommends \
-    apt-transport-https ca-certificates curl gnupg jq && \
+    apt-get install -y --no-install-recommends curl jq && \
     apt-get autoremove -y && apt-get clean -y && \
     rm -rf /var/lib/apt/lists/*
+
+# Install kind
+RUN VERSION="v0.25.0" && ARCH=$(dpkg --print-architecture) && \
+    wget https://github.com/kubernetes-sigs/kind/releases/download/${VERSION}/kind-linux-${ARCH} -O /usr/local/bin/kind && \
+    chmod +x /usr/local/bin/kind
+
+# Install kubectl
+RUN VERSION="v1.31.2" && ARCH=$(dpkg --print-architecture) && \
+    wget https://dl.k8s.io/release/${VERSION}/bin/linux/${ARCH}/kubectl -O /usr/local/bin/kubectl && \
+    chmod +x /usr/local/bin/kubectl && ln -s /usr/local/bin/kubectl /usr/local/bin/k
 
 # Install helm
 RUN VERSION="v3.16.3" && \
@@ -32,13 +40,3 @@ RUN VERSION="v3.6.2" && ARCH=$(dpkg --print-architecture) && \
 RUN VERSION="v0.16.22" && ARCH=$(dpkg --print-architecture) && \
     wget -qO- https://github.com/cilium/cilium-cli/releases/download/${VERSION}/cilium-linux-${ARCH}.tar.gz | tar -xz -C /usr/local/bin/ && \
     chmod +x /usr/local/bin/cilium
-
-# Install kind
-RUN VERSION="v0.25.0" && ARCH=$(dpkg --print-architecture) && \
-    wget https://github.com/kubernetes-sigs/kind/releases/download/${VERSION}/kind-linux-${ARCH} -O /usr/local/bin/kind && \
-    chmod +x /usr/local/bin/kind
-
-# Install kubectl
-RUN VERSION="v1.31.2" && ARCH=$(dpkg --print-architecture) && \
-    wget https://dl.k8s.io/release/${VERSION}/bin/linux/${ARCH}/kubectl -O /usr/local/bin/kubectl && \
-    chmod +x /usr/local/bin/kubectl && ln -s /usr/local/bin/kubectl /usr/local/bin/k

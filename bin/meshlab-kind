@@ -294,6 +294,8 @@ ARGOCD_PASS=$(
   -o jsonpath='{.data.password}' | base64 -d
 )
 
+# TODO: Get the external LoadBalancer IP
+
 echo
 echo "ArgoCD WebUI: https://localhost:30080"
 echo "ArgoCD User: admin"
@@ -307,6 +309,8 @@ blue "---[ Register clusters to ArgoCD ]--------------------------------------"
 
 # Check if the ArgoCD context exists
 argocd context "${MNGR}" 2> /dev/null || {
+
+  # TODO: Use the external LoadBalancer IP
 
   # Login to ArgoCD
   argocd login "${IP[${MNGR}]}:${ARGOCD_PORT}" \

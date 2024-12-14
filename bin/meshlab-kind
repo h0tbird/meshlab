@@ -54,12 +54,26 @@ if [[ $1 == "delete" ]]; then
 fi
 
 #------------------------------------------------------------------------------
+# [i] cloud-provider-kind
+#------------------------------------------------------------------------------
+
+blue "---[ cloud-provider-kind ]----------------------------------------------"
+
+docker network create kind --subnet 172.18.0.0/16 2>/dev/null || true
+
+docker ps | grep -q cp-kind || {
+  docker run --rm -d \
+    --name cp-kind \
+    --network kind \
+    --volume /var/run/docker.sock:/var/run/docker.sock \
+    registry.k8s.io/cloud-provider-kind/cloud-controller-manager:v0.4.0
+}
+
+#------------------------------------------------------------------------------
 # [i] Pull-through image cache
 #------------------------------------------------------------------------------
 
 blue "---[ Pull-through registries ]------------------------------------------"
-
-docker network create kind --subnet 172.18.0.0/16 2>/dev/null || true
 
 docker start registry-docker.io 2>/dev/null || docker run -d \
   -e REGISTRY_PROXY_REMOTEURL=https://registry-1.docker.io \
@@ -227,8 +241,8 @@ blue "---[ ClusterMesh ]------------------------------------------------------"
 
 for CELL in $(list cells); do
   CLUS=(${CELLS[${CELL}]})
-  cilium clustermesh enable --context "kind-${CLUS[0]}" --service-type NodePort
-  cilium clustermesh enable --context "kind-${CLUS[1]}" --service-type NodePort
+  cilium clustermesh enable --context "kind-${CLUS[0]}" --service-type LoadBalancer
+  cilium clustermesh enable --context "kind-${CLUS[1]}" --service-type LoadBalancer
   cilium clustermesh connect --context "kind-${CLUS[0]}" --destination-context "kind-${CLUS[1]}"
 done
 

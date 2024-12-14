@@ -222,12 +222,9 @@ done
 
 blue "---[ ArgoCD ]-----------------------------------------------------------"
 
-# Login to the GitHub Container Registry
-echo "${GITHUB_TOKEN}" | docker login ghcr.io -u "${GITHUB_USER}" --password-stdin
-
 # Install ArgoCD
 h0 upgrade --install -n argocd --create-namespace --wait --timeout 5m \
-argocd oci://ghcr.io/argoproj/argo-helm/argo-cd --version "${ARGOCD_CHART_VERSION}" \
+argocd argo/argo-cd --version "${ARGOCD_CHART_VERSION}" \
 --set 'server.service.type=LoadBalancer' \
 -f - << EOF | grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
 configs:

@@ -6,6 +6,12 @@ RUN apt-get update && \
     apt-get autoremove -y && apt-get clean -y && \
     rm -rf /var/lib/apt/lists/*
 
+# Set zsh as default shell
+RUN chsh -s "$(which zsh)" root && \
+    chsh -s "$(which zsh)" vscode && \
+    sed -i '/^ZSH_THEME/c\ZSH_THEME="robbyrussell"' /root/.zshrc && \
+    sed -i '/^ZSH_THEME/c\ZSH_THEME="robbyrussell"' /home/vscode/.zshrc
+
 # Install kind
 RUN VERSION="v0.25.0" && ARCH=$(dpkg --print-architecture) && \
     wget https://github.com/kubernetes-sigs/kind/releases/download/${VERSION}/kind-linux-${ARCH} -O /usr/local/bin/kind && \

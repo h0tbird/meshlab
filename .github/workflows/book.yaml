@@ -21,22 +21,16 @@ jobs:
       with:
         fetch-depth: 0
 
-    # Install mdbook
-    - name: Install
-      run: |
-        TAG=$(curl -s 'https://api.github.com/repos/rust-lang/mdbook/releases/latest' | jq -r '.tag_name')
-        URL="https://github.com/rust-lang/mdbook/releases/download/${TAG}/mdbook-${TAG}-x86_64-unknown-linux-gnu.tar.gz"
-        mkdir mdbook
-        curl -sSL ${URL} | tar -xz --directory=./mdbook
-        echo $(pwd)/mdbook >> ${GITHUB_PATH}
-
     # Build the book
-    - name: Build
+    - name: Build book in devcontainer
+      uses: devcontainers/ci@v0.3
+      with:
+        cacheFrom: ghcr.io/h0tbird/meshlab-devcontainer
       run: |
         cd docs/book
         mdbook build
 
-    # Commit and push the book
+    # The gh-pages branch is used to host the book
     - name: Deploy
       run: |
         cd docs/book

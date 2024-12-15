@@ -9,7 +9,9 @@ on:
       - 'docs/book/src/**'
 jobs:
   deploy:
-    runs-on: ghcr.io/h0tbird/meshlab-devcontainer
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/h0tbird/meshlab-devcontainer
     permissions:
       contents: write
       pull-requests: write

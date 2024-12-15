@@ -1,4 +1,5 @@
 # See (https://mcr.microsoft.com/en-us/artifact/mar/devcontainers/base/about)
+# See (https://github.com/devcontainers/images/tree/main/src/base-ubuntu)
 FROM mcr.microsoft.com/devcontainers/base:ubuntu
 
 # Install base packages

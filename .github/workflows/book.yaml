@@ -26,13 +26,18 @@ jobs:
       working-directory: docs/book
       run: mdbook build
 
-    # The gh-pages branch is used to host the book
-    - name: Deploy
+    # Setup git
+    - name: Setup git
       run: |
-        cd docs/book
-        git worktree add gh-pages
+        git config --global --add safe.directory /__w/meshlab/meshlab
         git config user.name "Deploy from CI"
         git config user.email ""
+
+    # The gh-pages branch is used to host the book
+    - name: Deploy
+      working-directory: docs/book
+      run: |
+        git worktree add gh-pages
         cd gh-pages
         git update-ref -d refs/heads/gh-pages
         rm -rf *

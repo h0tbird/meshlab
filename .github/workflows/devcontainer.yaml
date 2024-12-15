@@ -15,8 +15,14 @@ jobs:
     # Checkout the repository
     - name: Checkout
       uses: actions/checkout@v3
+
+    # Login to the GitHub Container Registry
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v2
       with:
-        fetch-depth: 0
+        registry: ghcr.io
+        username: ${{ github.repository_owner }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
     # Build the devcontainer
     - name: Pre-build devcontainer image

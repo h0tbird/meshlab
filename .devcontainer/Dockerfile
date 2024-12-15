@@ -50,3 +50,8 @@ RUN VERSION="v3.6.2" && ARCH=$(dpkg --print-architecture) && \
 RUN VERSION="v0.16.22" && ARCH=$(dpkg --print-architecture) && \
     wget -qO- https://github.com/cilium/cilium-cli/releases/download/${VERSION}/cilium-linux-${ARCH}.tar.gz | tar -xz -C /usr/local/bin/ && \
     chmod +x /usr/local/bin/cilium && echo "source <(cilium completion zsh) && compdef _cilium cilium" >> /etc/zsh/zshrc
+
+# Install mdbook (https://github.com/rust-lang/mdBook/releases)
+RUN VERSION="v0.4.43" && ARCH=$(arch) && \
+    curl -sSL https://github.com/rust-lang/mdbook/releases/download/${VERSION}/mdbook-${VERSION}-${ARCH}-unknown-linux-musl.tar.gz | \
+    tar -xzC /usr/local/bin mdbook && echo "source <(mdbook completions zsh) && compdef _mdbook mdbook" >> /etc/zsh/zshrc

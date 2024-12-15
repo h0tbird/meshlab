@@ -9,7 +9,7 @@ on:
       - 'docs/book/src/**'
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ghcr.io/h0tbird/meshlab-devcontainer
     permissions:
       contents: write
       pull-requests: write
@@ -21,13 +21,9 @@ jobs:
 
     # Build the book
     - name: Build book in devcontainer
-      uses: devcontainers/ci@v0.3
-      with:
-        cacheFrom: ghcr.io/h0tbird/meshlab-devcontainer
-        push: never
-        runCmd: |
-          cd docs/book
-          mdbook build
+      run: |
+        cd docs/book
+        mdbook build
 
     # The gh-pages branch is used to host the book
     - name: Deploy

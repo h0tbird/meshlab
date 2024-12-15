@@ -10,8 +10,6 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/h0tbird/meshlab-devcontainer
     permissions:
       contents: write
     steps:
@@ -19,6 +17,12 @@ jobs:
     # Checkout the repository
     - name: Checkout
       uses: actions/checkout@v3
+
+    # Setup mdBook
+    - name: Setup mdBook
+      uses: peaceiris/actions-mdbook@v1
+      with:
+        mdbook-version: '0.4.43'
 
     # Build the book
     - name: Build the book

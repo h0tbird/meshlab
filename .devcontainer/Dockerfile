@@ -1,3 +1,4 @@
+# See (https://mcr.microsoft.com/en-us/artifact/mar/devcontainers/base/about)
 FROM mcr.microsoft.com/devcontainers/base:ubuntu
 
 # Install base packages

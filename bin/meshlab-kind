@@ -254,18 +254,18 @@ blue "---[ CoreDNS ]----------------------------------------------------------"
 
 for CLUSTER in $(list clusters); do
 
-kubectl --context "kind-${CLUSTER}" -n kube-system create cm coredns-custom \
---dry-run=client -o yaml --from-literal=demo.server="demo.lab {
-  hosts {
-    ttl 60
-    ${IP[${MNGR}]} vault.demo.lab
-    ${IP[${MNGR}]} prometheus.demo.lab
-    fallthrough
-  }
-}" | kubectl --context "kind-${CLUSTER}" -n kube-system apply -f -
+  kubectl --context "kind-${CLUSTER}" -n kube-system create cm coredns-custom \
+  --dry-run=client -o yaml --from-literal=demo.server="demo.lab {
+    hosts {
+      ttl 60
+      ${IP[${MNGR}]} vault.demo.lab
+      ${IP[${MNGR}]} prometheus.demo.lab
+      fallthrough
+    }
+  }" | kubectl --context "kind-${CLUSTER}" -n kube-system apply -f -
 
-# Restart otherwise it takes a while to pick up the new config
-kubectl --context "kind-${CLUSTER}" -n kube-system rollout restart deployment coredns
+  # Restart otherwise it takes a while to pick up the new config
+  kubectl --context "kind-${CLUSTER}" -n kube-system rollout restart deployment coredns
 
 done
 

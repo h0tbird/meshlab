@@ -14,10 +14,14 @@ jobs:
       contents: write
       pull-requests: write
     steps:
+
+    # Checkout the repository
     - name: Checkout
       uses: actions/checkout@v3
       with:
         fetch-depth: 0
+
+    # Install mdbook
     - name: Install
       run: |
         TAG=$(curl -s 'https://api.github.com/repos/rust-lang/mdbook/releases/latest' | jq -r '.tag_name')
@@ -25,10 +29,14 @@ jobs:
         mkdir mdbook
         curl -sSL ${URL} | tar -xz --directory=./mdbook
         echo $(pwd)/mdbook >> ${GITHUB_PATH}
+
+    # Build the book
     - name: Build
       run: |
         cd docs/book
         mdbook build
+
+    # Commit and push the book
     - name: Deploy
       run: |
         cd docs/book

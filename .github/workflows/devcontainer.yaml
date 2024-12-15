@@ -1,4 +1,4 @@
-name: Pre-build dev container image
+name: Pre-build devcontainer image
 on:
   workflow_dispatch: {}
   pull_request:
@@ -11,9 +11,17 @@ jobs:
   pre_build:
     runs-on: ubuntu-latest
     steps:
-      - name: Pre-build dev container image
-        uses: devcontainers/ci@v0.3
-        with:
-          imageName: ghcr.io/h0tbird/meshlab-devcontainer
-          cacheFrom: ghcr.io/h0tbird/meshlab-devcontainer
-          push: always
+
+    # Checkout the repository
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    # Build the devcontainer
+    - name: Pre-build devcontainer image
+      uses: devcontainers/ci@v0.3
+      with:
+        imageName: ghcr.io/h0tbird/meshlab-devcontainer
+        cacheFrom: ghcr.io/h0tbird/meshlab-devcontainer
+        push: always

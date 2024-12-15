@@ -1,8 +1,12 @@
 name: Deploy Book
 on:
+  workflow_dispatch: {}
+  pull_request:
+    paths:
+      - 'docs/book/src/**'
   push:
-    branches:
-      - master
+    paths:
+      - 'docs/book/src/**'
 jobs:
   deploy:
     runs-on: ubuntu-latest

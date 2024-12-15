@@ -22,10 +22,9 @@ jobs:
       uses: actions/checkout@v3
 
     # Build the book
-    - name: Build book in devcontainer
-      run: |
-        cd docs/book
-        mdbook build
+    - name: Build the book
+      working-directory: docs/book
+      run: mdbook build
 
     # The gh-pages branch is used to host the book
     - name: Deploy

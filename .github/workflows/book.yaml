@@ -14,7 +14,6 @@ jobs:
       image: ghcr.io/h0tbird/meshlab-devcontainer
     permissions:
       contents: write
-      pull-requests: write
     steps:
 
     # Checkout the repository

@@ -25,22 +25,10 @@ jobs:
       working-directory: docs/book
       run: mdbook build
 
-    # Setup git
-    - name: Setup git
-      run: |
-        git config --global --add safe.directory /__w/meshlab/meshlab
-        git config user.name "Deploy from CI"
-        git config user.email ""
-
-    # The gh-pages branch is used to host the book
+    # Deploy the book
     - name: Deploy
-      working-directory: docs/book
-      run: |
-        git worktree add gh-pages
-        cd gh-pages
-        git update-ref -d refs/heads/gh-pages
-        rm -rf *
-        cp -r ../book/* .
-        git add .
-        git commit -m "Deploy $GITHUB_SHA to gh-pages"
-        git push --force --set-upstream origin gh-pages
+      uses: peaceiris/actions-gh-pages@v4
+      if: github.ref == 'refs/heads/main'
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: docs/book/book

@@ -294,10 +294,15 @@ ARGOCD_PASS=$(
   -o jsonpath='{.data.password}' | base64 -d
 )
 
-# TODO: Get the external LoadBalancer IP
+# Get the external LoadBalancer IP
+ARGOCD_IP=$(
+  k0 -n argocd \
+  get svc argocd-server \
+  -o yaml | yq '.status.loadBalancer.ingress[0].ip'
+)
 
 echo
-echo "ArgoCD WebUI: https://localhost:30080"
+echo "ArgoCD WebUI: https://${ARGOCD_IP}"
 echo "ArgoCD User: admin"
 echo "ArgoCD Pass: ${ARGOCD_PASS}"
 
@@ -313,7 +318,7 @@ argocd context "${MNGR}" 2> /dev/null || {
   # TODO: Use the external LoadBalancer IP
 
   # Login to ArgoCD
-  argocd login "${IP[${MNGR}]}:${ARGOCD_PORT}" \
+  argocd login "${ARGOCD_IP}" \
     --insecure \
     --name "${MNGR}" \
     --username admin \

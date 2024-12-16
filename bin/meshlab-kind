@@ -98,42 +98,8 @@ blue "---[ KinD clusters ]----------------------------------------------------"
 # Create the temporary directory
 [ -d ./tmp ] || mkdir -p ./tmp
 
-# Configure kube-00
-cat << EOF > ./tmp/kind-kube-00.yaml
-kind: Cluster
-apiVersion: kind.x-k8s.io/v1alpha4
-networking:
-  disableDefaultCNI: true
-  kubeProxyMode: "none"
-containerdConfigPatches:
-  - |-
-    [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
-      endpoint = ["http://registry-docker.io:5000"]
-    [plugins."io.containerd.grpc.v1.cri".registry.mirrors."quay.io"]
-      endpoint = ["http://registry-quay.io:5000"]
-    [plugins."io.containerd.grpc.v1.cri".registry.mirrors."ghcr.io"]
-      endpoint = ["http://registry-ghcr.io:5000"]
-EOF
-
-# Configure pasta-1
-cat << EOF > ./tmp/kind-pasta-1.yaml
-kind: Cluster
-apiVersion: kind.x-k8s.io/v1alpha4
-networking:
-  disableDefaultCNI: true
-  kubeProxyMode: "none"
-containerdConfigPatches:
-  - |-
-    [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
-      endpoint = ["http://registry-docker.io:5000"]
-    [plugins."io.containerd.grpc.v1.cri".registry.mirrors."quay.io"]
-      endpoint = ["http://registry-quay.io:5000"]
-    [plugins."io.containerd.grpc.v1.cri".registry.mirrors."ghcr.io"]
-      endpoint = ["http://registry-ghcr.io:5000"]
-EOF
-
-# Configure pasta-2
-cat << EOF > ./tmp/kind-pasta-2.yaml
+# Configure kind
+cat << EOF > ./tmp/kind.yaml
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 networking:
@@ -152,7 +118,7 @@ EOF
 # Create the clusters
 for CLUSTER in $(list clusters all); do
   if ! kind get clusters | grep -q "${CLUSTER}"; then
-    ( kind create cluster --name "${CLUSTER}" --config "./tmp/kind-${CLUSTER}.yaml" ) &
+    ( kind create cluster --name "${CLUSTER}" --config ./tmp/kind.yaml ) &
   fi
 done; wait
 

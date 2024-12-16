@@ -29,13 +29,6 @@ KUBERNETES_REPLICATOR_CHART_VERSION='2.11.0'  # https://artifacthub.io/packages/
 ISTIO_CHART_VERSION='1.24.1'                  # https://artifacthub.io/packages/helm/istio-official/base
 
 #------------------------------------------------------------------------------
-# [i] Ports
-#------------------------------------------------------------------------------
-
-ARGOCD_PORT=30080
-ARGOWF_PORT=30081
-
-#------------------------------------------------------------------------------
 # [i] Validate the command line arguments
 #------------------------------------------------------------------------------
 
@@ -120,15 +113,6 @@ containerdConfigPatches:
       endpoint = ["http://registry-quay.io:5000"]
     [plugins."io.containerd.grpc.v1.cri".registry.mirrors."ghcr.io"]
       endpoint = ["http://registry-ghcr.io:5000"]
-nodes:
-  - role: control-plane
-    extraPortMappings:
-      - containerPort: ${ARGOCD_PORT}
-        hostPort: ${ARGOCD_PORT}
-        protocol: TCP
-      - containerPort: ${ARGOWF_PORT}
-        hostPort: ${ARGOWF_PORT}
-        protocol: TCP
 EOF
 
 # Configure pasta-1
@@ -334,8 +318,6 @@ argocd context "${MNGR}" 2> /dev/null || {
   done; done
 }
 
-exit 0
-
 #------------------------------------------------------------------------------
 # [i] Install all the ApplicationSets
 #------------------------------------------------------------------------------
@@ -360,9 +342,9 @@ blue "---[ ArgoWF ]-----------------------------------------------------------"
 # Install Argo Workflows
 h0 upgrade --install -n argowf --create-namespace --wait --timeout 5m \
   argo-workflows argo/argo-workflows --version "${ARGOWF_CHART_VERSION}" \
-  --set 'server.serviceType=NodePort' \
-  --set "server.serviceNodePort=${ARGOWF_PORT}" \
+  --set 'server.serviceType=LoadBalancer' \
   --set 'server.authModes={server}' \
+  --set 'server.servicePort=80' \
   --set 'workflow.serviceAccount.create=true' \
   --set 'workflow.serviceAccount.name=argo-workflow' \
   --set 'workflow.rbac.create=true' \
@@ -383,8 +365,15 @@ k0 -n argocd patch role argo-workflows-workflow --type json \
         }
       ]'
 
+# Get the external LoadBalancer IP
+ARGOWF_IP=$(
+  k0 -n argowf \
+  get svc argo-workflows-server \
+  -o yaml | yq '.status.loadBalancer.ingress[0].ip'
+)
+
 echo
-echo "ArgoWF WebUI: http://localhost:${ARGOWF_PORT}"
+echo "ArgoWF WebUI: http://${ARGOWF_IP}"
 
 #------------------------------------------------------------------------------
 # [i] Bootstrap DAG

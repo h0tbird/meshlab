@@ -265,8 +265,6 @@ blue "---[ Register clusters to ArgoCD ]--------------------------------------"
 # Check if the ArgoCD context exists
 argocd context "${MNGR}" 2> /dev/null || {
 
-  # TODO: Use the external LoadBalancer IP
-
   # Login to ArgoCD
   argocd login "${ARGOCD_IP}" \
     --insecure \

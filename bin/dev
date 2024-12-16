@@ -5,7 +5,10 @@ PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
 # Create and run dev container
 devcontainer up \
   --dotfiles-repository https://github.com/h0tbird/devcontainer.git \
+  --mount "type=bind,source=/run/host-services/ssh-auth.sock,target=/ssh-agent" \
   --workspace-folder . &>/dev/null
 
 # Execute zsh on the dev container
-devcontainer exec --workspace-folder . zsh
+devcontainer exec \
+  --remote-env SSH_AUTH_SOCK=/ssh-agent \
+  --workspace-folder . zsh

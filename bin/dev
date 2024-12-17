@@ -12,11 +12,10 @@ devcontainer up \
 
 # Copy ~/.gnupg to the dev container
 docker exec -t devcontainer test -d /root/.gnupg || {
-  docker exec -t devcontainer gpg -k &>/dev/null
   docker cp ~/.gnupg devcontainer:/root &>/dev/null
   docker exec -t devcontainer /bin/bash -c "
     chown -R root:root /root/.gnupg &&
-    chmod 700 /root/.gnupg/private-keys-v1.d/*"
+    echo 'pinentry-mode loopback' > /root/.gnupg/gpg-agent.conf"
 }
 
 # Copy ~/.gitconfig to the dev container

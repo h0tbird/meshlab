@@ -10,7 +10,16 @@ devcontainer up \
   --mount "type=bind,source=/run/host-services/ssh-auth.sock,target=/ssh-agent" \
   --workspace-folder . &>/dev/null
 
-# Copy gitconfig to the dev container
+# Copy ~/.gnupg to the dev container
+docker exec -t devcontainer test -d /root/.gnupg || {
+  docker exec -t devcontainer gpg -k &>/dev/null
+  docker cp ~/.gnupg devcontainer:/root &>/dev/null
+  docker exec -t devcontainer /bin/bash -c "
+    chown -R root:root /root/.gnupg &&
+    chmod 700 /root/.gnupg/private-keys-v1.d/*"
+}
+
+# Copy ~/.gitconfig to the dev container
 docker exec -t devcontainer test -f /root/.gitconfig || {
   docker cp ~/.gitconfig devcontainer:/root/.gitconfig
   docker exec -t devcontainer /bin/bash -c "

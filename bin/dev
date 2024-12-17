@@ -1,6 +1,8 @@
 #!/bin/bash
 
+# Environment
 PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+export DOCKER_CLI_HINTS=false
 
 # Create and run dev container
 devcontainer up \

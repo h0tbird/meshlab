@@ -8,6 +8,14 @@ devcontainer up \
   --mount "type=bind,source=/run/host-services/ssh-auth.sock,target=/ssh-agent" \
   --workspace-folder . &>/dev/null
 
+# Copy gitconfig to the dev container
+docker exec -t devcontainer test -f /root/.gitconfig || {
+  docker cp ~/.gitconfig devcontainer:/root/.gitconfig
+  docker exec -t devcontainer /bin/bash -c "
+    chown root:root /root/.gitconfig &&
+    chmod 644 /root/.gitconfig"
+}
+
 # Execute zsh on the dev container
 devcontainer exec \
   --remote-env SSH_AUTH_SOCK=/ssh-agent \

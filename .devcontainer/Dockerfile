@@ -3,9 +3,9 @@
 FROM mcr.microsoft.com/devcontainers/base:ubuntu
 
 # Install base packages
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl jq && \
-    apt-get autoremove -y && apt-get clean -y && \
+RUN apt update && \
+    apt install -y --no-install-recommends curl jq gnupg && \
+    apt autoremove -y && apt clean -y && \
     rm -rf /var/lib/apt/lists/*
 
 # Set zsh as default shell

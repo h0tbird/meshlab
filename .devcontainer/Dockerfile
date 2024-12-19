@@ -16,18 +16,18 @@ RUN chsh -s /usr/bin/zsh root && \
     sed -i '/^ZSH_THEME/c\ZSH_THEME="robbyrussell"' /home/vscode/.zshrc
 
 # Install kind (https://github.com/kubernetes-sigs/kind/releases)
-RUN VERSION="v0.25.0" && ARCH=$(dpkg --print-architecture) && \
+RUN VERSION="v0.26.0" && ARCH=$(dpkg --print-architecture) && \
     wget https://github.com/kubernetes-sigs/kind/releases/download/${VERSION}/kind-linux-${ARCH} -O /usr/local/bin/kind && \
     chmod +x /usr/local/bin/kind && echo "source <(kind completion zsh) && compdef _kind kind" >> /etc/zsh/zshrc
 
 # Install kubectl (https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/)
-RUN VERSION="v1.31.2" && ARCH=$(dpkg --print-architecture) && \
+RUN VERSION="v1.32.0" && ARCH=$(dpkg --print-architecture) && \
     wget https://dl.k8s.io/release/${VERSION}/bin/linux/${ARCH}/kubectl -O /usr/local/bin/kubectl && \
     chmod +x /usr/local/bin/kubectl && ln -s /usr/local/bin/kubectl /usr/local/bin/k && \
     echo "source <(kubectl completion zsh) && compdef _kubectl kubectl" >> /etc/zsh/zshrc
 
 # Install helm (https://github.com/helm/helm/releases)
-RUN VERSION="v3.16.3" && \
+RUN VERSION="v3.16.4" && \
     curl -fsSLo /tmp/get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 && \
     chmod 700 /tmp/get_helm.sh && /tmp/get_helm.sh --version ${VERSION} && rm -f /tmp/get_helm.sh && \
     echo "source <(helm completion zsh) && compdef _helm helm" >> /etc/zsh/zshrc

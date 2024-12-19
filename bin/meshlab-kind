@@ -54,9 +54,9 @@ blue "---[ cloud-provider-kind ]----------------------------------------------"
 
 docker network create kind --subnet 172.18.0.0/16 2>/dev/null || true
 
-docker ps | grep -q cp-kind || {
+docker ps | grep -q kindccm || {
   docker run --rm -d \
-    --name cp-kind \
+    --name kindccm \
     --network kind \
     --volume /var/run/docker.sock:/var/run/docker.sock \
     registry.k8s.io/cloud-provider-kind/cloud-controller-manager:v0.4.0

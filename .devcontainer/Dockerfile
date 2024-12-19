@@ -4,7 +4,8 @@ FROM mcr.microsoft.com/devcontainers/base:ubuntu
 
 # Install base packages
 RUN apt update && \
-    apt install -y --no-install-recommends curl jq gnupg && \
+    apt install -y --no-install-recommends \
+    curl jq gnupg iputils-ping dnsutils && \
     apt autoremove -y && apt clean -y && \
     rm -rf /var/lib/apt/lists/*
 

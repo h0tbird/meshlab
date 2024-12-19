@@ -1,29 +1,12 @@
-### Experimenting with `devcontainer`
-
-0. Install `devcontainer`:
-```
-brew install devcontainer
-```
-
-1. Open `zsh` inside the container:
-```
-cd ~/git/h0tbird/meshlab
-devcontainer up --dotfiles-repository https://github.com/h0tbird/devcontainer.git --workspace-folder .
-devcontainer exec --workspace-folder . zsh
-```
-
-2. Create the lab:
-```
-./bin/meshlab-kind create
-```
-
-3. Monitor progress in a separate terminal:
-```
-devcontainer exec --workspace-folder . zsh
-watch "k --context kind-kube-00 get po -A; echo; k --context kind-pasta-1 get po -A; echo; k --context kind-pasta-2 get po -A"
-```
-
-4. Delete the lab:
-```
-./bin/meshlab-kind delete
+## Generate DNS records
+```console
+$ docker inspect $(docker ps -f "name=kindccm-" -q) | jq -r '.[] |
+select(.Config.Labels."io.x-k8s.cloud-provider-kind.cluster" == "kube-00") |
+"\(.NetworkSettings.Networks.kind.IPAddress) \(.Config.Labels."io.x-k8s.cloud-provider-kind.loadbalancer.name" |
+split("/")[-1]).mesh.lab"' | sort
+172.18.0.11 argocd-server.mesh.lab
+172.18.0.12 argo-workflows-server.mesh.lab
+172.18.0.13 prometheus-server.mesh.lab
+172.18.0.14 vault.mesh.lab
+172.18.0.15 grafana.mesh.lab
 ```

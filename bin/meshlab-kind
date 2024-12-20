@@ -237,6 +237,9 @@ configs:
       - '.webhooks[]?.clientConfig.caBundle'
 EOF
 
+# Set argocd.mesh.lab as ext DNS name
+k0 -n argocd annotate svc argocd-server coredns.io/hostname=argocd.mesh.lab
+
 # Get the password
 ARGOCD_PASS=$(
   k0 -n argocd \

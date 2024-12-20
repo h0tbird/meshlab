@@ -18,6 +18,7 @@ source lib/common.sh
 #------------------------------------------------------------------------------
 
 CILIUM_CHART_VERSION='1.16.5'                 # https://artifacthub.io/packages/helm/cilium/cilium
+K8S_GATEWAY_CHART_VERSION='2.4.0'             # https://github.com/ori-edge/k8s_gateway/tree/master/charts
 ARGOCD_CHART_VERSION='7.7.10'                 # https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd
 ARGOWF_CHART_VERSION='0.45.2'                 # https://artifacthub.io/packages/helm/argo/argo-workflows
 PROMETHEUS_CHART_VERSION='26.0.1'             # https://artifacthub.io/packages/helm/prometheus-community/prometheus
@@ -161,6 +162,7 @@ blue "---[ Helm repos ]-------------------------------------------------------"
 
 helm repo add cilium https://helm.cilium.io/
 helm repo add argo https://argoproj.github.io/argo-helm
+helm repo add k8s_gateway https://ori-edge.github.io/k8s_gateway
 helm repo update
 
 #------------------------------------------------------------------------------
@@ -178,7 +180,7 @@ for CLUSTER in $(list clusters all); do
       --values ./charts/cilium/values.yaml \
       --values ./charts/cilium/values/"${CLUSTER}".yaml \
       --set k8sServiceHost="${IP[${CLUSTER}]}" |
-    grep successfully; } &
+    grep 'LAST DEPLOYED'; } &
 done; wait
 
 echo
@@ -201,6 +203,21 @@ for CELL in $(list cells); do
   cilium clustermesh enable --context "kind-${CLUS[1]}" --service-type LoadBalancer
   cilium clustermesh connect --context "kind-${CLUS[0]}" --destination-context "kind-${CLUS[1]}"
 done
+
+#------------------------------------------------------------------------------
+# [i] Install k8s_gateway
+#------------------------------------------------------------------------------
+
+blue "---[ k8s_gateway ]------------------------------------------------------"
+
+for CLUSTER in $(list clusters all); do
+  { helm --kube-context "kind-${CLUSTER}" \
+      upgrade -i exdns k8s_gateway/k8s-gateway \
+      --version "${K8S_GATEWAY_CHART_VERSION}" \
+      --namespace kube-system \
+      --set domain=mesh.lab |
+    grep 'LAST DEPLOYED'; } &
+done; wait
 
 #------------------------------------------------------------------------------
 # [i] Setup ArgoCD

@@ -36,6 +36,8 @@ spec:
               service:
                 type: LoadBalancer
                 servicePort: 83
+                annotations:
+                  coredns.io/hostname: prometheus.mesh.lab
               extraFlags:
                 - web.enable-remote-write-receiver
                 - web.enable-lifecycle

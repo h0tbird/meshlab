@@ -318,6 +318,9 @@ h0 upgrade --install -n argowf --create-namespace --wait --timeout 5m \
   --set 'controller.workflowNamespaces={argocd}' |
   grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
 
+# Set argowf.mesh.lab as ext DNS name
+k0 -n argowf annotate svc argo-workflows-server coredns.io/hostname=argowf.mesh.lab
+
 # Patch the argo-workflow-role to allow patching of the ApplicationSets
 k0 -n argocd patch role argo-workflows-workflow --type json \
   -p '[

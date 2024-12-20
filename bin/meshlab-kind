@@ -40,6 +40,8 @@ ISTIO_CHART_VERSION='1.24.2'                  # https://artifacthub.io/packages/
 #------------------------------------------------------------------------------
 
 if [[ $1 == "delete" ]]; then
+  # shellcheck disable=SC2046
+  docker kill $(docker ps -f "name=kindccm" -q) 2>/dev/null || true
   argocd context --delete "${MNGR}" 2>/dev/null || true
   kind delete clusters --all
   rm -rf ./tmp/*
@@ -118,8 +120,8 @@ EOF
 
 # Create the clusters
 for CLUSTER in $(list clusters all); do
-  if ! kind get clusters | grep -q "${CLUSTER}"; then
-    ( kind create cluster --name "${CLUSTER}" --config ./tmp/kind.yaml ) &
+  if ! kind get clusters 2>/dev/null | grep -q "${CLUSTER}"; then
+    ( kind create cluster --name "${CLUSTER}" --config ./tmp/kind.yaml -q ) &
   fi
 done; wait
 
@@ -169,19 +171,22 @@ blue "---[ Cilium CNI ]--------------------------------------------------------"
 
 # Install the Cilium CNI
 for CLUSTER in $(list clusters all); do
+  { helm --kube-context "kind-${CLUSTER}" \
+      upgrade -i cilium cilium/cilium \
+      --version "${CILIUM_CHART_VERSION}" \
+      --namespace kube-system \
+      --values ./charts/cilium/values.yaml \
+      --values ./charts/cilium/values/"${CLUSTER}".yaml \
+      --set k8sServiceHost="${IP[${CLUSTER}]}" |
+    grep successfully; } &
+done; wait
 
- { helm --kube-context "kind-${CLUSTER}" \
-     upgrade -i cilium cilium/cilium \
-     --version "${CILIUM_CHART_VERSION}" \
-     --namespace kube-system \
-     --values ./charts/cilium/values.yaml \
-     --values ./charts/cilium/values/"${CLUSTER}".yaml \
-     --set k8sServiceHost="${IP[${CLUSTER}]}"
+echo
 
-   kubectl --context "kind-${CLUSTER}" \
-     wait --for=condition=Ready nodes \
-     --all --timeout=120s; } &
-
+for CLUSTER in $(list clusters all); do
+  { kubectl --context "kind-${CLUSTER}" \
+      wait --for=condition=Ready nodes \
+      --all --timeout=120s; } &
 done; wait
 
 #------------------------------------------------------------------------------
@@ -195,29 +200,6 @@ for CELL in $(list cells); do
   cilium clustermesh enable --context "kind-${CLUS[0]}" --service-type LoadBalancer
   cilium clustermesh enable --context "kind-${CLUS[1]}" --service-type LoadBalancer
   cilium clustermesh connect --context "kind-${CLUS[0]}" --destination-context "kind-${CLUS[1]}"
-done
-
-#------------------------------------------------------------------------------
-# [i] Setup CoreDNS server DNS entries for demo.lab
-#------------------------------------------------------------------------------
-
-blue "---[ CoreDNS ]----------------------------------------------------------"
-
-for CLUSTER in $(list clusters); do
-
-  kubectl --context "kind-${CLUSTER}" -n kube-system create cm coredns-custom \
-  --dry-run=client -o yaml --from-literal=demo.server="demo.lab {
-    hosts {
-      ttl 60
-      ${IP[${MNGR}]} vault.demo.lab
-      ${IP[${MNGR}]} prometheus.demo.lab
-      fallthrough
-    }
-  }" | kubectl --context "kind-${CLUSTER}" -n kube-system apply -f -
-
-  # Restart otherwise it takes a while to pick up the new config
-  kubectl --context "kind-${CLUSTER}" -n kube-system rollout restart deployment coredns
-
 done
 
 #------------------------------------------------------------------------------

@@ -223,6 +223,27 @@ for CLUSTER in $(list clusters all); do
 done; wait
 
 #------------------------------------------------------------------------------
+# [i] Setup internal CoreDNS for the demo.lab domain
+#------------------------------------------------------------------------------
+
+blue "---[ CoreDNS ]----------------------------------------------------------"
+
+MNGR_EXDNS_IP=$(k0 -n kube-system get svc exdns-k8s-gateway -o yaml | yq '.status.loadBalancer.ingress[0].ip')
+
+for CLUSTER in $(list clusters all); do
+
+  # TODO: kind does not support coredns-custom
+  kubectl --context "kind-${CLUSTER}" -n kube-system create cm coredns-custom \
+  --dry-run=client -o yaml --from-literal=demo.lab.conf="demo.lab:53 {
+    forward . ${MNGR_EXDNS_IP}
+  }" | kubectl --context "kind-${CLUSTER}" -n kube-system apply -f -
+
+  # Restart otherwise it takes a while to pick up the new config
+  kubectl --context "kind-${CLUSTER}" -n kube-system rollout restart deployment coredns
+
+done
+
+#------------------------------------------------------------------------------
 # [i] Setup ArgoCD
 #------------------------------------------------------------------------------
 

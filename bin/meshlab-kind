@@ -228,6 +228,7 @@ done; wait
 
 blue "---[ CoreDNS ]----------------------------------------------------------"
 
+# TODO: Make sure this is not null
 MNGR_EXDNS_IP=$(k0 -n kube-system get svc exdns-k8s-gateway -o yaml | yq '.status.loadBalancer.ingress[0].ip')
 
 for CLUSTER in $(list clusters all); do

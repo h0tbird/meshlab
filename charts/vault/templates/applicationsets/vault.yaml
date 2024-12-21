@@ -32,7 +32,7 @@ spec:
                 type: LoadBalancer
                 port: 82
                 annotations:
-                  coredns.io/hostname: vault.mesh.lab
+                  coredns.io/hostname: vault.demo.lab
       destination:
         server: {{`'{{server}}'`}}
         namespace: vault

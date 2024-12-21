@@ -194,7 +194,7 @@ for CELL in $(list cells); do
 done
 
 #------------------------------------------------------------------------------
-# [i] Setup CoreDNS server DNS entries for mesh.lab
+# [i] Setup CoreDNS server DNS entries for demo.lab
 #------------------------------------------------------------------------------
 
 blue "---[ CoreDNS ]----------------------------------------------------------"
@@ -202,11 +202,11 @@ blue "---[ CoreDNS ]----------------------------------------------------------"
 for CLUSTER in $(list clusters); do
 
 kubectl --context "${CLUSTER}" -n kube-system create cm coredns-custom \
---dry-run=client -o yaml --from-literal=demo.server="mesh.lab {
+--dry-run=client -o yaml --from-literal=demo.server="demo.lab {
   hosts {
     ttl 60
-    ${IP[${MNGR}]} vault.mesh.lab
-    ${IP[${MNGR}]} prometheus.mesh.lab
+    ${IP[${MNGR}]} vault.demo.lab
+    ${IP[${MNGR}]} prometheus.demo.lab
     fallthrough
   }
 }" | kubectl --context "${CLUSTER}" -n kube-system apply -f -

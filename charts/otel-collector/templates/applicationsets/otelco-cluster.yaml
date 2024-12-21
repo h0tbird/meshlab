@@ -43,7 +43,7 @@ spec:
                       action: upsert
               exporters:
                 prometheusremotewrite:
-                  endpoint: http://prometheus.mesh.lab:83/api/v1/write
+                  endpoint: http://prometheus.demo.lab:83/api/v1/write
                   resource_to_telemetry_conversion:
                     enabled: true
                   tls:

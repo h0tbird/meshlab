@@ -228,9 +228,13 @@ done; wait
 
 blue "---[ CoreDNS ]----------------------------------------------------------"
 
-# TODO: Make sure this is not null
-MNGR_EXDNS_IP=$(k0 -n kube-system get svc exdns-k8s-gateway -o yaml | yq '.status.loadBalancer.ingress[0].ip')
+# Get the external LoadBalancer IP
+MNGR_EXDNS_IP='null'; until [[ "${MNGR_EXDNS_IP}" != 'null' ]]; do
+  MNGR_EXDNS_IP=$(k0 -n kube-system get svc exdns-k8s-gateway -o yaml |
+  yq '.status.loadBalancer.ingress[0].ip'); sleep 1
+done
 
+# Configure CoreDNS
 for CLUSTER in $(list clusters all); do
 
   kubectl --context "kind-${CLUSTER}" -n kube-system create cm coredns \

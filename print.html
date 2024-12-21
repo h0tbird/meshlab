@@ -297,12 +297,12 @@ argocd app sync -l name=istio-ewgw --async
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="coredns"><a class="header" href="#coredns">CoreDNS</a></h1>
 <p><a href="https://coredns.io">CoreDNS</a> is a flexible, extensible DNS server that can be easily configured to provide custom DNS resolutions in Kubernetes clusters. It allows for dynamic updates, service discovery, and integration with external data sources, making it a popular choice for service discovery and network management in cloud-native environments.</p>
-<p>Create DNS records for <code>mesh.lab</code>:</p>
-<pre><code class="language-console">k --context pasta-1 -n kube-system create configmap coredns-custom --from-literal=demo.server='mesh.lab {
+<p>Create DNS records for <code>demo.lab</code>:</p>
+<pre><code class="language-console">k --context pasta-1 -n kube-system create configmap coredns-custom --from-literal=demo.server='demo.lab {
   hosts {
     ttl 60
-    192.168.65.3 worker.service-1.mesh.lab
-    192.168.65.3 worker.service-2.mesh.lab
+    192.168.65.3 worker.service-1.demo.lab
+    192.168.65.3 worker.service-2.demo.lab
     fallthrough
   }
 }'
@@ -402,12 +402,12 @@ curl -s localhost:15000/config_dump | jq '
 <div style="break-before: page; page-break-before: always;"></div><h1 id="testing"><a class="header" href="#testing">Testing</a></h1>
 <p>Send requests to <code>service-1</code> from an unauthenticated out-of-cluster workstation via the north-south Istio ingress gateway:</p>
 <pre><code class="language-console">IP=$(multipass list | awk '/pasta-1/ {print $3}')
-curl -sk --resolve service-1.mesh.lab:443:${IP} https://service-1.mesh.lab/data | jq -r '.podName'
+curl -sk --resolve service-1.demo.lab:443:${IP} https://service-1.demo.lab/data | jq -r '.podName'
 </code></pre>
 <p>Same as above but with certificate validation:</p>
 <pre><code class="language-console">IP=$(multipass list | awk '/pasta-1/ {print $3}')
 k --context pasta-1 -n istio-system get secret cacerts -o json | jq -r '.data."ca.crt"' | base64 -d &gt; /tmp/ca.crt
-curl -s --cacert /tmp/ca.crt --resolve service-1.mesh.lab:443:${IP} https://service-1.mesh.lab/data | jq -r '.podName'
+curl -s --cacert /tmp/ca.crt --resolve service-1.demo.lab:443:${IP} https://service-1.demo.lab/data | jq -r '.podName'
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="locality-load-balancing"><a class="header" href="#locality-load-balancing">Locality load balancing</a></h1>
 <p>Istio's Locality Load Balancing (LLB) is a feature that helps distribute

@@ -154,12 +154,12 @@
                     <main>
                         <h1 id="coredns"><a class="header" href="#coredns">CoreDNS</a></h1>
 <p><a href="https://coredns.io">CoreDNS</a> is a flexible, extensible DNS server that can be easily configured to provide custom DNS resolutions in Kubernetes clusters. It allows for dynamic updates, service discovery, and integration with external data sources, making it a popular choice for service discovery and network management in cloud-native environments.</p>
-<p>Create DNS records for <code>mesh.lab</code>:</p>
-<pre><code class="language-console">k --context pasta-1 -n kube-system create configmap coredns-custom --from-literal=demo.server='mesh.lab {
+<p>Create DNS records for <code>demo.lab</code>:</p>
+<pre><code class="language-console">k --context pasta-1 -n kube-system create configmap coredns-custom --from-literal=demo.server='demo.lab {
   hosts {
     ttl 60
-    192.168.65.3 worker.service-1.mesh.lab
-    192.168.65.3 worker.service-2.mesh.lab
+    192.168.65.3 worker.service-1.demo.lab
+    192.168.65.3 worker.service-2.demo.lab
     fallthrough
   }
 }'

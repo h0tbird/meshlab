@@ -232,9 +232,32 @@ MNGR_EXDNS_IP=$(k0 -n kube-system get svc exdns-k8s-gateway -o yaml | yq '.statu
 
 for CLUSTER in $(list clusters all); do
 
-  # TODO: kind does not support coredns-custom
-  kubectl --context "kind-${CLUSTER}" -n kube-system create cm coredns-custom \
-  --dry-run=client -o yaml --from-literal=demo.lab.conf="demo.lab:53 {
+  kubectl --context "kind-${CLUSTER}" -n kube-system create cm coredns \
+  --dry-run=client -o yaml --from-literal=Corefile="
+  .:53 {
+    errors
+    health {
+       lameduck 5s
+    }
+    ready
+    kubernetes cluster.local in-addr.arpa ip6.arpa {
+       pods insecure
+       fallthrough in-addr.arpa ip6.arpa
+       ttl 30
+    }
+    prometheus :9153
+    forward . /etc/resolv.conf {
+       max_concurrent 1000
+    }
+    cache 30 {
+       disable success cluster.local
+       disable denial cluster.local
+    }
+    loop
+    reload
+    loadbalance
+  }
+  demo.lab:53 {
     forward . ${MNGR_EXDNS_IP}
   }" | kubectl --context "kind-${CLUSTER}" -n kube-system apply -f -
 

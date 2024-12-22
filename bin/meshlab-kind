@@ -413,6 +413,12 @@ k0 create secret generic argocd-credentials \
  --from-literal=token='' \
  --dry-run=client -o yaml | k0 -n argocd apply -f -
 
+# Create the monitoring namespace on all clusters
+for CLUSTER in $(list clusters all); do
+  { kubectl --context "kind-${CLUSTER}" create ns monitoring \
+  --dry-run=client -o yaml | kubectl --context "kind-${CLUSTER}" apply -f -; } &
+done; wait
+
 # Create the bootstrap workflow
 argo --context kind-kube-00 list -n argocd | grep -q bootstrap || \
 argo --context kind-kube-00 submit -n argocd -w - << EOF

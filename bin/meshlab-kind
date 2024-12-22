@@ -120,11 +120,11 @@ containerdConfigPatches:
 EOF
 
 # Create the clusters
-for CLUSTER in $(list clusters all); do
+for CLUSTER in $(list clusters all); do (
   if ! kind get clusters 2>/dev/null | grep -q "${CLUSTER}"; then
-    ( kind create cluster --name "${CLUSTER}" --config ./tmp/kind.yaml -q ) &
+    kind create cluster --name "${CLUSTER}" --config ./tmp/kind.yaml -q
   fi
-done; wait
+) & done; wait
 
 # Get all the IPs
 declare -A IP
@@ -172,24 +172,25 @@ helm repo update
 blue "---[ Cilium CNI ]--------------------------------------------------------"
 
 # Install the Cilium CNI
-for CLUSTER in $(list clusters all); do
-  { helm --kube-context "kind-${CLUSTER}" \
-      upgrade -i cilium cilium/cilium \
-      --version "${CILIUM_CHART_VERSION}" \
-      --namespace kube-system \
-      --values ./charts/cilium/values.yaml \
-      --values ./charts/cilium/values/"${CLUSTER}".yaml \
-      --set k8sServiceHost="${IP[${CLUSTER}]}" |
-    grep 'LAST DEPLOYED'; } &
-done; wait
+for CLUSTER in $(list clusters all); do (
+  helm --kube-context "kind-${CLUSTER}" \
+    upgrade -i cilium cilium/cilium \
+    --version "${CILIUM_CHART_VERSION}" \
+    --namespace kube-system \
+    --values ./charts/cilium/values.yaml \
+    --values ./charts/cilium/values/"${CLUSTER}".yaml \
+    --set k8sServiceHost="${IP[${CLUSTER}]}" |
+  grep 'LAST DEPLOYED'
+) & done; wait
 
 echo
 
-for CLUSTER in $(list clusters all); do
-  { kubectl --context "kind-${CLUSTER}" \
-      wait --for=condition=Ready nodes \
-      --all --timeout=120s; } &
-done; wait
+# Wait for all the nodes to be ready
+for CLUSTER in $(list clusters all); do (
+  kubectl --context "kind-${CLUSTER}" \
+    wait --for=condition=Ready nodes \
+    --all --timeout=120s
+) & done; wait
 
 #------------------------------------------------------------------------------
 # [i] Install ClusterMesh

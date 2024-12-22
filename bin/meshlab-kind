@@ -57,14 +57,14 @@ blue "---[ cloud-provider-kind ]----------------------------------------------"
 
 docker network create kind --subnet 172.18.0.0/16 2>/dev/null || true
 
-docker ps | grep -q kindccm || {
+if docker ps | grep -q kindccm; then
   docker run --rm -d \
     --name kindccm \
     --network kind \
     --volume /var/run/docker.sock:/var/run/docker.sock \
     registry.k8s.io/cloud-provider-kind/cloud-controller-manager:v0.4.0 \
     --enable-lb-port-mapping=true
-}
+fi
 
 #------------------------------------------------------------------------------
 # [i] Pull-through image cache
@@ -173,6 +173,12 @@ blue "---[ Cilium CNI ]--------------------------------------------------------"
 
 # Install the Cilium CNI
 for CLUSTER in $(list clusters all); do (
+
+  # Return early if already running
+  kubectl --context "kind-${CLUSTER}" -n kube-system \
+    get deploy cilium-operator && exit 0
+
+  # Install
   helm --kube-context "kind-${CLUSTER}" \
     upgrade -i cilium cilium/cilium \
     --version "${CILIUM_CHART_VERSION}" \
@@ -203,6 +209,13 @@ blue "---[ ClusterMesh ]------------------------------------------------------"
 
 for CELL in $(list cells); do (
   CLUS=(${CELLS[${CELL}]})
+
+  # Return early if already running
+  kubectl --context "kind-${CLUS[0]}" -n kube-system get deploy clustermesh-apiserver &&
+  kubectl --context "kind-${CLUS[1]}" -n kube-system get deploy clustermesh-apiserver &&
+  exit 0
+
+  # Install
   cilium clustermesh enable --context "kind-${CLUS[0]}" --service-type LoadBalancer
   cilium clustermesh enable --context "kind-${CLUS[1]}" --service-type LoadBalancer
   cilium clustermesh connect --context "kind-${CLUS[0]}" --destination-context "kind-${CLUS[1]}"

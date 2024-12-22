@@ -5,7 +5,7 @@ FROM mcr.microsoft.com/devcontainers/base:ubuntu
 # Install base packages
 RUN apt update && \
     apt install -y --no-install-recommends \
-    curl jq gnupg iputils-ping dnsutils && \
+    curl jq gnupg iputils-ping dnsutils neovim && \
     apt autoremove -y && apt clean -y && \
     rm -rf /var/lib/apt/lists/*
 

@@ -201,12 +201,12 @@ blue "---[ ClusterMesh ]------------------------------------------------------"
 # With --service-type LoadBalancer, cilium needs connectivity to the external IPs
 # Works if it runns on the linux VM, but not on OSX without a route and a TCP proxy.
 
-for CELL in $(list cells); do
+for CELL in $(list cells); do (
   CLUS=(${CELLS[${CELL}]})
   cilium clustermesh enable --context "kind-${CLUS[0]}" --service-type LoadBalancer
   cilium clustermesh enable --context "kind-${CLUS[1]}" --service-type LoadBalancer
   cilium clustermesh connect --context "kind-${CLUS[0]}" --destination-context "kind-${CLUS[1]}"
-done
+) & done; wait
 
 #------------------------------------------------------------------------------
 # [i] Install k8s_gateway
@@ -214,14 +214,14 @@ done
 
 blue "---[ k8s_gateway ]------------------------------------------------------"
 
-for CLUSTER in $(list clusters all); do
-  { helm --kube-context "kind-${CLUSTER}" \
-      upgrade -i exdns k8s_gateway/k8s-gateway \
-      --version "${K8S_GATEWAY_CHART_VERSION}" \
-      --namespace kube-system \
-      --set domain=demo.lab |
-    grep 'LAST DEPLOYED'; } &
-done; wait
+for CLUSTER in $(list clusters all); do (
+  helm --kube-context "kind-${CLUSTER}" \
+    upgrade -i exdns k8s_gateway/k8s-gateway \
+    --version "${K8S_GATEWAY_CHART_VERSION}" \
+    --namespace kube-system \
+    --set domain=demo.lab |
+  grep 'LAST DEPLOYED'
+) & done; wait
 
 #------------------------------------------------------------------------------
 # [i] Setup internal CoreDNS for the demo.lab domain
@@ -236,7 +236,7 @@ MNGR_EXDNS_IP='null'; until [[ "${MNGR_EXDNS_IP}" != 'null' ]]; do
 done
 
 # Configure CoreDNS
-for CLUSTER in $(list clusters all); do
+for CLUSTER in $(list clusters all); do (
 
   kubectl --context "kind-${CLUSTER}" -n kube-system create cm coredns \
   --dry-run=client -o yaml --from-literal=Corefile="
@@ -270,7 +270,7 @@ for CLUSTER in $(list clusters all); do
   # Restart otherwise it takes a while to pick up the new config
   kubectl --context "kind-${CLUSTER}" -n kube-system rollout restart deployment coredns
 
-done
+) & done; wait
 
 #------------------------------------------------------------------------------
 # [i] Setup ArgoCD
@@ -415,10 +415,10 @@ k0 create secret generic argocd-credentials \
  --dry-run=client -o yaml | k0 -n argocd apply -f -
 
 # Create the monitoring namespace on all clusters
-for CLUSTER in $(list clusters all); do
-  { kubectl --context "kind-${CLUSTER}" create ns monitoring \
-  --dry-run=client -o yaml | kubectl --context "kind-${CLUSTER}" apply -f -; } &
-done; wait
+for CLUSTER in $(list clusters all); do (
+  kubectl --context "kind-${CLUSTER}" create ns monitoring \
+  --dry-run=client -o yaml | kubectl --context "kind-${CLUSTER}" apply -f -
+) & done; wait
 
 # Create the bootstrap workflow
 argo --context kind-kube-00 list -n argocd | grep -q bootstrap || \

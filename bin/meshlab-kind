@@ -55,7 +55,7 @@ fi
 
 blue "---[ cloud-provider-kind ]----------------------------------------------"
 
-docker network create kind --subnet 172.18.0.0/16 2>/dev/null || true
+docker network create kind 2>/dev/null || true
 
 docker ps --format '{{.Names}}' | grep -q '^kindccm$' || {
   docker run --rm -d \

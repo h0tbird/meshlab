@@ -57,7 +57,7 @@ blue "---[ cloud-provider-kind ]----------------------------------------------"
 
 docker network create kind --subnet 172.18.0.0/16 2>/dev/null || true
 
-docker ps | grep -q kindccm || {
+docker ps --format '{{.Names}}' | grep -q '^kindccm$' || {
   docker run --rm -d \
     --name kindccm \
     --network kind \
@@ -278,7 +278,7 @@ for CLUSTER in $(list clusters all); do (
   }
   demo.lab:53 {
     forward . ${MNGR_EXDNS_IP}
-  }" | kubectl --context "kind-${CLUSTER}" -n kube-system apply -f -
+  }" | kubectl --context "kind-${CLUSTER}" -n kube-system apply -f - 2>/dev/null
 
   # Restart otherwise it takes a while to pick up the new config
   kubectl --context "kind-${CLUSTER}" -n kube-system rollout restart deployment coredns

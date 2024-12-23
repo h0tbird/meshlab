@@ -41,7 +41,4 @@ spec:
               port: 84
       destination:
         server: {{`'{{server}}'`}}
-        namespace: grafana
-      syncPolicy:
-        syncOptions:
-        - CreateNamespace=true
+        namespace: monitoring

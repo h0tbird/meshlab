@@ -50,7 +50,4 @@ spec:
                       - targets: ['localhost:65535']
       destination:
         server: {{`'{{server}}'`}}
-        namespace: prometheus
-      syncPolicy:
-        syncOptions:
-        - CreateNamespace=true
+        namespace: monitoring

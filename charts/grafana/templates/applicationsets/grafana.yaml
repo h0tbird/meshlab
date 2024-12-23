@@ -34,7 +34,7 @@ spec:
                   type: prometheus
                   access: proxy
                   orgId: 1
-                  url: http://prometheus-server.prometheus.svc
+                  url: http://prometheus-server.monitoring.svc
                   isDefault: true
             service:
               type: LoadBalancer

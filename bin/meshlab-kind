@@ -128,9 +128,9 @@ done
 
 # Create the clusters
 for CELL in $(list cells); do for CLUSTER in ${CELLS[${CELL}]}; do (
-  if ! kind get clusters 2>/dev/null | grep -q "${CLUSTER}"; then
+  kind get clusters 2>/dev/null | grep -q "${CLUSTER}" || {
     kind create cluster --name "${CLUSTER}" --config "./tmp/kind-${CELL}.yaml" -q
-  fi
+  }
 ) & done; done; wait
 
 # Get all the IPs

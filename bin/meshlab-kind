@@ -154,11 +154,11 @@ for CLUSTER in $(list clusters); do
 done
 
 function k0 {
-  kubectl --context kind-kube-00 "${@}"
+  kubectl --context "kind-${MNGR}" "${@}"
 }
 
 function h0 {
-  helm --kube-context kind-kube-00 "${@}"
+  helm --kube-context "kind-${MNGR}" "${@}"
 }
 
 #------------------------------------------------------------------------------
@@ -441,8 +441,8 @@ for CLUSTER in $(list clusters); do (
 ) & done; wait
 
 # Create the bootstrap workflow
-argo --context kind-kube-00 list -n argocd | grep -q bootstrap || \
-argo --context kind-kube-00 submit -n argocd -w - << EOF
+argo --context "kind-${MNGR}" list -n argocd | grep -q bootstrap || \
+argo --context "kind-${MNGR}" submit -n argocd -w - << EOF
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:

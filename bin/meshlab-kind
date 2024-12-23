@@ -119,7 +119,7 @@ for CELL in $(list cells); do
 		    [plugins."io.containerd.grpc.v1.cri".registry.mirrors."ghcr.io"]
 		      endpoint = ["http://registry-ghcr.io:5000"]
 		kubeadmConfigPatches:
-		  - |
+		  - |-
 		    kind: ClusterConfiguration
 		    networking:
 		      dnsDomain: "${CELL}.local"

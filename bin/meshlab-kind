@@ -215,17 +215,17 @@ blue "---[ ClusterMesh ]------------------------------------------------------"
 # Works if it runns on the linux VM, but not on OSX without a route and a TCP proxy.
 
 for CELL in $(list cells wkld); do (
-  CLUS=(${CELLS[${CELL}]})
+  CLUSTERS=(${CELLS[${CELL}]})
 
   # Return early if already running
-  kubectl --context "kind-${CLUS[0]}" -n kube-system get deploy clustermesh-apiserver 2>/dev/null &&
-  kubectl --context "kind-${CLUS[1]}" -n kube-system get deploy clustermesh-apiserver 2>/dev/null &&
+  kubectl --context "kind-${CLUSTERS[0]}" -n kube-system get deploy clustermesh-apiserver 2>/dev/null &&
+  kubectl --context "kind-${CLUSTERS[1]}" -n kube-system get deploy clustermesh-apiserver 2>/dev/null &&
   exit 0
 
   # Install
-  cilium clustermesh enable --context "kind-${CLUS[0]}" --service-type LoadBalancer
-  cilium clustermesh enable --context "kind-${CLUS[1]}" --service-type LoadBalancer
-  cilium clustermesh connect --context "kind-${CLUS[0]}" --destination-context "kind-${CLUS[1]}"
+  cilium clustermesh enable --context "kind-${CLUSTERS[0]}" --service-type LoadBalancer
+  cilium clustermesh enable --context "kind-${CLUSTERS[1]}" --service-type LoadBalancer
+  cilium clustermesh connect --context "kind-${CLUSTERS[0]}" --destination-context "kind-${CLUSTERS[1]}"
 ) & done; wait
 
 #------------------------------------------------------------------------------
@@ -619,9 +619,9 @@ for CLUSTER in $(list clusters wkld); do
 done
 
 for CELL in $(list cells wkld); do (
-  CLUS=(${CELLS[${CELL}]})
-  istioctl create-remote-secret --context "kind-${CLUS[0]}" --name="${CLUS[0]}" | \
-  kubectl --context "kind-${CLUS[1]}" apply -f -
-  istioctl create-remote-secret --context "kind-${CLUS[1]}" --name="${CLUS[1]}" | \
-  kubectl --context "kind-${CLUS[0]}" apply -f -
+  CLUSTERS=(${CELLS[${CELL}]})
+  istioctl create-remote-secret --context "kind-${CLUSTERS[0]}" --name="${CLUSTERS[0]}" | \
+  kubectl --context "kind-${CLUSTERS[1]}" apply -f -
+  istioctl create-remote-secret --context "kind-${CLUSTERS[1]}" --name="${CLUSTERS[1]}" | \
+  kubectl --context "kind-${CLUSTERS[0]}" apply -f -
 ) & done; wait

@@ -20,10 +20,12 @@ function list {
   case $1 in
     "cells")
       for CELL in "${!CELLS[@]}"; do
+        [[ "${2:-all}" == "wkld" && "$CELL" == "mngr" ]] && continue
         echo -n "${CELL} "
       done ;;
     "clusters")
       for CELL in "${!CELLS[@]}"; do
+        [[ "${2:-all}" == "wkld" && "$CELL" == "mngr" ]] && continue
         echo -n "${CELLS[${CELL}]} "
       done ;;
   esac

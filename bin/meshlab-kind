@@ -214,11 +214,8 @@ blue "---[ ClusterMesh ]------------------------------------------------------"
 # With --service-type LoadBalancer, cilium needs connectivity to the external IPs
 # Works if it runns on the linux VM, but not on OSX without a route and a TCP proxy.
 
-for CELL in $(list cells); do (
+for CELL in $(list cells wkld); do (
   CLUS=(${CELLS[${CELL}]})
-
-  # If CLUS < 2, skip
-  [[ ${#CLUS[@]} -lt 2 ]] && exit 0
 
   # Return early if already running
   kubectl --context "kind-${CLUS[0]}" -n kube-system get deploy clustermesh-apiserver 2>/dev/null &&
@@ -352,11 +349,7 @@ argocd context "${MNGR}" 2> /dev/null || {
     --password "${ARGOCD_PASS}"
 
   # Add clusters with labels
-  for CELL in $(list cells); do for CLUSTER in ${CELLS[${CELL}]}; do
-
-    # Exclude the management cluster
-    [[ "${CLUSTER}" == "${MNGR}" ]] && continue
-
+  for CELL in $(list cells wkld); do for CLUSTER in ${CELLS[${CELL}]}; do
     argocd cluster list | grep -q "${CLUSTER}" || \
     argocd cluster add -y "kind-${CLUSTER}" \
       --name "${CLUSTER}" \
@@ -612,10 +605,7 @@ blue "---[ Istio remote secrets ]---------------------------------------------"
 # TODO: Remove this if fixed by upstream.
 # https://github.com/istio/istio/issues/52739
 # https://github.com/istio/istio/issues/42137
-for CLUSTER in $(list clusters); do
-
-  # Exclude the management cluster
-  [[ "${CLUSTER}" == "${MNGR}" ]] && continue
+for CLUSTER in $(list clusters wkld); do
 
   # Continue if already patched
   k --context "kind-${CLUSTER}" get clusterrole \
@@ -628,12 +618,8 @@ for CLUSTER in $(list clusters); do
   --type='json' -p='[{"op": "add", "path": "/rules/1/resources/-", "value": "configmaps"}]'
 done
 
-for CELL in $(list cells); do (
+for CELL in $(list cells wkld); do (
   CLUS=(${CELLS[${CELL}]})
-
-  # If CLUS < 2, skip
-  [[ ${#CLUS[@]} -lt 2 ]] && exit 0
-
   istioctl create-remote-secret --context "kind-${CLUS[0]}" --name="${CLUS[0]}" | \
   kubectl --context "kind-${CLUS[1]}" apply -f -
   istioctl create-remote-secret --context "kind-${CLUS[1]}" --name="${CLUS[1]}" | \

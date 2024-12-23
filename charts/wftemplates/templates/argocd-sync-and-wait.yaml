@@ -25,7 +25,7 @@ spec:
       - name: selectors
         value: ""
       - name: argocd-server-address
-        value: argocd-server.argocd.svc.cluster.local:443
+        value: argocd-server.argocd.svc:443
       - name: argocd-credentials-secret
         value: argocd-credentials
     script:

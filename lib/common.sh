@@ -7,6 +7,7 @@
 export MNGR="kube-00"
 
 export -A CELLS=(
+  [mngr]="kube-00"
   [pasta]="pasta-1 pasta-2"
   #[pizza]="pizza-1 pizza-2"
 )
@@ -22,7 +23,6 @@ function list {
         echo -n "${CELL} "
       done ;;
     "clusters")
-      [ "${2:-cell}" == "all" ] && echo -n "${MNGR} "
       for CELL in "${!CELLS[@]}"; do
         echo -n "${CELLS[${CELL}]} "
       done ;;

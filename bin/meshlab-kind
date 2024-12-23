@@ -103,7 +103,8 @@ blue "---[ KinD clusters ]----------------------------------------------------"
 [ -d ./tmp ] || mkdir -p ./tmp
 
 # Configure kind
-cat << EOF > ./tmp/kind.yaml
+for CELL in $(list cells); do
+cat << EOF > "./tmp/kind-${CELL}.yaml"
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 networking:
@@ -117,18 +118,24 @@ containerdConfigPatches:
       endpoint = ["http://registry-quay.io:5000"]
     [plugins."io.containerd.grpc.v1.cri".registry.mirrors."ghcr.io"]
       endpoint = ["http://registry-ghcr.io:5000"]
+kubeadmConfigPatches:
+  - |
+    kind: ClusterConfiguration
+    networking:
+      dnsDomain: "${CELL}.local"
 EOF
+done
 
 # Create the clusters
-for CLUSTER in $(list clusters all); do (
+for CELL in $(list cells); do for CLUSTER in ${CELLS[${CELL}]}; do (
   if ! kind get clusters 2>/dev/null | grep -q "${CLUSTER}"; then
-    kind create cluster --name "${CLUSTER}" --config ./tmp/kind.yaml -q
+    kind create cluster --name "${CLUSTER}" --config "./tmp/kind-${CELL}.yaml" -q
   fi
-) & done; wait
+) & done; done; wait
 
 # Get all the IPs
 declare -A IP
-for CLUSTER in $(list clusters all); do
+for CLUSTER in $(list clusters); do
   IP[${CLUSTER}]=$(docker inspect "${CLUSTER}-control-plane" |
     jq -r '.[].NetworkSettings.Networks.kind.IPAddress')
   echo "${CLUSTER} = ${IP[${CLUSTER}]}"
@@ -141,7 +148,7 @@ done
 blue "---[ KUBECONFIG ]-------------------------------------------------------"
 
 # Use routable IPs
-for CLUSTER in $(list clusters all); do
+for CLUSTER in $(list clusters); do
   SERVER="https://${IP[${CLUSTER}]}:6443"; echo "Server: ${SERVER}"
   kubectl config set-cluster "kind-${CLUSTER}" --server="${SERVER}"
 done
@@ -172,7 +179,7 @@ helm repo update
 blue "---[ Cilium CNI ]--------------------------------------------------------"
 
 # Install the Cilium CNI
-for CLUSTER in $(list clusters all); do (
+for CLUSTER in $(list clusters); do (
 
   # Return early if already running
   kubectl --context "kind-${CLUSTER}" -n kube-system \
@@ -192,7 +199,7 @@ for CLUSTER in $(list clusters all); do (
 echo
 
 # Wait for all the nodes to be ready
-for CLUSTER in $(list clusters all); do (
+for CLUSTER in $(list clusters); do (
   kubectl --context "kind-${CLUSTER}" \
     wait --for=condition=Ready nodes \
     --all --timeout=120s
@@ -209,6 +216,9 @@ blue "---[ ClusterMesh ]------------------------------------------------------"
 
 for CELL in $(list cells); do (
   CLUS=(${CELLS[${CELL}]})
+
+  # If CLUS < 2, skip
+  [[ ${#CLUS[@]} -lt 2 ]] && exit 0
 
   # Return early if already running
   kubectl --context "kind-${CLUS[0]}" -n kube-system get deploy clustermesh-apiserver 2>/dev/null &&
@@ -227,7 +237,7 @@ for CELL in $(list cells); do (
 
 blue "---[ k8s_gateway ]------------------------------------------------------"
 
-for CLUSTER in $(list clusters all); do (
+for CLUSTER in $(list clusters); do (
   helm --kube-context "kind-${CLUSTER}" \
     upgrade -i exdns k8s_gateway/k8s-gateway \
     --version "${K8S_GATEWAY_CHART_VERSION}" \
@@ -249,7 +259,7 @@ MNGR_EXDNS_IP='null'; until [[ "${MNGR_EXDNS_IP}" != 'null' ]]; do
 done
 
 # Configure CoreDNS
-for CLUSTER in $(list clusters all); do (
+for CELL in $(list cells); do for CLUSTER in ${CELLS[${CELL}]}; do (
 
   kubectl --context "kind-${CLUSTER}" -n kube-system create cm coredns \
   --dry-run=client -o yaml --from-literal=Corefile="
@@ -259,7 +269,7 @@ for CLUSTER in $(list clusters all); do (
        lameduck 5s
     }
     ready
-    kubernetes cluster.local in-addr.arpa ip6.arpa {
+    kubernetes ${CELL}.local in-addr.arpa ip6.arpa {
        pods insecure
        fallthrough in-addr.arpa ip6.arpa
        ttl 30
@@ -269,8 +279,8 @@ for CLUSTER in $(list clusters all); do (
        max_concurrent 1000
     }
     cache 30 {
-       disable success cluster.local
-       disable denial cluster.local
+       disable success ${CELL}.local
+       disable denial ${CELL}.local
     }
     loop
     reload
@@ -283,7 +293,7 @@ for CLUSTER in $(list clusters all); do (
   # Restart otherwise it takes a while to pick up the new config
   kubectl --context "kind-${CLUSTER}" -n kube-system rollout restart deployment coredns
 
-) & done; wait
+) & done; done; wait
 
 #------------------------------------------------------------------------------
 # [i] Setup ArgoCD
@@ -343,6 +353,10 @@ argocd context "${MNGR}" 2> /dev/null || {
 
   # Add clusters with labels
   for CELL in $(list cells); do for CLUSTER in ${CELLS[${CELL}]}; do
+
+    # Exclude the management cluster
+    [[ "${CLUSTER}" == "${MNGR}" ]] && continue
+
     argocd cluster list | grep -q "${CLUSTER}" || \
     argocd cluster add -y "kind-${CLUSTER}" \
       --name "${CLUSTER}" \
@@ -428,7 +442,7 @@ k0 create secret generic argocd-credentials \
  --dry-run=client -o yaml | k0 -n argocd apply -f -
 
 # Create the monitoring namespace on all clusters
-for CLUSTER in $(list clusters all); do (
+for CLUSTER in $(list clusters); do (
   kubectl --context "kind-${CLUSTER}" create ns monitoring \
   --dry-run=client -o yaml | kubectl --context "kind-${CLUSTER}" apply -f -
 ) & done; wait

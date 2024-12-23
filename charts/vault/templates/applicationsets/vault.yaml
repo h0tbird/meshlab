@@ -30,7 +30,7 @@ spec:
                 devRootToken: root
               service:
                 type: LoadBalancer
-                port: 82
+                port: 80
                 annotations:
                   coredns.io/hostname: vault.demo.lab
       destination:

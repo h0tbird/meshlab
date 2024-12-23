@@ -35,7 +35,7 @@ spec:
             server:
               service:
                 type: LoadBalancer
-                servicePort: 83
+                servicePort: 80
                 annotations:
                   coredns.io/hostname: prometheus.demo.lab
               extraFlags:

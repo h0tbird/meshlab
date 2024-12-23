@@ -10,7 +10,7 @@ spec:
     inputs:
       parameters:
       - name: vault-address
-        value: http://vault.vault.svc:82
+        value: http://vault.vault.svc
       - name: vault-token
         value: root
     script:

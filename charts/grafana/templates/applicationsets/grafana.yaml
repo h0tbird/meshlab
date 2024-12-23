@@ -34,11 +34,11 @@ spec:
                   type: prometheus
                   access: proxy
                   orgId: 1
-                  url: http://prometheus-server.prometheus.svc:83
+                  url: http://prometheus-server.prometheus.svc
                   isDefault: true
             service:
               type: LoadBalancer
-              port: 84
+              port: 80
       destination:
         server: {{`'{{server}}'`}}
         namespace: monitoring

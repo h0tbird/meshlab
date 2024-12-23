@@ -239,12 +239,12 @@ for CLUSTER in $(list clusters); do (
     upgrade -i exdns k8s_gateway/k8s-gateway \
     --version "${K8S_GATEWAY_CHART_VERSION}" \
     --namespace kube-system \
-    --set domain=demo.lab |
+    --set "domain=${DOMAIN}" |
   grep 'LAST DEPLOYED'
 ) & done; wait
 
 #------------------------------------------------------------------------------
-# [i] Setup internal CoreDNS for the demo.lab domain
+# [i] Setup internal CoreDNS for the ${DOMAIN}
 #------------------------------------------------------------------------------
 
 blue "---[ CoreDNS ]----------------------------------------------------------"
@@ -283,7 +283,7 @@ for CELL in $(list cells); do for CLUSTER in ${CELLS[${CELL}]}; do (
     reload
     loadbalance
   }
-  demo.lab:53 {
+  ${DOMAIN}:53 {
     forward . ${MNGR_EXDNS_IP}
   }" | kubectl --context "kind-${CLUSTER}" -n kube-system apply -f - 2>/dev/null
 
@@ -310,8 +310,8 @@ configs:
       - '.webhooks[]?.clientConfig.caBundle'
 EOF
 
-# Set argocd.demo.lab as ext DNS name
-k0 -n argocd annotate svc argocd-server coredns.io/hostname=argocd.demo.lab
+# Set argocd.${DOMAIN} as ext DNS name
+k0 -n argocd annotate svc argocd-server coredns.io/hostname=argocd."${DOMAIN}"
 
 # Get the password
 ARGOCD_PASS=$(
@@ -391,8 +391,8 @@ h0 upgrade --install -n argowf --create-namespace --wait --timeout 5m \
   --set 'controller.workflowNamespaces={argocd}' |
   grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
 
-# Set argowf.demo.lab as ext DNS name
-k0 -n argowf annotate svc argo-workflows-server coredns.io/hostname=argowf.demo.lab
+# Set argowf.${DOMAIN} as ext DNS name
+k0 -n argowf annotate svc argo-workflows-server coredns.io/hostname=argowf."${DOMAIN}"
 
 # Patch the argo-workflow-role to allow patching of the ApplicationSets
 k0 -n argocd patch role argo-workflows-workflow --type json \
@@ -655,8 +655,10 @@ curl -sX POST \
 blue "---[ Info ]-------------------------------------------------------------"
 
 # shellcheck disable=SC2046
-docker inspect $(docker ps -f "name=kindccm-" -q) | jq -r '.[] |
-  select(.Config.Labels."io.x-k8s.cloud-provider-kind.cluster" == "kube-00") |
+docker inspect $(docker ps -f "name=kindccm-" -q) | jq -r \
+  --arg domain "${DOMAIN}" \
+  --arg mngr "${MNGR}" '.[] |
+  select(.Config.Labels."io.x-k8s.cloud-provider-kind.cluster" == "\($mngr)") |
   (
     .NetworkSettings.Ports
     | map_values(.[] | .HostPort)
@@ -667,5 +669,5 @@ docker inspect $(docker ps -f "name=kindccm-" -q) | jq -r '.[] |
   ) as $ports |
   .NetworkSettings.Networks.kind.IPAddress as $ip |
   .Config.Labels."io.x-k8s.cloud-provider-kind.loadbalancer.name" as $lb_name |
-  "\($ports) | \($ip) | \($lb_name | split("/")[-1]).demo.lab"
+  "\($ports) | \($ip) | \($lb_name | split("/")[-1]).\($domain)"
 '

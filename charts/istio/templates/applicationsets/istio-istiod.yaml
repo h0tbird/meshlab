@@ -61,7 +61,7 @@ spec:
               - name: otel-tracing
                 opentelemetry:
                   port: 4318
-                  service: {{`'otelco-cluster-opentelemetry-collector.monitoring.svc.{{metadata.labels.cell}}.local'`}}
+                  service: otelco-cluster-opentelemetry-collector.monitoring.svc
                   http:
                     path: "/v1/traces"
                     timeout: 5s

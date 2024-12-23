@@ -625,3 +625,25 @@ for CELL in $(list cells wkld); do (
   istioctl create-remote-secret --context "kind-${CLUSTERS[1]}" --name="${CLUSTERS[1]}" | \
   kubectl --context "kind-${CLUSTERS[0]}" apply -f -
 ) & done; wait
+
+#------------------------------------------------------------------------------
+# [i] Import the meshlab Grafana dashboard
+#------------------------------------------------------------------------------
+
+blue "---[ Import Grafana dashboard ]-----------------------------------------"
+
+GRAFANA_IP=$(
+  k0 -n monitoring get svc grafana -o yaml |
+  yq '.status.loadBalancer.ingress[0].ip'
+)
+
+GRAFANA_PORT=$(
+  k0 -n monitoring get svc grafana -o yaml |
+  yq '.spec.ports[0].port'
+)
+
+curl -sX POST \
+  -H "Authorization: Basic $(echo -n 'admin:admin' | base64)" \
+  -H 'Content-Type: application/json' \
+  --data @conf/dashboard.json \
+  "http://${GRAFANA_IP}:${GRAFANA_PORT}/api/dashboards/db" | jq

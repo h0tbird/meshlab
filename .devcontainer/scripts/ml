@@ -1,0 +1,34 @@
+#!/bin/bash
+
+# Blue
+function blue {
+  echo -e "\n\e[1;36m$1\e[0m\n"
+}
+
+# If $1 is 'short':
+[ "$1" == "short" ] && {
+  blue "----[ mnger-1 \xf0\x9f\x9a\x80 ]-----------------------------------------------------------------------------------------------"
+  k --context kind-mnger-1 get po -A --field-selector=status.phase!=Succeeded; echo
+  k --context kind-mnger-1 get svc -A --field-selector=spec.type=LoadBalancer
+  blue "----[ pizza-1 \xf0\x9f\x8d\x95 ]-------------------------------------------------------------------------------------------------"
+  k --context kind-pizza-1 get po -A --field-selector=status.phase!=Succeeded; echo
+  k --context kind-pizza-1 get svc -A --field-selector=spec.type=LoadBalancer
+  exit 0
+}
+
+# else:
+blue "----[ Manager \xf0\x9f\x9a\x80 ]-----------------------------------------------------------------------------------------------"
+k --context kind-mnger-1 get po -A --field-selector=status.phase!=Succeeded; echo
+k --context kind-mnger-1 get svc -A --field-selector=spec.type=LoadBalancer
+blue "----[ Pizza \xf0\x9f\x8d\x95 ]-------------------------------------------------------------------------------------------------"
+k --context kind-pizza-1 get po -A --field-selector=status.phase!=Succeeded; echo
+k --context kind-pizza-1 get svc -A --field-selector=spec.type=LoadBalancer
+blue "                           (pizza-1 \xf0\x9f\x91\x86)                    (pizza-2 \xf0\x9f\x91\x87)"
+k --context kind-pizza-2 get po -A --field-selector=status.phase!=Succeeded; echo
+k --context kind-pizza-2 get svc -A --field-selector=spec.type=LoadBalancer
+blue "----[ Pasta \xf0\x9f\x8d\x9d ]-------------------------------------------------------------------------------------------------"
+k --context kind-pasta-1 get po -A --field-selector=status.phase!=Succeeded; echo
+k --context kind-pasta-1 get svc -A --field-selector=spec.type=LoadBalancer
+blue "                           (pasta-1 \xf0\x9f\x91\x86)                    (pasta-2 \xf0\x9f\x91\x87)"
+k --context kind-pasta-2 get po -A --field-selector=status.phase!=Succeeded; echo
+k --context kind-pasta-2 get svc -A --field-selector=spec.type=LoadBalancer

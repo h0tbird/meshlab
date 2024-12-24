@@ -2,6 +2,9 @@
 # See (https://github.com/devcontainers/images/tree/main/src/base-ubuntu)
 FROM mcr.microsoft.com/devcontainers/base:ubuntu
 
+# Set locale to en_US.UTF-8
+ENV LOCALE=en_US.UTF-8 LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
+
 # Install base packages
 RUN apt update && \
     apt install -y --no-install-recommends \
@@ -63,3 +66,6 @@ RUN VERSION="1.24.2" && ARCH=$(dpkg --print-architecture) && \
 RUN VERSION="v0.4.43" && ARCH=$(arch) && \
     curl -sSL https://github.com/rust-lang/mdbook/releases/download/${VERSION}/mdbook-${VERSION}-${ARCH}-unknown-linux-musl.tar.gz | \
     tar -xzC /usr/local/bin mdbook && echo "source <(mdbook completions zsh) && compdef _mdbook mdbook" >> /etc/zsh/zshrc
+
+# Copy scripts to /usr/local/bin
+COPY scripts/* /usr/local/bin/

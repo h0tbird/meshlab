@@ -155,12 +155,12 @@
                         <h1 id="cloud-init"><a class="header" href="#cloud-init">Cloud-init</a></h1>
 <p><a href="https://cloudinit.readthedocs.io/en/latest">cloud-init</a> is a tool used to configure virtual machine instances in the cloud during their first boot. It simplifies the provisioning process, enabling quick setup of new environments with desired configurations. The following commands provide examples for monitoring and inspecting the cloud-init process on various nodes in the system, including logs and scripts run during the instance's first boot.</p>
 <p>Tail the <code>cloud-init</code> logs:</p>
-<pre><code class="language-console">multipass exec kube-00 -- tail -f /var/log/cloud-init-output.log
+<pre><code class="language-console">multipass exec mnger-1 -- tail -f /var/log/cloud-init-output.log
 multipass exec pasta-1 -- tail -f /var/log/cloud-init-output.log
 multipass exec pasta-2 -- tail -f /var/log/cloud-init-output.log
 </code></pre>
 <p>Inspect the rendered <code>runcmd</code>:</p>
-<pre><code class="language-console">multipass exec kube-00 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
+<pre><code class="language-console">multipass exec mnger-1 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
 multipass exec pasta-1 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
 multipass exec pasta-2 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
 multipass exec virt-01 -- sudo cat /var/lib/cloud/instance/scripts/runcmd

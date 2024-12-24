@@ -246,12 +246,12 @@ sudo launchctl start com.apple.bootpd
 <div style="break-before: page; page-break-before: always;"></div><h1 id="cloud-init"><a class="header" href="#cloud-init">Cloud-init</a></h1>
 <p><a href="https://cloudinit.readthedocs.io/en/latest">cloud-init</a> is a tool used to configure virtual machine instances in the cloud during their first boot. It simplifies the provisioning process, enabling quick setup of new environments with desired configurations. The following commands provide examples for monitoring and inspecting the cloud-init process on various nodes in the system, including logs and scripts run during the instance's first boot.</p>
 <p>Tail the <code>cloud-init</code> logs:</p>
-<pre><code class="language-console">multipass exec kube-00 -- tail -f /var/log/cloud-init-output.log
+<pre><code class="language-console">multipass exec mnger-1 -- tail -f /var/log/cloud-init-output.log
 multipass exec pasta-1 -- tail -f /var/log/cloud-init-output.log
 multipass exec pasta-2 -- tail -f /var/log/cloud-init-output.log
 </code></pre>
 <p>Inspect the rendered <code>runcmd</code>:</p>
-<pre><code class="language-console">multipass exec kube-00 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
+<pre><code class="language-console">multipass exec mnger-1 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
 multipass exec pasta-1 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
 multipass exec pasta-2 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
 multipass exec virt-01 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
@@ -352,7 +352,7 @@ scheduler will find a free host port. If there are no free host ports, the
 <code>Service</code> will stay in pending. There is one <code>DaemonSet</code> per <code>Service</code> of type
 <code>LoadBalancer</code> and each <code>Pod</code> has one container per exposed <code>Service</code> port.</p>
 <p>List the containers fronting the exposed <code>argocd-server</code> ports:</p>
-<pre><code class="language-console">k --context kube-00 -n kube-system get ds -l svccontroller.k3s.cattle.io/svcname=argocd-server -o yaml | yq '.items[].spec.template.spec.containers[].name'
+<pre><code class="language-console">k --context mnger-1 -n kube-system get ds -l svccontroller.k3s.cattle.io/svcname=argocd-server -o yaml | yq '.items[].spec.template.spec.containers[].name'
 </code></pre>
 <p>List the containers fronting the exposed <code>istio-eastwestgateway</code> ports:</p>
 <pre><code class="language-console">k --context pasta-1 -n kube-system get ds -l svccontroller.k3s.cattle.io/svcname=istio-eastwestgateway -o yaml | yq '.items[].spec.template.spec.containers[].name'
@@ -516,7 +516,7 @@ step certificate inspect --bundle --servername istiod-1-19-6.istio-system.svc ht
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="development"><a class="header" href="#development">Development</a></h1>
 <p>Provision only one VM:</p>
-<pre><code class="language-console">source ./lib/misc.sh &amp;&amp; launch_k8s kube-00
+<pre><code class="language-console">source ./lib/misc.sh &amp;&amp; launch_k8s mnger-1
 source ./lib/misc.sh &amp;&amp; launch_vms virt-01
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="debug"><a class="header" href="#debug">Debug</a></h1>

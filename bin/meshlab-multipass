@@ -336,8 +336,8 @@ k0 create secret generic argocd-credentials \
  --dry-run=client -o yaml | k0 -n argocd apply -f -
 
 # Create the bootstrap workflow
-argo --context kube-00 list -n argocd | grep -q bootstrap || \
-argo --context kube-00 submit -n argocd -w - << EOF
+argo --context mnger-1 list -n argocd | grep -q bootstrap || \
+argo --context mnger-1 submit -n argocd -w - << EOF
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:

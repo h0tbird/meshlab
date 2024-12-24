@@ -4,14 +4,14 @@
 
 Tail the `cloud-init` logs:
 ```console
-multipass exec kube-00 -- tail -f /var/log/cloud-init-output.log
+multipass exec mnger-1 -- tail -f /var/log/cloud-init-output.log
 multipass exec pasta-1 -- tail -f /var/log/cloud-init-output.log
 multipass exec pasta-2 -- tail -f /var/log/cloud-init-output.log
 ```
 
 Inspect the rendered `runcmd`:
 ```console
-multipass exec kube-00 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
+multipass exec mnger-1 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
 multipass exec pasta-1 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
 multipass exec pasta-2 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
 multipass exec virt-01 -- sudo cat /var/lib/cloud/instance/scripts/runcmd

@@ -8,7 +8,7 @@ scheduler will find a free host port. If there are no free host ports, the
 
 List the containers fronting the exposed `argocd-server` ports:
 ```console
-k --context kube-00 -n kube-system get ds -l svccontroller.k3s.cattle.io/svcname=argocd-server -o yaml | yq '.items[].spec.template.spec.containers[].name'
+k --context mnger-1 -n kube-system get ds -l svccontroller.k3s.cattle.io/svcname=argocd-server -o yaml | yq '.items[].spec.template.spec.containers[].name'
 ```
 
 List the containers fronting the exposed `istio-eastwestgateway` ports:

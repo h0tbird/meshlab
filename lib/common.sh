@@ -4,13 +4,13 @@
 # Define cells and clusters
 #------------------------------------------------------------------------------
 
-export MNGR="kube-00"
+export MNGR="mnger-1"
 export DOMAIN="demo.lab"
 
 export -A CELLS=(
   [mngr]=${MNGR}
   [pasta]="pasta-1 pasta-2"
-  #[pizza]="pizza-1 pizza-2"
+  [pizza]="pizza-1 pizza-2"
 )
 
 #------------------------------------------------------------------------------

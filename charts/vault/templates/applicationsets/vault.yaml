@@ -8,7 +8,7 @@ spec:
   generators:
   - list:
       elements:
-      - name: kube-00
+      - name: mnger-1
         server: https://kubernetes.default.svc
   template:
     metadata:

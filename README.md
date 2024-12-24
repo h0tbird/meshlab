@@ -1,7 +1,7 @@
 ## Generate DNS records
 ```console
 $ docker inspect $(docker ps -f "name=kindccm-" -q) | jq -r '.[] |
-  select(.Config.Labels."io.x-k8s.cloud-provider-kind.cluster" == "kube-00") |
+  select(.Config.Labels."io.x-k8s.cloud-provider-kind.cluster" == "mnger-1") |
   (
     .NetworkSettings.Ports
     | map_values(.[] | .HostPort)

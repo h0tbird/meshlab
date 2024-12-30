@@ -654,8 +654,13 @@ curl -sX POST \
 
 blue "---[ Info ]-------------------------------------------------------------"
 
+echo "┌─────────────────────────────────────────────────┬────────────────────────────────────────────────────────────┬──────────────┬──────────┬──────────┐"
+echo "│ Port mapping                                    │ External                                                   │   Cluster    │          │          │"
+echo "├────────────────────────┬────────────────────────┼────────────────────┬───────────────────────────────────────┼────┬─────────┤ Username │ Password │"
+echo "│ Envoy                  │ Service                │ IP                 │ Service                               │ IP │ Service │          │          │"
+
 # shellcheck disable=SC2046
-docker inspect $(docker ps -f "name=kindccm-" -q) | jq -r \
+( docker inspect $(docker ps -f "name=kindccm-" -q) | jq -r \
   --arg domain "${DOMAIN}" \
   --arg mngr "${MNGR}" '.[] |
   select(.Config.Labels."io.x-k8s.cloud-provider-kind.cluster" == "\($mngr)") |
@@ -665,9 +670,10 @@ docker inspect $(docker ps -f "name=kindccm-" -q) | jq -r \
     | to_entries
     | map("http://127.0.0.1:" + .value)
     | .[:2]
-    | join(" | ")
+    | join(" │ ")
   ) as $ports |
   .NetworkSettings.Networks.kind.IPAddress as $ip |
-  .Config.Labels."io.x-k8s.cloud-provider-kind.loadbalancer.name" as $lb_name |
-  "\($ports) | \($ip) | \($lb_name | split("/")[-1]).\($domain)"
-'
+  .Config.Labels."io.x-k8s.cloud-provider-kind.loadbalancer.name" as $lb_name | "
+├────────────────────────┼────────────────────────┼────────────────────┼───────────────────────────────────────┤
+│ \($ports) │ http://\($ip) │ http://\($lb_name | split("/")[-1]).\($domain)      │"
+' ) | column -t -s '|'

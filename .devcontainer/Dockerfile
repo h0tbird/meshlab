@@ -10,7 +10,9 @@ RUN apt update && \
     apt install -y --no-install-recommends \
     curl jq gnupg iputils-ping dnsutils neovim iptables && \
     apt autoremove -y && apt clean -y && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* && \
+    update-alternatives --install /usr/sbin/iptables iptables /usr/sbin/iptables-legacy 100 && \
+    update-alternatives --install /usr/sbin/ip6tables ip6tables /usr/sbin/ip6tables-legacy 100
 
 # Set zsh as default shell
 RUN chsh -s /usr/bin/zsh root && \

@@ -20,14 +20,14 @@
 		"--pid", "host",
 		"--privileged"
 	],
-	"forwardPorts": [30080, 30081],
+	"forwardPorts": [8080, 8081],
 	"portsAttributes": {
-		"30080": {
+		"8080": {
 			"label": "argocd",
 			"onAutoForward": "notify",
 			"protocol": "http"
 		},
-		"30081": {
+		"8081": {
 			"label": "argowf",
 			"onAutoForward": "notify",
 			"protocol": "http"

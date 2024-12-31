@@ -16,7 +16,9 @@
 	"remoteUser": "root",
 	"runArgs": [
 		"--name", "devcontainer",
-		"--network", "host"
+		"--network", "host",
+		"--pid", "host",
+		"--privileged"
 	],
 	"forwardPorts": [30080, 30081],
 	"portsAttributes": {

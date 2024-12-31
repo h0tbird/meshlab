@@ -8,7 +8,7 @@ ENV LOCALE=en_US.UTF-8 LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 # Install base packages
 RUN apt update && \
     apt install -y --no-install-recommends \
-    curl jq gnupg iputils-ping dnsutils neovim iptables && \
+    curl jq gnupg iputils-ping dnsutils neovim iptables socat && \
     apt autoremove -y && apt clean -y && \
     rm -rf /var/lib/apt/lists/* && \
     update-alternatives --install /usr/sbin/iptables iptables /usr/sbin/iptables-legacy 100 && \

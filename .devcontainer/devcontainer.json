@@ -20,7 +20,7 @@
 		"--pid", "host",
 		"--privileged"
 	],
-	"forwardPorts": [8080, 8081],
+	"forwardPorts": [8080, 8081, 8082, 8083, 8084],
 	"portsAttributes": {
 		"8080": {
 			"label": "argocd",
@@ -29,6 +29,21 @@
 		},
 		"8081": {
 			"label": "argowf",
+			"onAutoForward": "notify",
+			"protocol": "http"
+		},
+		"8082": {
+			"label": "vault",
+			"onAutoForward": "notify",
+			"protocol": "http"
+		},
+		"8083": {
+			"label": "prometheus",
+			"onAutoForward": "notify",
+			"protocol": "http"
+		},
+		"8084": {
+			"label": "grafana",
 			"onAutoForward": "notify",
 			"protocol": "http"
 		}

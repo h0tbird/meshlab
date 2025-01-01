@@ -8,7 +8,8 @@ ENV LOCALE=en_US.UTF-8 LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 # Install base packages
 RUN apt update && \
     apt install -y --no-install-recommends \
-    curl jq gnupg iputils-ping dnsutils neovim iptables socat && \
+    curl jq gnupg iputils-ping dnsutils neovim \
+    iptables socat netcat-openbsd && \
     apt autoremove -y && apt clean -y && \
     rm -rf /var/lib/apt/lists/* && \
     update-alternatives --install /usr/sbin/iptables iptables /usr/sbin/iptables-legacy 100 && \
@@ -63,6 +64,11 @@ RUN VERSION="1.24.2" && ARCH=$(dpkg --print-architecture) && \
     curl -fsSLo /tmp/istio.tar.gz https://github.com/istio/istio/releases/download/${VERSION}/istio-${VERSION}-linux-${ARCH}.tar.gz && \
     tar -C /usr/local/bin --strip-components 2 -xvf /tmp/istio.tar.gz istio-${VERSION}/bin/istioctl && rm -f /tmp/istio.tar.gz && \
     echo "source <(istioctl completion zsh) && compdef _istioctl istioctl" >> /etc/zsh/zshrc
+
+# Install step
+RUN VERSION="0.28.2" && ARCH=$(dpkg --print-architecture) && \
+    wget -q https://dl.smallstep.com/gh-release/cli/gh-release-header/v${VERSION}/step-cli_${VERSION}-1_${ARCH}.deb && \
+    dpkg -i step-cli_${VERSION}-1_${ARCH}.deb && rm -f step-cli_${VERSION}-1_${ARCH}.deb
 
 # Install mdbook (https://github.com/rust-lang/mdBook/releases)
 RUN VERSION="v0.4.43" && ARCH=$(arch) && \

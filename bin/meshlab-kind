@@ -53,7 +53,7 @@ fi
 # [i] cloud-provider-kind
 #------------------------------------------------------------------------------
 
-blue "---[ cloud-provider-kind ]----------------------------------------------"
+blue "───[ cloud-provider-kind ]──────────────────────────────────────────────"
 
 docker network create kind 2>/dev/null || true
 
@@ -69,7 +69,7 @@ docker ps --format '{{.Names}}' | grep -q '^kindccm$' || {
 # [i] Pull-through image cache
 #------------------------------------------------------------------------------
 
-blue "---[ Pull-through registries ]------------------------------------------"
+blue "───[ Pull-through registries ]──────────────────────────────────────────"
 
 docker start registry-docker.io 2>/dev/null || docker run -d \
   -e REGISTRY_PROXY_REMOTEURL=https://registry-1.docker.io \
@@ -96,7 +96,7 @@ docker start registry-ghcr.io 2>/dev/null || docker run -d \
 # [i] Create the clusters
 #------------------------------------------------------------------------------
 
-blue "---[ KinD clusters ]----------------------------------------------------"
+blue "───[ KinD clusters ]────────────────────────────────────────────────────"
 
 # Create the temporary directory
 [ -d ./tmp ] || mkdir -p ./tmp
@@ -144,7 +144,7 @@ done
 # [i] Setup KUBECONFIG
 #------------------------------------------------------------------------------
 
-blue "---[ KUBECONFIG ]-------------------------------------------------------"
+blue "───[ KUBECONFIG ]───────────────────────────────────────────────────────"
 
 # Use routable IPs
 for CLUSTER in $(list clusters); do
@@ -164,7 +164,7 @@ function h0 {
 # [i] Helm repositories
 #------------------------------------------------------------------------------
 
-blue "---[ Helm repos ]-------------------------------------------------------"
+blue "───[ Helm repos ]───────────────────────────────────────────────────────"
 
 helm repo add cilium https://helm.cilium.io/
 helm repo add argo https://argoproj.github.io/argo-helm
@@ -175,7 +175,7 @@ helm repo update
 # [i] Install the Cilium CNI
 #------------------------------------------------------------------------------
 
-blue "---[ Cilium CNI ]--------------------------------------------------------"
+blue "───[ Cilium CNI ]───────────────────────────────────────────────────────"
 
 # Install the Cilium CNI
 for CLUSTER in $(list clusters); do (
@@ -208,7 +208,7 @@ for CLUSTER in $(list clusters); do (
 # [i] Install ClusterMesh
 #------------------------------------------------------------------------------
 
-blue "---[ ClusterMesh ]------------------------------------------------------"
+blue "───[ ClusterMesh ]──────────────────────────────────────────────────────"
 
 # With --service-type LoadBalancer, cilium needs connectivity to the external IPs
 # Works if it runns on the linux VM, but not on OSX without a route and a TCP proxy.
@@ -231,7 +231,7 @@ for CELL in $(list cells wkld); do (
 # [i] Install k8s_gateway
 #------------------------------------------------------------------------------
 
-blue "---[ k8s_gateway ]------------------------------------------------------"
+blue "───[ k8s_gateway ]──────────────────────────────────────────────────────"
 
 for CLUSTER in $(list clusters); do (
   helm --kube-context "kind-${CLUSTER}" \
@@ -246,7 +246,7 @@ for CLUSTER in $(list clusters); do (
 # [i] Setup internal CoreDNS for the ${DOMAIN}
 #------------------------------------------------------------------------------
 
-blue "---[ CoreDNS ]----------------------------------------------------------"
+blue "───[ CoreDNS ]──────────────────────────────────────────────────────────"
 
 # Get the external LoadBalancer IP
 MNGR_EXDNS_IP='null'; until [[ "${MNGR_EXDNS_IP}" != 'null' ]]; do
@@ -295,7 +295,7 @@ for CELL in $(list cells); do for CLUSTER in ${CELLS[${CELL}]}; do (
 # [i] Setup ArgoCD
 #------------------------------------------------------------------------------
 
-blue "---[ ArgoCD ]-----------------------------------------------------------"
+blue "───[ ArgoCD ]───────────────────────────────────────────────────────────"
 
 # Install ArgoCD
 h0 upgrade --install -n argocd --create-namespace --wait --timeout 5m \
@@ -335,7 +335,7 @@ echo "ArgoCD Pass: ${ARGOCD_PASS}"
 # [i] Register clusters to ArgoCD
 #------------------------------------------------------------------------------
 
-blue "---[ Register clusters to ArgoCD ]--------------------------------------"
+blue "───[ Register clusters to ArgoCD ]──────────────────────────────────────"
 
 # Check if the ArgoCD context exists
 argocd context "${MNGR}" 2> /dev/null || {
@@ -361,7 +361,7 @@ argocd context "${MNGR}" 2> /dev/null || {
 # [i] Install all the ApplicationSets
 #------------------------------------------------------------------------------
 
-blue "---[ ApplicationSets ]-------------------------------------------------"
+blue "───[ ApplicationSets ]──────────────────────────────────────────────────"
 
 helm template ./charts/cilium --set "chartVersion=${CILIUM_CHART_VERSION}" | k0 apply -f -
 helm template ./charts/prometheus --set "chartVersion=${PROMETHEUS_CHART_VERSION}" | k0 apply -f -
@@ -376,7 +376,7 @@ helm template ./charts/istio --set "chartVersion=${ISTIO_CHART_VERSION}" | k0 ap
 # [i] Setup ArgoWF
 #------------------------------------------------------------------------------
 
-blue "---[ ArgoWF ]-----------------------------------------------------------"
+blue "───[ ArgoWF ]───────────────────────────────────────────────────────────"
 
 # Install Argo Workflows
 h0 upgrade --install -n argowf --create-namespace --wait --timeout 5m \
@@ -421,7 +421,7 @@ echo "ArgoWF WebUI: http://${ARGOWF_IP}"
 # [i] Bootstrap DAG
 #------------------------------------------------------------------------------
 
-blue "---[ Bootstrap DAG ]----------------------------------------------------"
+blue "───[ Bootstrap DAG ]────────────────────────────────────────────────────"
 
 # Install Argo WorkflowTemplates
 helm template ./charts/wftemplates | k0 -n argocd apply -f -
@@ -598,7 +598,7 @@ EOF
 # [i] Enable Istio endpoint discovery
 #------------------------------------------------------------------------------
 
-blue "---[ Istio remote secrets ]---------------------------------------------"
+blue "───[ Istio remote secrets ]─────────────────────────────────────────────"
 
 # Bug? Patch the Istio reader ClusterRole.
 # TODO: Remove this if fixed by upstream.
@@ -629,7 +629,7 @@ for CELL in $(list cells wkld); do (
 # [i] Import the meshlab Grafana dashboard
 #------------------------------------------------------------------------------
 
-blue "---[ Import Grafana dashboard ]-----------------------------------------"
+blue "───[ Import Grafana dashboard ]─────────────────────────────────────────"
 
 GRAFANA_IP=$(
   k0 -n monitoring get svc grafana -o yaml |
@@ -651,7 +651,7 @@ curl -sX POST \
 # [i] Echo useful info
 #------------------------------------------------------------------------------
 
-blue "---[ Info ]-------------------------------------------------------------"
+blue "───[ Info ]─────────────────────────────────────────────────────────────"
 
 echo "┌─────────────────────────────────────────────────┬────────────────────────────────────────────────────────────┬──────────────┬──────────┬──────────┐"
 echo "│ Port mapping                                    │ External                                                   │   Cluster    │          │          │"

@@ -41,6 +41,17 @@ ISTIO_CHART_VERSION='1.24.2'                  # https://artifacthub.io/packages/
 #------------------------------------------------------------------------------
 
 if [[ $1 == "delete" ]]; then
+
+  blue "───[ Cleanup ]────────────────────────────────────────────────────────"
+
+  # Cleanup the iptables chains
+  iptables -t nat -D PREROUTING -j MESHLABPRE 2>/dev/null || true
+  iptables -t nat -D POSTROUTING -j MESHLABPOS 2>/dev/null || true
+  iptables -t nat -F MESHLABPRE 2>/dev/null || true
+  iptables -t nat -F MESHLABPOS 2>/dev/null || true
+  iptables -t nat -X MESHLABPRE 2>/dev/null || true
+  iptables -t nat -X MESHLABPOS 2>/dev/null || true
+
   # shellcheck disable=SC2046
   docker kill $(docker ps -f "name=kindccm" -q) 2>/dev/null || true
   argocd context --delete "${MNGR}" 2>/dev/null || true
@@ -48,6 +59,21 @@ if [[ $1 == "delete" ]]; then
   rm -rf ./tmp/*
   exit 0
 fi
+
+#------------------------------------------------------------------------------
+# [i] Initialize the MeshLab iptables chains
+#------------------------------------------------------------------------------
+
+blue "───[ Iptables chains ]──────────────────────────────────────────────────"
+
+iptables -t nat -L MESHLABPRE &>/dev/null || iptables -t nat -N MESHLABPRE
+iptables -t nat -C PREROUTING -j MESHLABPRE &>/dev/null || iptables -t nat -A PREROUTING -j MESHLABPRE
+
+iptables -t nat -L MESHLABPOS &>/dev/null || iptables -t nat -N MESHLABPOS
+iptables -t nat -C POSTROUTING -j MESHLABPOS &>/dev/null || iptables -t nat -A POSTROUTING -j MESHLABPOS
+
+iptables -t nat -L MESHLABPRE
+iptables -t nat -L MESHLABPOS
 
 #------------------------------------------------------------------------------
 # [i] cloud-provider-kind
@@ -319,15 +345,11 @@ ARGOCD_PASS=$(
   -o jsonpath='{.data.password}' | base64 -d
 )
 
-# Get the external LoadBalancer IP
-ARGOCD_IP=$(
-  k0 -n argocd \
-  get svc argocd-server \
-  -o yaml | yq '.status.loadBalancer.ingress[0].ip'
-)
+# Publish the ArgoCD port
+publish "${MNGR}" argocd argocd-server 8080
 
 echo
-echo "ArgoCD WebUI: https://${ARGOCD_IP}"
+echo "ArgoCD WebUI: https://192.168.106.2:8080"
 echo "ArgoCD User: admin"
 echo "ArgoCD Pass: ${ARGOCD_PASS}"
 
@@ -339,6 +361,9 @@ blue "───[ Register clusters to ArgoCD ]───────────�
 
 # Check if the ArgoCD context exists
 argocd context "${MNGR}" 2> /dev/null || {
+
+  # Get the external LoadBalancer IP
+  ARGOCD_IP=$(getExtIP "${MNGR}" argocd argocd-server)
 
   # Login to ArgoCD
   argocd login "${ARGOCD_IP}" \
@@ -407,15 +432,11 @@ k0 -n argocd patch role argo-workflows-workflow --type json \
         }
       ]'
 
-# Get the external LoadBalancer IP
-ARGOWF_IP=$(
-  k0 -n argowf \
-  get svc argo-workflows-server \
-  -o yaml | yq '.status.loadBalancer.ingress[0].ip'
-)
+# Publish the ArgoWF port
+publish "${MNGR}" argowf argo-workflows-server 8081
 
 echo
-echo "ArgoWF WebUI: http://${ARGOWF_IP}"
+echo "ArgoWF WebUI: http://192.168.106.2:8081"
 
 #------------------------------------------------------------------------------
 # [i] Bootstrap DAG

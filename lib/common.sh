@@ -73,4 +73,7 @@ function publish {
   # Setup postrouting rules
   iptables -t nat -C MESHLABPOS -p tcp -d "${IP}" --dport 80 -j MASQUERADE 2>/dev/null || \
   iptables -t nat -A MESHLABPOS -p tcp -d "${IP}" --dport 80 -j MASQUERADE
+
+  # Setup socat for additional edge cases
+  nohup socat TCP-LISTEN:"${4}",fork TCP:"${IP}":80 &> /dev/null & disown
 }

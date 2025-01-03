@@ -240,7 +240,9 @@ blue "───[ ClusterMesh ]────────────────�
 # Works if it runns on the linux VM, but not on OSX without a route and a TCP proxy.
 
 for CELL in $(list cells wkld); do (
-  CLUSTERS=(${CELLS[${CELL}]})
+
+  # Get the clusters of the cell
+  mapfile -t CLUSTERS <<< "${CELLS[${CELL}]}"
 
   # Return early if already running
   kubectl --context "kind-${CLUSTERS[0]}" -n kube-system get deploy clustermesh-apiserver 2>/dev/null &&
@@ -639,7 +641,7 @@ for CLUSTER in $(list clusters wkld); do
 done
 
 for CELL in $(list cells wkld); do (
-  CLUSTERS=(${CELLS[${CELL}]})
+  mapfile -t CLUSTERS <<< "${CELLS[${CELL}]}"
   istioctl create-remote-secret --context "kind-${CLUSTERS[0]}" --name="${CLUSTERS[0]}" | \
   kubectl --context "kind-${CLUSTERS[1]}" apply -f -
   istioctl create-remote-secret --context "kind-${CLUSTERS[1]}" --name="${CLUSTERS[1]}" | \

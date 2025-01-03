@@ -242,7 +242,7 @@ blue "───[ ClusterMesh ]────────────────�
 for CELL in $(list cells wkld); do (
 
   # Get the clusters of the cell
-  mapfile -t CLUSTERS <<< "${CELLS[${CELL}]}"
+  IFS=" " read -r -a CLUSTERS <<< "${CELLS[${CELL}]}"
 
   # Return early if already running
   kubectl --context "kind-${CLUSTERS[0]}" -n kube-system get deploy clustermesh-apiserver 2>/dev/null &&
@@ -641,7 +641,7 @@ for CLUSTER in $(list clusters wkld); do
 done
 
 for CELL in $(list cells wkld); do (
-  mapfile -t CLUSTERS <<< "${CELLS[${CELL}]}"
+  IFS=" " read -r -a CLUSTERS <<< "${CELLS[${CELL}]}"
   istioctl create-remote-secret --context "kind-${CLUSTERS[0]}" --name="${CLUSTERS[0]}" | \
   kubectl --context "kind-${CLUSTERS[1]}" apply -f -
   istioctl create-remote-secret --context "kind-${CLUSTERS[1]}" --name="${CLUSTERS[1]}" | \
@@ -669,6 +669,14 @@ curl -sX POST \
   -H 'Content-Type: application/json' \
   --data @conf/dashboard.json \
   "http://${GRAFANA_IP}:${GRAFANA_PORT}/api/dashboards/db" | jq
+
+#------------------------------------------------------------------------------
+# [i] Publish ports
+#------------------------------------------------------------------------------
+
+publish "${MNGR}" vault vault 8082
+publish "${MNGR}" monitoring prometheus-server 8083
+publish "${MNGR}" monitoring grafana 8084
 
 #------------------------------------------------------------------------------
 # [i] Echo useful info

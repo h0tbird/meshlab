@@ -72,8 +72,8 @@ iptables -t nat -C PREROUTING -j MESHLABPRE &>/dev/null || iptables -t nat -A PR
 iptables -t nat -L MESHLABPOS &>/dev/null || iptables -t nat -N MESHLABPOS
 iptables -t nat -C POSTROUTING -j MESHLABPOS &>/dev/null || iptables -t nat -A POSTROUTING -j MESHLABPOS
 
-iptables -t nat -L MESHLABPRE
-iptables -t nat -L MESHLABPOS
+iptables -t nat -nL MESHLABPRE
+iptables -t nat -nL MESHLABPOS
 
 #------------------------------------------------------------------------------
 # [i] cloud-provider-kind

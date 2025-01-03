@@ -10,8 +10,8 @@ set -euo pipefail
 # Change to the execution directory
 cd "$(dirname "$0")"/..
 
-# shellcheck source=/dev/null
-source lib/common.sh
+# shellcheck source=../lib/common.sh
+source ./lib/common.sh
 
 #------------------------------------------------------------------------------
 # [i] Versions
@@ -349,7 +349,7 @@ ARGOCD_PASS=$(
 publish "${MNGR}" argocd argocd-server 8080
 
 echo
-echo "ArgoCD WebUI: https://192.168.106.2:8080"
+echo "ArgoCD WebUI: https://$(hostname -I | awk '{print $2}'):8080"
 echo "ArgoCD User: admin"
 echo "ArgoCD Pass: ${ARGOCD_PASS}"
 
@@ -436,7 +436,7 @@ k0 -n argocd patch role argo-workflows-workflow --type json \
 publish "${MNGR}" argowf argo-workflows-server 8081
 
 echo
-echo "ArgoWF WebUI: http://192.168.106.2:8081"
+echo "ArgoWF WebUI: http://$(hostname -I | awk '{print $2}'):8081"
 
 #------------------------------------------------------------------------------
 # [i] Bootstrap DAG

@@ -13,7 +13,8 @@ RUN apt update && \
     apt autoremove -y && apt clean -y && \
     rm -rf /var/lib/apt/lists/* && \
     update-alternatives --install /usr/sbin/iptables iptables /usr/sbin/iptables-legacy 100 && \
-    update-alternatives --install /usr/sbin/ip6tables ip6tables /usr/sbin/ip6tables-legacy 100
+    update-alternatives --install /usr/sbin/ip6tables ip6tables /usr/sbin/ip6tables-legacy 100 && \
+    chmod -x /etc/update-motd.d/*
 
 # Set zsh as default shell
 RUN chsh -s /usr/bin/zsh root && \
@@ -68,7 +69,14 @@ RUN VERSION="1.24.2" && ARCH=$(dpkg --print-architecture) && \
 # Install step
 RUN VERSION="0.28.2" && ARCH=$(dpkg --print-architecture) && \
     wget -q https://dl.smallstep.com/gh-release/cli/gh-release-header/v${VERSION}/step-cli_${VERSION}-1_${ARCH}.deb && \
-    dpkg -i step-cli_${VERSION}-1_${ARCH}.deb && rm -f step-cli_${VERSION}-1_${ARCH}.deb
+    dpkg -i step-cli_${VERSION}-1_${ARCH}.deb && rm -f step-cli_${VERSION}-1_${ARCH}.deb && \
+    echo "source <(step completion zsh) && compdef _step step" >> /etc/zsh/zshrc
+
+# Install gh
+RUN VERSION="2.64.0" && ARCH=$(dpkg --print-architecture) && \
+    curl -LO https://github.com/cli/cli/releases/download/v${VERSION}/gh_${VERSION}_linux_${ARCH}.deb && \
+    dpkg -i gh_${VERSION}_linux_${ARCH}.deb && rm -f gh_${VERSION}_linux_${ARCH}.deb && \
+    echo "source <(gh completion -s zsh) && compdef _gh gh" >> /etc/zsh/zshrc
 
 # Install mdbook (https://github.com/rust-lang/mdBook/releases)
 RUN VERSION="v0.4.43" && ARCH=$(arch) && \

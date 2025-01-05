@@ -46,7 +46,7 @@ RUN VERSION="v4.44.6" && ARCH=$(dpkg --print-architecture) && \
     chmod +x /usr/local/bin/yq && echo "source <(yq completion zsh) && compdef _yq yq" >> /etc/zsh/zshrc
 
 # Install argocd (https://github.com/argoproj/argo-cd/releases)
-RUN VERSION="v2.13.2" && ARCH=$(dpkg --print-architecture) && \
+RUN VERSION="v2.13.3" && ARCH=$(dpkg --print-architecture) && \
     wget https://github.com/argoproj/argo-cd/releases/download/${VERSION}/argocd-linux-${ARCH} -O /usr/local/bin/argocd && \
     chmod +x /usr/local/bin/argocd && echo "source <(argocd completion zsh) && compdef _argocd argocd" >> /etc/zsh/zshrc
 
@@ -66,13 +66,13 @@ RUN VERSION="1.24.2" && ARCH=$(dpkg --print-architecture) && \
     tar -C /usr/local/bin --strip-components 2 -xvf /tmp/istio.tar.gz istio-${VERSION}/bin/istioctl && rm -f /tmp/istio.tar.gz && \
     echo "source <(istioctl completion zsh) && compdef _istioctl istioctl" >> /etc/zsh/zshrc
 
-# Install step
+# Install step (https://github.com/smallstep/cli/releases)
 RUN VERSION="0.28.2" && ARCH=$(dpkg --print-architecture) && \
     wget -q https://dl.smallstep.com/gh-release/cli/gh-release-header/v${VERSION}/step-cli_${VERSION}-1_${ARCH}.deb && \
     dpkg -i step-cli_${VERSION}-1_${ARCH}.deb && rm -f step-cli_${VERSION}-1_${ARCH}.deb && \
     echo "source <(step completion zsh) && compdef _step step" >> /etc/zsh/zshrc
 
-# Install gh
+# Install gh (https://github.com/cli/cli/releases)
 RUN VERSION="2.64.0" && ARCH=$(dpkg --print-architecture) && \
     curl -LO https://github.com/cli/cli/releases/download/v${VERSION}/gh_${VERSION}_linux_${ARCH}.deb && \
     dpkg -i gh_${VERSION}_linux_${ARCH}.deb && rm -f gh_${VERSION}_linux_${ARCH}.deb && \

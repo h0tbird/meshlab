@@ -17,6 +17,7 @@ source ./lib/common.sh
 # [i] Versions
 #------------------------------------------------------------------------------
 
+KINDCCM_VERSION='0.5.0'                       # https://github.com/kubernetes-sigs/cloud-provider-kind/releases
 CILIUM_CHART_VERSION='1.16.5'                 # https://artifacthub.io/packages/helm/cilium/cilium
 K8S_GATEWAY_CHART_VERSION='2.4.0'             # https://github.com/ori-edge/k8s_gateway/tree/master/charts
 ARGOCD_CHART_VERSION='7.7.12'                 # https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd
@@ -88,7 +89,7 @@ docker ps --format '{{.Names}}' | grep -q '^kindccm$' || {
     --name kindccm \
     --network kind \
     --volume /var/run/docker.sock:/var/run/docker.sock \
-    registry.k8s.io/cloud-provider-kind/cloud-controller-manager:v0.4.0
+    "registry.k8s.io/cloud-provider-kind/cloud-controller-manager:v${KINDCCM_VERSION}"
 }
 
 #------------------------------------------------------------------------------

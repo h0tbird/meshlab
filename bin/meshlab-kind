@@ -45,14 +45,6 @@ if [[ $1 == "delete" ]]; then
 
   blue "───[ Cleanup ]────────────────────────────────────────────────────────"
 
-#  # Cleanup the iptables chains
-#  iptables -t nat -D PREROUTING -j MESHLABPRE 2>/dev/null || true
-#  iptables -t nat -D POSTROUTING -j MESHLABPOS 2>/dev/null || true
-#  iptables -t nat -F MESHLABPRE 2>/dev/null || true
-#  iptables -t nat -F MESHLABPOS 2>/dev/null || true
-#  iptables -t nat -X MESHLABPRE 2>/dev/null || true
-#  iptables -t nat -X MESHLABPOS 2>/dev/null || true
-
   # shellcheck disable=SC2046
   docker kill $(docker ps -f "name=kindccm" -q) 2>/dev/null || true
   argocd context --delete "${MNGR}" 2>/dev/null || true
@@ -60,21 +52,6 @@ if [[ $1 == "delete" ]]; then
   rm -rf ./tmp/*
   exit 0
 fi
-
-#------------------------------------------------------------------------------
-# [i] Initialize the MeshLab iptables chains
-#------------------------------------------------------------------------------
-
-# blue "───[ Iptables chains ]──────────────────────────────────────────────────"
-# 
-# iptables -t nat -L MESHLABPRE &>/dev/null || iptables -t nat -N MESHLABPRE
-# iptables -t nat -C PREROUTING -j MESHLABPRE &>/dev/null || iptables -t nat -A PREROUTING -j MESHLABPRE
-# 
-# iptables -t nat -L MESHLABPOS &>/dev/null || iptables -t nat -N MESHLABPOS
-# iptables -t nat -C POSTROUTING -j MESHLABPOS &>/dev/null || iptables -t nat -A POSTROUTING -j MESHLABPOS
-# 
-# iptables -t nat -nL MESHLABPRE
-# iptables -t nat -nL MESHLABPOS
 
 #------------------------------------------------------------------------------
 # [i] cloud-provider-kind
@@ -678,33 +655,3 @@ curl -sX POST \
 publish "${MNGR}" vault vault 8082
 publish "${MNGR}" monitoring prometheus-server 8083
 publish "${MNGR}" monitoring grafana 8084
-
-#------------------------------------------------------------------------------
-# [i] Echo useful info
-#------------------------------------------------------------------------------
-
-blue "───[ Info ]─────────────────────────────────────────────────────────────"
-
-echo "┌─────────────────────────────────────────────────┬────────────────────────────────────────────────────────────┬──────────────┬──────────┬──────────┐"
-echo "│ Port mapping                                    │ External                                                   │   Cluster    │          │          │"
-echo "├────────────────────────┬────────────────────────┼────────────────────┬───────────────────────────────────────┼────┬─────────┤ Username │ Password │"
-echo "│ Envoy                  │ Service                │ IP                 │ Service                               │ IP │ Service │          │          │"
-
-# shellcheck disable=SC2046
-( docker inspect $(docker ps -f "name=kindccm-" -q) | jq -r \
-  --arg domain "${DOMAIN}" \
-  --arg mngr "${MNGR}" '.[] |
-  select(.Config.Labels."io.x-k8s.cloud-provider-kind.cluster" == "\($mngr)") |
-  (
-    .NetworkSettings.Ports
-    | map_values(.[] | .HostPort)
-    | to_entries
-    | map("http://127.0.0.1:" + .value)
-    | .[:2]
-    | join(" │ ")
-  ) as $ports |
-  .NetworkSettings.Networks.kind.IPAddress as $ip |
-  .Config.Labels."io.x-k8s.cloud-provider-kind.loadbalancer.name" as $lb_name | "
-├────────────────────────┼────────────────────────┼────────────────────┼───────────────────────────────────────┤
-│ \($ports) │ http://\($ip) │ http://\($lb_name | split("/")[-1]).\($domain)      │"
-' ) | column -t -s '|'

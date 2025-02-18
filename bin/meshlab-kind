@@ -45,14 +45,6 @@ if [[ $1 == "delete" ]]; then
 
   blue "───[ Cleanup ]────────────────────────────────────────────────────────"
 
-  # Cleanup the iptables chains
-  iptables -t nat -D PREROUTING -j MESHLABPRE 2>/dev/null || true
-  iptables -t nat -D POSTROUTING -j MESHLABPOS 2>/dev/null || true
-  iptables -t nat -F MESHLABPRE 2>/dev/null || true
-  iptables -t nat -F MESHLABPOS 2>/dev/null || true
-  iptables -t nat -X MESHLABPRE 2>/dev/null || true
-  iptables -t nat -X MESHLABPOS 2>/dev/null || true
-
   # shellcheck disable=SC2046
   docker kill $(docker ps -f "name=kindccm" -q) 2>/dev/null || true
   argocd context --delete "${MNGR}" 2>/dev/null || true
@@ -60,21 +52,6 @@ if [[ $1 == "delete" ]]; then
   rm -rf ./tmp/*
   exit 0
 fi
-
-#------------------------------------------------------------------------------
-# [i] Initialize the MeshLab iptables chains
-#------------------------------------------------------------------------------
-
-blue "───[ Iptables chains ]──────────────────────────────────────────────────"
-
-iptables -t nat -L MESHLABPRE &>/dev/null || iptables -t nat -N MESHLABPRE
-iptables -t nat -C PREROUTING -j MESHLABPRE &>/dev/null || iptables -t nat -A PREROUTING -j MESHLABPRE
-
-iptables -t nat -L MESHLABPOS &>/dev/null || iptables -t nat -N MESHLABPOS
-iptables -t nat -C POSTROUTING -j MESHLABPOS &>/dev/null || iptables -t nat -A POSTROUTING -j MESHLABPOS
-
-iptables -t nat -nL MESHLABPRE
-iptables -t nat -nL MESHLABPOS
 
 #------------------------------------------------------------------------------
 # [i] cloud-provider-kind
@@ -89,7 +66,8 @@ docker ps --format '{{.Names}}' | grep -q '^kindccm$' || {
     --name kindccm \
     --network kind \
     --volume /var/run/docker.sock:/var/run/docker.sock \
-    "registry.k8s.io/cloud-provider-kind/cloud-controller-manager:v${KINDCCM_VERSION}"
+    "registry.k8s.io/cloud-provider-kind/cloud-controller-manager:v${KINDCCM_VERSION}" \
+      --enable-lb-port-mapping=true
 }
 
 #------------------------------------------------------------------------------
@@ -348,9 +326,6 @@ ARGOCD_PASS=$(
   -o jsonpath='{.data.password}' | base64 -d
 )
 
-# Publish the ArgoCD port
-publish "${MNGR}" argocd argocd-server 8080
-
 echo
 echo "ArgoCD WebUI: https://$(hostname -I | awk '{print $2}'):8080"
 echo "ArgoCD User: admin"
@@ -434,9 +409,6 @@ k0 -n argocd patch role argo-workflows-workflow --type json \
           }
         }
       ]'
-
-# Publish the ArgoWF port
-publish "${MNGR}" argowf argo-workflows-server 8081
 
 echo
 echo "ArgoWF WebUI: http://$(hostname -I | awk '{print $2}'):8081"
@@ -670,14 +642,6 @@ curl -sX POST \
   -H 'Content-Type: application/json' \
   --data @conf/dashboard.json \
   "http://${GRAFANA_IP}:${GRAFANA_PORT}/api/dashboards/db" | jq
-
-#------------------------------------------------------------------------------
-# [i] Publish ports
-#------------------------------------------------------------------------------
-
-publish "${MNGR}" vault vault 8082
-publish "${MNGR}" monitoring prometheus-server 8083
-publish "${MNGR}" monitoring grafana 8084
 
 #------------------------------------------------------------------------------
 # [i] Echo useful info

@@ -66,14 +66,6 @@ function publish {
   # Get the external IP of the service
   IP=$(getExtIP "${1}" "${2}" "${3}")
 
-  # Setup prerouting rules
-  iptables -t nat -C MESHLABPRE -p tcp --dport "${4}" -j DNAT --to-destination "${IP}":80 2>/dev/null || \
-  iptables -t nat -A MESHLABPRE -p tcp --dport "${4}" -j DNAT --to-destination "${IP}":80
-
-  # Setup postrouting rules
-  iptables -t nat -C MESHLABPOS -p tcp -d "${IP}" --dport 80 -j MASQUERADE 2>/dev/null || \
-  iptables -t nat -A MESHLABPOS -p tcp -d "${IP}" --dport 80 -j MASQUERADE
-
   # Setup socat for additional edge cases
   nohup socat TCP-LISTEN:"${4}",fork TCP:"${IP}":80 &> /dev/null & disown
 }

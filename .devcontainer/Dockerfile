@@ -83,5 +83,10 @@ RUN VERSION="v0.4.45" && ARCH=$(arch) && \
     curl -sSL https://github.com/rust-lang/mdbook/releases/download/${VERSION}/mdbook-${VERSION}-${ARCH}-unknown-linux-musl.tar.gz | \
     tar -xzC /usr/local/bin mdbook && echo "source <(mdbook completions zsh) && compdef _mdbook mdbook" >> /etc/zsh/zshrc
 
+# Install swarmctl (https://github.com/h0tbird/k-swarm/releases)
+RUN VERSION="0.3.3" && ARCH=$(dpkg --print-architecture) && \
+    wget -qO- https://github.com/h0tbird/k-swarm/releases/download/v${VERSION}/swarmctl_${VERSION}_linux_${ARCH}.tar.gz | tar -xz -C /usr/local/bin/ && \
+    chmod +x /usr/local/bin/swarmctl && echo "source <(swarmctl completion zsh) && compdef _swarmctl swarmctl" >> /etc/zsh/zshrc
+
 # Copy scripts to /usr/local/bin
 COPY scripts/* /usr/local/bin/

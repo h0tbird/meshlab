@@ -649,6 +649,15 @@ curl -sX POST \
   "http://${GRAFANA_IP}:${GRAFANA_PORT}/api/dashboards/db" | jq
 
 #------------------------------------------------------------------------------
+# [i] Deploy some workloads
+#------------------------------------------------------------------------------
+
+blue "---[ Deploy workloads ]-------------------------------------------------"
+
+swarmctl --context 'pasta-*|pizza-*' i --yes --istio-revision stable --image-tag main
+swarmctl --context 'pasta-*|pizza-*' w 1:2 --yes --istio-revision stable --image-tag main
+
+#------------------------------------------------------------------------------
 # [i] Publish ports
 #------------------------------------------------------------------------------
 

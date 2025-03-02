@@ -1,0 +1,4 @@
+[ ] Move h0tbird/istio/charts/issuers
+[ ] Delete h0tbird/istio
+[ ] Build and run istio with delve
+[ ] Run cloud-provider-kind fork

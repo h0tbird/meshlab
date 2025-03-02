@@ -1,0 +1,19 @@
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: istio-cluster-ica
+  namespace: istio-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  secretName: cacerts
+  commonName: {{.Values.clusterName}}
+  isCA: true
+  duration: 43800h0m0s
+  renewBefore: 8760h0m0s
+  privateKey:
+    rotationPolicy: Always
+  issuerRef:
+    name: vault-ica
+    kind: Issuer

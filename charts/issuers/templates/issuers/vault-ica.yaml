@@ -1,0 +1,19 @@
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: vault-ica
+  namespace: istio-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  vault:
+    path: mesh/root/sign-intermediate
+    server: http://vault.demo.lab
+    auth:
+      appRole:
+        path: approle
+        roleId: {{.Values.roleID}}
+        secretRef:
+          name: vault-ica-approle
+          key: secretId

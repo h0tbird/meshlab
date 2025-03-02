@@ -1,0 +1,63 @@
+# git checkout -b 1.16.0 1.16.0
+# git cherry-pick 56e2870c80^..9536b265c4
+
+# Single arch:
+# docker build -t h0tbird/proxyv2:1.16.0 -f Dockerfile.pilot-agent .
+
+# Multi arch:
+# docker buildx build --platform linux/amd64,linux/arm64 -t h0tbird/proxyv2:1.16.0 -f Dockerfile.pilot-agent --push .
+
+# Debug:
+# k --context kube-01 -n httpbin exec -it deployments/sleep -c istio-proxy -- sudo bash -c 'echo 0 > /proc/sys/kernel/yama/ptrace_scope'
+# k --context kube-01 -n httpbin exec -it deployments/sleep -c istio-proxy -- dlv dap --listen=:40000 --log=true
+# k --context kube-01 -n httpbin port-forward deployments/sleep 40000:40000
+
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
+
+FROM golang:1.19 AS builder
+
+WORKDIR /workspace
+
+# Cache dependencies
+COPY go.mod go.mod
+COPY go.sum go.sum
+RUN go mod download
+
+# Copy the code
+COPY pilot/ pilot/
+COPY pkg/ pkg/
+COPY operator/ operator/
+COPY security/ security/
+COPY tools/ tools/
+COPY common/ common/
+
+# Build
+RUN CGO_ENABLED=0 go build -o pilot-agent -gcflags=all="-N -l" -tags=agent -ldflags '\
+-extldflags "-static -s -w" \
+-X istio.io/pkg/version.buildVersion=1.16.0 \
+-X istio.io/pkg/version.buildGitRevision=8f2e2dc5d57f6f1f7a453e03ec96ca72b2205783 \
+-X istio.io/pkg/version.buildStatus=debug \
+-X istio.io/pkg/version.buildTag=1.16.0 \
+-X istio.io/pkg/version.buildHub=docker.io/h0tbird' \
+./pilot/cmd/pilot-agent
+
+# Install delve
+RUN go install github.com/go-delve/delve/cmd/dlv@latest
+
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
+
+FROM istio/proxyv2:1.16.0
+
+# Install tools
+# RUN apt-get update && apt-get install -y --no-install-recommends \
+#     file && rm -rf /var/lib/apt/lists/*
+
+# Copy binaries and source code
+COPY --from=builder /go/bin/dlv /usr/local/bin/dlv
+COPY --from=builder /workspace /workspace
+COPY --from=builder /go /go
+RUN mv /workspace/pilot-agent /usr/local/bin/

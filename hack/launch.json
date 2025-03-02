@@ -1,0 +1,31 @@
+// https://go.googlesource.com/vscode-go/+/HEAD/docs/debugging.md
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Connect to server",
+            "type": "go",
+            "request": "attach",
+            "mode": "local",
+            "port": 40000,
+            "host": "127.0.0.1",
+            "processId": 1,
+            "debugAdapter": "dlv-dap",
+            "showLog": true,
+            "substitutePath": [
+                {
+                    "from": "${workspaceFolder}",
+                    "to": "/workspace"
+                },
+                {
+                    "from": "/Users/h0tbird/go/pkg/mod",
+                    "to": "/go/pkg/mod"
+                },
+                {
+                    "from": "/opt/homebrew/Cellar/go/1.19.3/libexec",
+                    "to": "/usr/local/go"
+                }
+            ]
+        }
+    ]
+}

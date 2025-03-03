@@ -34,6 +34,8 @@ pilot-agent:
 		--platform linux/amd64,linux/arm64 \
 		-f ${MESHLAB_PATH}/hack/Dockerfile.pilot-agent \
 		--build-arg VERSION=${ISTIO_VERSION} \
+		--build-arg REGISTRY=${REGISTRY} \
+		--build-arg GIT_SHA=$(git rev-parse HEAD) \
 		--push .
 
 .PHONY: pilot-discovery
@@ -47,4 +49,6 @@ pilot-discovery:
 		--platform linux/amd64,linux/arm64 \
 		-f ${MESHLAB_PATH}/hack/Dockerfile.pilot-discovery \
 		--build-arg VERSION=${ISTIO_VERSION} \
+		--build-arg REGISTRY=${REGISTRY} \
+		--build-arg GIT_SHA=$(git rev-parse HEAD) \
 		--push .

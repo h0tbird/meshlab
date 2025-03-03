@@ -33,7 +33,8 @@ COPY common/ common/
 
 # Build
 RUN CGO_ENABLED=0 go build -o pilot-agent \
-  -gcflags=all="-N -l" -tags=agent -ldflags "-extldflags -static \
+  -gcflags=all="-N -l" -tags=agent,disable_pgv \
+  -ldflags "-extldflags -static \
   -X istio.io/istio/pkg/version.buildVersion=${VERSION} \
   -X istio.io/istio/pkg/version.buildGitRevision=${GIT_SHA} \
   -X istio.io/istio/pkg/version.buildStatus=debug \

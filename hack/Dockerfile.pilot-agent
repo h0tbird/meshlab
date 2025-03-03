@@ -27,8 +27,8 @@ COPY tools/ tools/
 COPY common/ common/
 
 # Build
-RUN CGO_ENABLED=0 go build -o pilot-agent -gcflags=all="-N -l" -tags=agent -ldflags '\
--extldflags "-static -s -w" \
+RUN CGO_ENABLED=0 go build -o pilot-agent \
+-gcflags=all="-N -l" -tags=agent -ldflags '-extldflags "-static" \
 -X istio.io/pkg/version.buildVersion=${VERSION} \
 -X istio.io/pkg/version.buildGitRevision=44d0e58e49d0dc89e27fc4f8679c68132d46b887 \
 -X istio.io/pkg/version.buildStatus=debug \

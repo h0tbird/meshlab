@@ -27,8 +27,8 @@ COPY common/ common/
 COPY manifests/ manifests/
 
 # Build
-RUN CGO_ENABLED=0 go build -o pilot-discovery -gcflags=all="-N -l" -ldflags '\
--extldflags "-static -s -w" \
+RUN CGO_ENABLED=0 go build -o pilot-discovery \
+-gcflags=all="-N -l" -ldflags '-extldflags "-static" \
 -X istio.io/istio/pkg/version.buildVersion=${VERSION} \
 -X istio.io/istio/pkg/version.buildGitRevision=44d0e58e49d0dc89e27fc4f8679c68132d46b887 \
 -X istio.io/istio/pkg/version.buildStatus=debug \

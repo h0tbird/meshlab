@@ -33,12 +33,14 @@ COPY common/ common/
 
 # Build
 RUN CGO_ENABLED=0 go build -o pilot-agent \
-  -gcflags=all="-N -l" -tags=agent -ldflags '-extldflags "-static" \
-  -X istio.io/pkg/version.buildVersion=${VERSION} \
-  -X istio.io/pkg/version.buildGitRevision=${GIT_SHA} \
-  -X istio.io/pkg/version.buildStatus=debug \
-  -X istio.io/pkg/version.buildTag=${VERSION} \
-  -X istio.io/pkg/version.buildHub=${REGISTRY}' \
+  -gcflags=all="-N -l" -tags=agent -ldflags "-extldflags -static \
+  -X istio.io/istio/pkg/version.buildVersion=${VERSION} \
+  -X istio.io/istio/pkg/version.buildGitRevision=${GIT_SHA} \
+  -X istio.io/istio/pkg/version.buildStatus=debug \
+  -X istio.io/istio/pkg/version.buildTag=${VERSION} \
+  -X istio.io/istio/pkg/version.buildHub=${REGISTRY} \
+  -X istio.io/istio/pkg/version.buildOS=xxx \
+  -X istio.io/istio/pkg/version.buildArch=yyy" \
   ./pilot/cmd/pilot-agent
 
 # Install delve

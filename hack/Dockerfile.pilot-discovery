@@ -1,19 +1,11 @@
-# git checkout 1.22.2
-# git rev-parse HEAD
-
-# Single arch:
-# docker build -t h0tbird/pilot:1.22.2 -f Dockerfile.pilot-discovery .
-
-# Multi arch:
-# docker buildx create --name mybuilder --use
-# docker buildx build --platform linux/amd64,linux/arm64 -t h0tbird/pilot:1.22.2 -f Dockerfile.pilot-discovery --push .
-
 # Debug:
 # k --context kube-01 -n istio-system exec -it deployments/istiod-1-22-2 -- dlv dap --listen=:40000 --log=true
 # k --context kube-01 -n istio-system port-forward deployments/istiod-1-22-2 40000:40000
 
+ARG VERSION=latest
+
 #------------------------------------------------------------------------------
-#
+# Buildtime
 #------------------------------------------------------------------------------
 
 FROM golang:1.22 AS builder
@@ -37,10 +29,10 @@ COPY manifests/ manifests/
 # Build
 RUN CGO_ENABLED=0 go build -o pilot-discovery -gcflags=all="-N -l" -ldflags '\
 -extldflags "-static -s -w" \
--X istio.io/istio/pkg/version.buildVersion=1.22.2 \
--X istio.io/istio/pkg/version.buildGitRevision=204da5ba47f295a8dc56936333e692f6a8707649 \
+-X istio.io/istio/pkg/version.buildVersion=${VERSION} \
+-X istio.io/istio/pkg/version.buildGitRevision=44d0e58e49d0dc89e27fc4f8679c68132d46b887 \
 -X istio.io/istio/pkg/version.buildStatus=debug \
--X istio.io/istio/pkg/version.buildTag=1.22.2 \
+-X istio.io/istio/pkg/version.buildTag=${VERSION} \
 -X istio.io/istio/pkg/version.buildHub=docker.io/h0tbird' \
 ./pilot/cmd/pilot-discovery
 
@@ -48,16 +40,12 @@ RUN CGO_ENABLED=0 go build -o pilot-discovery -gcflags=all="-N -l" -ldflags '\
 RUN go install github.com/go-delve/delve/cmd/dlv@latest
 
 #------------------------------------------------------------------------------
-#
+# Runtime
 #------------------------------------------------------------------------------
 
-FROM istio/pilot:1.22.2
+FROM istio/pilot:${VERSION}
 
 USER 0:0
-
-# Install tools
-# RUN apt-get update && apt-get install -y --no-install-recommends \
-#     file && rm -rf /var/lib/apt/lists/*
 
 # Copy binaries and source code
 COPY --from=builder /go/bin/dlv /usr/local/bin/dlv

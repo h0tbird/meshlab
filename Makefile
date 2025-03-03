@@ -15,7 +15,7 @@ SHELL = $(BASH_PATH)
 #------------------------------------------------------------------------------
 
 ISTIO_VERSION ?= 1.24.3
-IMG ?= h0tbird/proxyv2:${ISTIO_VERSION}
+REGISTRY ?= h0tbird
 MESHLAB_PATH ?= ~/git/h0tbird/meshlab
 ISTIO_PATH ?= ~/git/h0tbird/forked-istio
 
@@ -24,6 +24,7 @@ ISTIO_PATH ?= ~/git/h0tbird/forked-istio
 #------------------------------------------------------------------------------
 
 .PHONY: pilot-agent
+pilot-agent: IMG := ${REGISTRY}/proxyv2:${ISTIO_VERSION}
 pilot-agent:
 	@echo "Building pilot-agent"
 	cd ${ISTIO_PATH}
@@ -33,5 +34,19 @@ pilot-agent:
 		--platform linux/amd64,linux/arm64 \
 		-t ${IMG} \
 		-f ${MESHLAB_PATH}/hack/Dockerfile.pilot-agent \
+		--build-arg VERSION=${ISTIO_VERSION} \
+		--push .
+
+.PHONY: pilot-discovery
+pilot-discovery: IMG := ${REGISTRY}/pilot:${ISTIO_VERSION}
+pilot-discovery:
+	@echo "Building pilot-discovery"
+	cd ${ISTIO_PATH}
+	git fetch upstream tag $(ISTIO_VERSION)
+	git checkout $(ISTIO_VERSION)
+	docker buildx build \
+		--platform linux/amd64,linux/arm64 \
+		-t ${IMG} \
+		-f ${MESHLAB_PATH}/hack/Dockerfile.pilot-discovery \
 		--build-arg VERSION=${ISTIO_VERSION} \
 		--push .

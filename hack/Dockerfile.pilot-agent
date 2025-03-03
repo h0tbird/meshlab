@@ -39,8 +39,8 @@ RUN CGO_ENABLED=0 go build -o pilot-agent \
   -X istio.io/istio/pkg/version.buildStatus=debug \
   -X istio.io/istio/pkg/version.buildTag=${VERSION} \
   -X istio.io/istio/pkg/version.buildHub=${REGISTRY} \
-  -X istio.io/istio/pkg/version.buildOS=xxx \
-  -X istio.io/istio/pkg/version.buildArch=yyy" \
+  -X istio.io/istio/pkg/version.buildOS=${TARGETOS} \
+  -X istio.io/istio/pkg/version.buildArch=${TARGETARCH}" \
   ./pilot/cmd/pilot-agent
 
 # Install delve

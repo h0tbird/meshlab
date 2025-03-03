@@ -33,14 +33,14 @@ COPY manifests/ manifests/
 
 # Build
 RUN CGO_ENABLED=0 go build -o pilot-discovery \
-  -gcflags=all="-N -l" -ldflags '-extldflags -static \
+  -gcflags=all="-N -l" -ldflags "-extldflags -static \
   -X istio.io/istio/pkg/version.buildVersion=${VERSION} \
   -X istio.io/istio/pkg/version.buildGitRevision=${GIT_SHA} \
   -X istio.io/istio/pkg/version.buildStatus=debug \
   -X istio.io/istio/pkg/version.buildTag=${VERSION} \
   -X istio.io/istio/pkg/version.buildHub=${REGISTRY} \
-  -X istio.io/istio/pkg/version.buildOS=xxx \
-  -X istio.io/istio/pkg/version.buildArch=yyy" \
+  -X istio.io/istio/pkg/version.buildOS=${TARGETOS} \
+  -X istio.io/istio/pkg/version.buildArch=${TARGETARCH}" \
   ./pilot/cmd/pilot-discovery
 
 # Install delve

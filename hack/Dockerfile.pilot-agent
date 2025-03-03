@@ -2,12 +2,14 @@
 # git remote add upstream git@github.com:istio/istio.git
 # git fetch upstream --tags
 # git checkout 1.24.3
-# docker buildx build --platform linux/amd64,linux/arm64 -t h0tbird/proxyv2:1.24.3 -f ~/git/h0tbird/meshlab/hack/Dockerfile.pilot-agent --push .
+# docker buildx build --platform linux/amd64,linux/arm64 -t h0tbird/proxyv2:1.24.3 -f ~/git/h0tbird/meshlab/hack/Dockerfile.pilot-agent --build-arg VERSION=1.24.3 --push .
 
 # Debug:
 # k --context kube-01 -n httpbin exec -it deployments/sleep -c istio-proxy -- sudo bash -c 'echo 0 > /proc/sys/kernel/yama/ptrace_scope'
 # k --context kube-01 -n httpbin exec -it deployments/sleep -c istio-proxy -- dlv dap --listen=:40000 --log=true
 # k --context kube-01 -n httpbin port-forward deployments/sleep 40000:40000
+
+ARG VERSION=latest
 
 #------------------------------------------------------------------------------
 # Buildtime
@@ -33,10 +35,10 @@ COPY common/ common/
 # Build
 RUN CGO_ENABLED=0 go build -o pilot-agent -gcflags=all="-N -l" -tags=agent -ldflags '\
 -extldflags "-static -s -w" \
--X istio.io/pkg/version.buildVersion=1.24.3 \
+-X istio.io/pkg/version.buildVersion=${VERSION} \
 -X istio.io/pkg/version.buildGitRevision=44d0e58e49d0dc89e27fc4f8679c68132d46b887 \
 -X istio.io/pkg/version.buildStatus=debug \
--X istio.io/pkg/version.buildTag=1.24.3 \
+-X istio.io/pkg/version.buildTag=${VERSION} \
 -X istio.io/pkg/version.buildHub=docker.io/h0tbird' \
 ./pilot/cmd/pilot-agent
 
@@ -47,7 +49,7 @@ RUN go install github.com/go-delve/delve/cmd/dlv@latest
 # Runtime
 #------------------------------------------------------------------------------
 
-FROM istio/proxyv2:1.24.3
+FROM istio/proxyv2:${VERSION}
 
 # Install tools
 # RUN apt-get update && apt-get install -y --no-install-recommends \

@@ -28,14 +28,14 @@ pilot-agent: IMG := ${REGISTRY}/proxyv2:${ISTIO_VERSION}
 pilot-agent:
 	@echo "Building pilot-agent"
 	cd ${ISTIO_PATH}
-	git fetch upstream tag $(ISTIO_VERSION)
-	git checkout $(ISTIO_VERSION)
+	git fetch upstream tag ${ISTIO_VERSION}
+	git checkout ${ISTIO_VERSION}
 	docker buildx build -t ${IMG} \
 		--platform linux/amd64,linux/arm64 \
 		-f ${MESHLAB_PATH}/hack/Dockerfile.pilot-agent \
-		--build-arg VERSION=${ISTIO_VERSION} \
-		--build-arg REGISTRY=${REGISTRY} \
-		--build-arg GIT_SHA=$(git rev-parse HEAD) \
+		--build-arg="VERSION=${ISTIO_VERSION}" \
+		--build-arg="REGISTRY=${REGISTRY}" \
+		--build-arg="GIT_SHA=$(shell git rev-parse HEAD)" \
 		--push .
 
 .PHONY: pilot-discovery
@@ -43,12 +43,12 @@ pilot-discovery: IMG := ${REGISTRY}/pilot:${ISTIO_VERSION}
 pilot-discovery:
 	@echo "Building pilot-discovery"
 	cd ${ISTIO_PATH}
-	git fetch upstream tag $(ISTIO_VERSION)
-	git checkout $(ISTIO_VERSION)
+	git fetch upstream tag ${ISTIO_VERSION}
+	git checkout ${ISTIO_VERSION}
 	docker buildx build -t ${IMG} \
 		--platform linux/amd64,linux/arm64 \
 		-f ${MESHLAB_PATH}/hack/Dockerfile.pilot-discovery \
-		--build-arg VERSION=${ISTIO_VERSION} \
-		--build-arg REGISTRY=${REGISTRY} \
-		--build-arg GIT_SHA=$(git rev-parse HEAD) \
+		--build-arg="VERSION=${ISTIO_VERSION}" \
+		--build-arg="REGISTRY=${REGISTRY}" \
+		--build-arg="GIT_SHA=$(shell git rev-parse HEAD)" \
 		--push .

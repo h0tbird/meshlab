@@ -3,9 +3,8 @@
 # k --context kube-01 -n httpbin exec -it deployments/sleep -c istio-proxy -- dlv dap --listen=:40000 --log=true
 # k --context kube-01 -n httpbin port-forward deployments/sleep 40000:40000
 
+# Any ARG before the first FROM can be used in any FROM line
 ARG VERSION=latest
-ARG REGISTRY=ghcr.io/h0tbird
-ARG GIT_SHA=unknown
 
 #------------------------------------------------------------------------------
 # Buildtime
@@ -13,9 +12,13 @@ ARG GIT_SHA=unknown
 
 FROM golang:1.22 AS builder
 
-WORKDIR /workspace
+# Build arguments
+ARG VERSION="unknown"
+ARG REGISTRY="unknown"
+ARG GIT_SHA="unknown"
 
 # Cache dependencies
+WORKDIR /workspace
 COPY go.mod go.mod
 COPY go.sum go.sum
 RUN go mod download

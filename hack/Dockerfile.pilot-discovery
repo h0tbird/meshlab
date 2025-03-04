@@ -1,6 +1,6 @@
 # Debug:
-# k --context kube-01 -n istio-system exec -it deployments/istiod-1-22-2 -- dlv dap --listen=:40000 --log=true
-# k --context kube-01 -n istio-system port-forward deployments/istiod-1-22-2 40000:40000
+# k --context kind-pasta-1 -n istio-system exec -it deployments/istiod-1-24-3 -- dlv dap --listen=:40000 --log=true
+# k --context kind-pasta-1 -n istio-system port-forward deployments/istiod-1-24-3 40000:40000
 
 # Any ARG before the first FROM can be used in any FROM line
 ARG VERSION=latest

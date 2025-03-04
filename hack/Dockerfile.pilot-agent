@@ -1,7 +1,7 @@
 # Debug:
-# k --context kube-01 -n httpbin exec -it deployments/sleep -c istio-proxy -- sudo bash -c 'echo 0 > /proc/sys/kernel/yama/ptrace_scope'
-# k --context kube-01 -n httpbin exec -it deployments/sleep -c istio-proxy -- dlv dap --listen=:40000 --log=true
-# k --context kube-01 -n httpbin port-forward deployments/sleep 40000:40000
+# k --context kind-pasta-1 -n service-1 patch deployment worker --type='merge' -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"ghcr.io/h0tbird/proxyv2:1.24.3"}}}}}'
+# k --context kind-pasta-1 -n service-1 exec -it deployment/worker -c istio-proxy -- dlv dap --listen=:40000 --log=true
+# k --context kind-pasta-1 -n service-1 port-forward deployment/worker 40000:40000
 
 # Any ARG before the first FROM can be used in any FROM line
 ARG VERSION=latest
@@ -58,3 +58,7 @@ COPY --from=builder /go/bin/dlv /usr/local/bin/dlv
 COPY --from=builder /workspace /workspace
 COPY --from=builder /go /go
 RUN mv /workspace/pilot-agent /usr/local/bin/
+
+# # Use delve as launch command
+# EXPOSE 40000
+# ENTRYPOINT [ "/usr/local/bin/dlv", "exec", "/usr/local/bin/pilot-agent", "--headless", "--listen=:40000", "--api-version=2", "--accept-multiclient", "--" ]

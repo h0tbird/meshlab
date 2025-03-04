@@ -35,7 +35,7 @@ pilot-agent:
 		-f ${MESHLAB_PATH}/hack/Dockerfile.pilot-agent \
 		--build-arg="VERSION=${ISTIO_VERSION}" \
 		--build-arg="REGISTRY=${REGISTRY}" \
-		--build-arg="GIT_SHA=$(shell git rev-parse HEAD)" \
+		--build-arg="GIT_SHA=$$(git rev-parse HEAD)" \
 		--push .
 
 .PHONY: pilot-discovery
@@ -50,5 +50,5 @@ pilot-discovery:
 		-f ${MESHLAB_PATH}/hack/Dockerfile.pilot-discovery \
 		--build-arg="VERSION=${ISTIO_VERSION}" \
 		--build-arg="REGISTRY=${REGISTRY}" \
-		--build-arg="GIT_SHA=$(shell git rev-parse HEAD)" \
+		--build-arg="GIT_SHA=$$(git rev-parse HEAD)" \
 		--push .

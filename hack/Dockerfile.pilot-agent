@@ -4,7 +4,7 @@
 # k --context kind-pasta-1 -n service-1 port-forward deployment/worker 40000:40000
 
 # Any ARG before the first FROM can be used in any FROM line
-ARG VERSION=latest
+ARG BASE_IMAGE_TAG=latest
 
 #------------------------------------------------------------------------------
 # Buildtime
@@ -51,7 +51,7 @@ RUN go install github.com/go-delve/delve/cmd/dlv@latest
 # Runtime
 #------------------------------------------------------------------------------
 
-FROM istio/proxyv2:${VERSION}
+FROM istio/proxyv2:${BASE_IMAGE_TAG}
 
 # Copy binaries and source code
 COPY --from=builder /go/bin/dlv /usr/local/bin/dlv

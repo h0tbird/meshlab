@@ -26,6 +26,26 @@
                     "to": "/usr/local/go"
                 }
             ]
+        },
+        {
+            "name": "pilot-agent",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/pilot/cmd/pilot-agent/main.go",
+            "env": {
+                "ENABLE_INBOUND_RETRY_POLICY": "false"
+            },
+            "args": [
+                "proxy",
+                "sidecar",
+                "--domain",
+                "foo.svc.cluster.local",
+                "--proxyLogLevel=warning",
+                "--proxyComponentLogLevel=misc:error",
+                "--log_output_level=default:info",
+                "--log_as_json"
+            ]
         }
     ]
 }

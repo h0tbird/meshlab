@@ -20,11 +20,11 @@ source ./lib/common.sh
 KINDCCM_VERSION='0.6.0'                       # https://github.com/kubernetes-sigs/cloud-provider-kind/releases
 CILIUM_CHART_VERSION='1.17.1'                 # https://artifacthub.io/packages/helm/cilium/cilium
 K8S_GATEWAY_CHART_VERSION='2.4.0'             # https://github.com/ori-edge/k8s_gateway/tree/master/charts
-ARGOCD_CHART_VERSION='7.8.7'                  # https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd
-ARGOWF_CHART_VERSION='0.45.9'                 # https://artifacthub.io/packages/helm/argo/argo-workflows
+ARGOCD_CHART_VERSION='7.8.10'                 # https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd
+ARGOWF_CHART_VERSION='0.45.10'                # https://artifacthub.io/packages/helm/argo/argo-workflows
 PROMETHEUS_CHART_VERSION='27.5.1'             # https://artifacthub.io/packages/helm/prometheus-community/prometheus
-GRAFANA_CHART_VERSION='8.10.1'                # https://artifacthub.io/packages/helm/grafana/grafana
-OTEL_COLLECTOR_CHART_VERSION='0.117.2'        # https://artifacthub.io/packages/helm/opentelemetry-helm/opentelemetry-collector
+GRAFANA_CHART_VERSION='8.10.3'                # https://artifacthub.io/packages/helm/grafana/grafana
+OTEL_COLLECTOR_CHART_VERSION='0.117.3'        # https://artifacthub.io/packages/helm/opentelemetry-helm/opentelemetry-collector
 VAULT_CHART_VERSION='0.29.1'                  # https://artifacthub.io/packages/helm/hashicorp/vault
 CERT_MANAGER_CHART_VERSION='v1.17.1'          # https://artifacthub.io/packages/helm/cert-manager/cert-manager
 KUBERNETES_REPLICATOR_CHART_VERSION='2.11.0'  # https://artifacthub.io/packages/helm/kubernetes-replicator/kubernetes-replicator

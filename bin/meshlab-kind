@@ -28,7 +28,7 @@ OTEL_COLLECTOR_CHART_VERSION='0.117.3'        # https://artifacthub.io/packages/
 VAULT_CHART_VERSION='0.29.1'                  # https://artifacthub.io/packages/helm/hashicorp/vault
 CERT_MANAGER_CHART_VERSION='v1.17.1'          # https://artifacthub.io/packages/helm/cert-manager/cert-manager
 KUBERNETES_REPLICATOR_CHART_VERSION='2.11.0'  # https://artifacthub.io/packages/helm/kubernetes-replicator/kubernetes-replicator
-ISTIO_CHART_VERSION='1.25.0'                  # https://artifacthub.io/packages/helm/istio-official/base
+ISTIO_CHART_VERSION='1.24.3'                  # https://artifacthub.io/packages/helm/istio-official/base
 
 #------------------------------------------------------------------------------
 # [i] Validate the command line arguments

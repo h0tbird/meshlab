@@ -9,8 +9,8 @@ export DOMAIN="demo.lab"
 
 declare -A CELLS=(
   [mngr]=${MNGR}
-  [pasta]="pasta-1 pasta-2"
   [pizza]="pizza-1 pizza-2"
+  [pasta]="pasta-1 pasta-2"
 )
 
 #------------------------------------------------------------------------------

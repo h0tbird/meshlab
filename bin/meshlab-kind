@@ -34,8 +34,8 @@ ISTIO_CHART_VERSION='1.24.3'                  # https://artifacthub.io/packages/
 # [i] Validate the command line arguments
 #------------------------------------------------------------------------------
 
-[[ $# -ne 1 || ($1 != "create" && $1 != "delete") ]] && \
-{ echo "Usage: $0 <create|delete>"; exit 1; }
+[[ $# -lt 1 || ($1 != "create" && $1 != "delete") ]] && \
+{ echo "Usage: $0 <create|delete> [1|2]"; exit 1; }
 
 #------------------------------------------------------------------------------
 # [i] Handle the delete command
@@ -106,7 +106,7 @@ blue "───[ KinD clusters ]────────────────
 [ -d ./tmp ] || mkdir -p ./tmp
 
 # Configure kind
-for CELL in $(list cells all); do
+for CELL in $(list cells all "${3:-1}"); do
   cat <<- EOF > "./tmp/kind-${CELL}.yaml"
 		kind: Cluster
 		apiVersion: kind.x-k8s.io/v1alpha4
@@ -130,7 +130,7 @@ EOF
 done
 
 # Create the clusters
-for CELL in $(list cells all); do for CLUSTER in ${CELLS[${CELL}]}; do (
+for CELL in $(list cells all "${3:-1}"); do for CLUSTER in ${CELLS[${CELL}]}; do (
   kind get clusters 2>/dev/null | grep -q "${CLUSTER}" || {
     kind create cluster --name "${CLUSTER}" --config "./tmp/kind-${CELL}.yaml" -q
   }
@@ -138,7 +138,7 @@ for CELL in $(list cells all); do for CLUSTER in ${CELLS[${CELL}]}; do (
 
 # Get all the IPs
 declare -A IP
-for CLUSTER in $(list clusters all); do
+for CLUSTER in $(list clusters all "${3:-1}"); do
   IP[${CLUSTER}]=$(docker inspect "${CLUSTER}-control-plane" |
     jq -r '.[].NetworkSettings.Networks.kind.IPAddress')
   echo "${CLUSTER} = ${IP[${CLUSTER}]}"
@@ -151,7 +151,7 @@ done
 blue "───[ KUBECONFIG ]───────────────────────────────────────────────────────"
 
 # Use routable IPs
-for CLUSTER in $(list clusters all); do
+for CLUSTER in $(list clusters all "${3:-1}"); do
   SERVER="https://${IP[${CLUSTER}]}:6443"; echo "Server: ${SERVER}"
   kubectl config set-cluster "kind-${CLUSTER}" --server="${SERVER}"
 done
@@ -182,7 +182,7 @@ helm repo update
 blue "───[ Cilium CNI ]───────────────────────────────────────────────────────"
 
 # Install the Cilium CNI
-for CLUSTER in $(list clusters all); do (
+for CLUSTER in $(list clusters all "${3:-1}"); do (
 
   # Return early if already running
   kubectl --context "kind-${CLUSTER}" -n kube-system \
@@ -202,7 +202,7 @@ for CLUSTER in $(list clusters all); do (
 echo
 
 # Wait for all the nodes to be ready
-for CLUSTER in $(list clusters all); do (
+for CLUSTER in $(list clusters all "${3:-1}"); do (
   kubectl --context "kind-${CLUSTER}" \
     wait --for=condition=Ready nodes \
     --all --timeout=180s
@@ -217,7 +217,7 @@ blue "───[ ClusterMesh ]────────────────�
 # With --service-type LoadBalancer, cilium needs connectivity to the external IPs
 # Works if it runns on the linux VM, but not on OSX without a route and a TCP proxy.
 
-for CELL in $(list cells wkld); do (
+for CELL in $(list cells wkld "${3:-1}"); do (
 
   # Get the clusters of the cell
   IFS=" " read -r -a CLUSTERS <<< "${CELLS[${CELL}]}"
@@ -239,7 +239,7 @@ for CELL in $(list cells wkld); do (
 
 blue "───[ k8s_gateway ]──────────────────────────────────────────────────────"
 
-for CLUSTER in $(list clusters all); do (
+for CLUSTER in $(list clusters all "${3:-1}"); do (
   helm --kube-context "kind-${CLUSTER}" \
     upgrade -i exdns k8s_gateway/k8s-gateway \
     --version "${K8S_GATEWAY_CHART_VERSION}" \
@@ -261,7 +261,7 @@ MNGR_EXDNS_IP='null'; until [[ "${MNGR_EXDNS_IP}" != 'null' ]]; do
 done
 
 # Configure CoreDNS
-for CELL in $(list cells all); do for CLUSTER in ${CELLS[${CELL}]}; do (
+for CELL in $(list cells all "${3:-1}"); do for CLUSTER in ${CELLS[${CELL}]}; do (
 
   kubectl --context "kind-${CLUSTER}" -n kube-system create cm coredns \
   --dry-run=client -o yaml --from-literal=Corefile="
@@ -353,7 +353,7 @@ argocd context "${MNGR}" 2> /dev/null || {
     --password "${ARGOCD_PASS}"
 
   # Add clusters with labels
-  for CELL in $(list cells wkld); do for CLUSTER in ${CELLS[${CELL}]}; do
+  for CELL in $(list cells wkld "${3:-1}"); do for CLUSTER in ${CELLS[${CELL}]}; do
     argocd cluster list | grep -q "${CLUSTER}" || \
     argocd cluster add -y "kind-${CLUSTER}" \
       --name "${CLUSTER}" \
@@ -435,7 +435,7 @@ k0 create secret generic argocd-credentials \
  --dry-run=client -o yaml | k0 -n argocd apply -f -
 
 # Create the monitoring namespace on all clusters
-for CLUSTER in $(list clusters all); do (
+for CLUSTER in $(list clusters all "${3:-1}"); do (
   kubectl --context "kind-${CLUSTER}" create ns monitoring \
   --dry-run=client -o yaml | kubectl --context "kind-${CLUSTER}" apply -f -
 ) & done; wait
@@ -605,7 +605,7 @@ blue "───[ Istio remote secrets ]─────────────�
 # TODO: Remove this if fixed by upstream.
 # https://github.com/istio/istio/issues/52739
 # https://github.com/istio/istio/issues/42137
-for CLUSTER in $(list clusters wkld); do
+for CLUSTER in $(list clusters wkld "${3:-1}"); do
 
   # Continue if already patched
   k --context "kind-${CLUSTER}" get clusterrole \
@@ -618,7 +618,7 @@ for CLUSTER in $(list clusters wkld); do
   --type='json' -p='[{"op": "add", "path": "/rules/1/resources/-", "value": "configmaps"}]'
 done
 
-for CELL in $(list cells wkld); do (
+for CELL in $(list cells wkld "${3:-1}"); do (
   IFS=" " read -r -a CLUSTERS <<< "${CELLS[${CELL}]}"
   istioctl create-remote-secret --context "kind-${CLUSTERS[0]}" --name="${CLUSTERS[0]}" | \
   kubectl --context "kind-${CLUSTERS[1]}" apply -f -

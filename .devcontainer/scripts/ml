@@ -13,7 +13,7 @@ function blue {
   blue "────[ mnger-1 \xf0\x9f\x9a\x80 ]${LINE}"
   k --context kind-mnger-1 get po -A --field-selector=status.phase!=Succeeded; echo
   k --context kind-mnger-1 get svc -A --field-selector=spec.type=LoadBalancer
-  blue "────[ pasta-1 \xf0\x9f\x8d\x95 ]${LINE}"
+  blue "────[ pasta-1 \xf0\x9f\x8d\x9d ]${LINE}"
   k --context kind-pasta-1 get po -A --field-selector=status.phase!=Succeeded; echo
   k --context kind-pasta-1 get svc -A --field-selector=spec.type=LoadBalancer
   exit 0

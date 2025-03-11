@@ -7,7 +7,7 @@
 export MNGR="mnger-1"
 export DOMAIN="demo.lab"
 
-export -A CELLS=(
+declare -A CELLS=(
   [mngr]=${MNGR}
   [pasta]="pasta-1 pasta-2"
   [pizza]="pizza-1 pizza-2"
@@ -18,18 +18,23 @@ export -A CELLS=(
 #------------------------------------------------------------------------------
 
 function list {
-  case $1 in
-    "cells")
-      for CELL in "${!CELLS[@]}"; do
-        [[ "${2:-all}" == "wkld" && "$CELL" == "mngr" ]] && continue
-        echo -n "${CELL} "
-      done ;;
-    "clusters")
-      for CELL in "${!CELLS[@]}"; do
-        [[ "${2:-all}" == "wkld" && "$CELL" == "mngr" ]] && continue
-        echo -n "${CELLS[${CELL}]} "
-      done ;;
-  esac
+
+  local count=0
+  local limit="${3:-0}"
+
+  for CELL in "${!CELLS[@]}"; do
+
+    [[ "${2}" == "wkld" && "${CELL}" == "mngr" ]] && continue
+    [[ "${CELL}" != "mngr" ]] && ((count++))
+    [[ "${limit}" -gt 0 && "${count}" -gt "${limit}" ]] && break
+
+    case $1 in
+      "cells")
+        echo -n "${CELL} " ;;
+      "clusters")
+        echo -n "${CELLS[${CELL}]} " ;;
+    esac
+  done
 }
 
 #------------------------------------------------------------------------------

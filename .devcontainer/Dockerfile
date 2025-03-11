@@ -46,17 +46,17 @@ RUN VERSION="v4.45.1" && ARCH=$(dpkg --print-architecture) && \
     chmod +x /usr/local/bin/yq && echo "source <(yq completion zsh) && compdef _yq yq" >> /etc/zsh/zshrc
 
 # Install argocd (https://github.com/argoproj/argo-cd/releases)
-RUN VERSION="v2.14.2" && ARCH=$(dpkg --print-architecture) && \
+RUN VERSION="v2.14.5" && ARCH=$(dpkg --print-architecture) && \
     wget https://github.com/argoproj/argo-cd/releases/download/${VERSION}/argocd-linux-${ARCH} -O /usr/local/bin/argocd && \
     chmod +x /usr/local/bin/argocd && echo "source <(argocd completion zsh) && compdef _argocd argocd" >> /etc/zsh/zshrc
 
 # Install argo (https://github.com/argoproj/argo-workflows/releases)
-RUN VERSION="v3.6.4" && ARCH=$(dpkg --print-architecture) && \
+RUN VERSION="v3.6.5" && ARCH=$(dpkg --print-architecture) && \
     wget -qO- https://github.com/argoproj/argo-workflows/releases/download/${VERSION}/argo-linux-${ARCH}.gz | gunzip -c > /usr/local/bin/argo && \
     chmod +x /usr/local/bin/argo && echo "source <(argo completion zsh) && compdef _argo argo" >> /etc/zsh/zshrc
 
 # Install cilium-cli (https://github.com/cilium/cilium-cli/releases)
-RUN VERSION="v0.16.24" && ARCH=$(dpkg --print-architecture) && \
+RUN VERSION="v0.18.2" && ARCH=$(dpkg --print-architecture) && \
     wget -qO- https://github.com/cilium/cilium-cli/releases/download/${VERSION}/cilium-linux-${ARCH}.tar.gz | tar -xz -C /usr/local/bin/ && \
     chmod +x /usr/local/bin/cilium && echo "source <(cilium completion zsh) && compdef _cilium cilium" >> /etc/zsh/zshrc
 
@@ -67,19 +67,19 @@ RUN VERSION="1.24.3" && ARCH=$(dpkg --print-architecture) && \
     echo "source <(istioctl completion zsh) && compdef _istioctl istioctl" >> /etc/zsh/zshrc
 
 # Install step (https://github.com/smallstep/cli/releases)
-RUN VERSION="0.28.2" && ARCH=$(dpkg --print-architecture) && \
+RUN VERSION="0.28.5" && ARCH=$(dpkg --print-architecture) && \
     wget -q https://dl.smallstep.com/gh-release/cli/gh-release-header/v${VERSION}/step-cli_${VERSION}-1_${ARCH}.deb && \
     dpkg -i step-cli_${VERSION}-1_${ARCH}.deb && rm -f step-cli_${VERSION}-1_${ARCH}.deb && \
     echo "source <(step completion zsh) && compdef _step step" >> /etc/zsh/zshrc
 
 # Install gh (https://github.com/cli/cli/releases)
-RUN VERSION="2.67.0" && ARCH=$(dpkg --print-architecture) && \
+RUN VERSION="2.68.1" && ARCH=$(dpkg --print-architecture) && \
     curl -LO https://github.com/cli/cli/releases/download/v${VERSION}/gh_${VERSION}_linux_${ARCH}.deb && \
     dpkg -i gh_${VERSION}_linux_${ARCH}.deb && rm -f gh_${VERSION}_linux_${ARCH}.deb && \
     echo "source <(gh completion -s zsh) && compdef _gh gh" >> /etc/zsh/zshrc
 
 # Install mdbook (https://github.com/rust-lang/mdBook/releases)
-RUN VERSION="v0.4.45" && ARCH=$(arch) && \
+RUN VERSION="v0.4.47" && ARCH=$(arch) && \
     curl -sSL https://github.com/rust-lang/mdbook/releases/download/${VERSION}/mdbook-${VERSION}-${ARCH}-unknown-linux-musl.tar.gz | \
     tar -xzC /usr/local/bin mdbook && echo "source <(mdbook completions zsh) && compdef _mdbook mdbook" >> /etc/zsh/zshrc
 

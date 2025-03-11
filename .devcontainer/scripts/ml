@@ -13,9 +13,9 @@ function blue {
   blue "────[ mnger-1 \xf0\x9f\x9a\x80 ]${LINE}"
   k --context kind-mnger-1 get po -A --field-selector=status.phase!=Succeeded; echo
   k --context kind-mnger-1 get svc -A --field-selector=spec.type=LoadBalancer
-  blue "────[ pizza-1 \xf0\x9f\x8d\x95 ]${LINE}"
-  k --context kind-pizza-1 get po -A --field-selector=status.phase!=Succeeded; echo
-  k --context kind-pizza-1 get svc -A --field-selector=spec.type=LoadBalancer
+  blue "────[ pasta-1 \xf0\x9f\x8d\x95 ]${LINE}"
+  k --context kind-pasta-1 get po -A --field-selector=status.phase!=Succeeded; echo
+  k --context kind-pasta-1 get svc -A --field-selector=spec.type=LoadBalancer
   exit 0
 }
 
@@ -23,15 +23,15 @@ function blue {
 blue "────[ Mnger \xf0\x9f\x9a\x80 ]${LINE}"
 k --context kind-mnger-1 get po -A --field-selector=status.phase!=Succeeded; echo
 k --context kind-mnger-1 get svc -A --field-selector=spec.type=LoadBalancer
-blue "────[ Pizza \xf0\x9f\x8d\x95 ]${LINE}"
-k --context kind-pizza-1 get po -A --field-selector=status.phase!=Succeeded; echo
-k --context kind-pizza-1 get svc -A --field-selector=spec.type=LoadBalancer
-echo -e "\n${DOTS}\e[1;36m(pizza-1 \xf0\x9f\x91\x86)\e[0m${DOTS}\e[1;36m(pizza-2 \xf0\x9f\x91\x87)\e[0m${DOTS}\n"
-k --context kind-pizza-2 get po -A --field-selector=status.phase!=Succeeded; echo
-k --context kind-pizza-2 get svc -A --field-selector=spec.type=LoadBalancer
 blue "────[ Pasta \xf0\x9f\x8d\x9d ]${LINE}"
 k --context kind-pasta-1 get po -A --field-selector=status.phase!=Succeeded; echo
 k --context kind-pasta-1 get svc -A --field-selector=spec.type=LoadBalancer
 echo -e "\n${DOTS}\e[1;36m(pasta-1 \xf0\x9f\x91\x86)\e[0m${DOTS}\e[1;36m(pasta-2 \xf0\x9f\x91\x87)\e[0m${DOTS}\n"
 k --context kind-pasta-2 get po -A --field-selector=status.phase!=Succeeded; echo
 k --context kind-pasta-2 get svc -A --field-selector=spec.type=LoadBalancer
+blue "────[ Pizza \xf0\x9f\x8d\x95 ]${LINE}"
+k --context kind-pizza-1 get po -A --field-selector=status.phase!=Succeeded; echo
+k --context kind-pizza-1 get svc -A --field-selector=spec.type=LoadBalancer
+echo -e "\n${DOTS}\e[1;36m(pizza-1 \xf0\x9f\x91\x86)\e[0m${DOTS}\e[1;36m(pizza-2 \xf0\x9f\x91\x87)\e[0m${DOTS}\n"
+k --context kind-pizza-2 get po -A --field-selector=status.phase!=Succeeded; echo
+k --context kind-pizza-2 get svc -A --field-selector=spec.type=LoadBalancer

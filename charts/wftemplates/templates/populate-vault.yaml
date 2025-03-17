@@ -14,7 +14,7 @@ spec:
       - name: vault-token
         value: root
     script:
-      image: h0tbird/toolbox
+      image: ghcr.io/h0tbird/meshlab/toolbox:latest
       command: [sh]
       env:
         - name: VAULT_ADDR

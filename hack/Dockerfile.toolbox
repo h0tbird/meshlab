@@ -27,7 +27,7 @@ FROM alpine:edge
 
 LABEL "org.opencontainers.image.title"="Meshlab's toolbox container"
 LABEL "org.opencontainers.image.description"="A toolbox container for various utilities"
-LABEL "org.opencontainers.image.source"="https://github.com/h0tbird/meshlab"
+LABEL "org.opencontainers.image.source"="https://github.com/h0tbird/meshlab/tree/master/hack/Dockerfile.toolbox"
 
 COPY --from=build /tmp/vault /usr/local/bin/vault
 

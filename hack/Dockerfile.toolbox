@@ -2,10 +2,9 @@
 # Buildtime
 #------------------------------------------------------------------------------
 
-FROM --platform=$BUILDPLATFORM alpine:edge AS build
+FROM alpine:edge AS build
 
 ARG TARGETPLATFORM
-ARG BUILDPLATFORM
 ARG VERSION=1.16.2
 
 WORKDIR /tmp/

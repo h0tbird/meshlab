@@ -55,3 +55,12 @@ pilot-discovery:
 		--build-arg="GIT_SHA=$$(git rev-parse HEAD)" \
 		--build-arg="BASE_IMAGE_TAG=${BASE_IMAGE_TAG}" \
 		--push .
+
+.PHONY: toolbox
+toolbox: IMG := ${REGISTRY}/toolbox:latest
+toolbox:
+	@echo "Building toolbox"
+	docker buildx build -t ${IMG} \
+		--platform linux/amd64,linux/arm64 \
+		-f ./hack/Dockerfile.toolbox \
+		. # --push .

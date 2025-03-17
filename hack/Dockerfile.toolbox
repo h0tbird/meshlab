@@ -25,6 +25,10 @@ RUN apk --update add --virtual verify gpgme unzip \
 
 FROM alpine:edge
 
+LABEL "org.opencontainers.image.title"="Meshlab's toolbox container"
+LABEL "org.opencontainers.image.description"="A toolbox container for various utilities"
+LABEL "org.opencontainers.image.source"="https://github.com/h0tbird/meshlab"
+
 COPY --from=build /tmp/vault /usr/local/bin/vault
 
 RUN apk --update add jq kubectl \

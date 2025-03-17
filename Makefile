@@ -57,10 +57,10 @@ pilot-discovery:
 		--push .
 
 .PHONY: toolbox
-toolbox: IMG := ${REGISTRY}/toolbox:latest
+toolbox: IMG := ${REGISTRY}/meshlab/toolbox:latest
 toolbox:
 	@echo "Building toolbox"
 	docker buildx build -t ${IMG} \
 		--platform linux/amd64,linux/arm64 \
 		-f ./hack/Dockerfile.toolbox \
-		. # --push .
+		--push .

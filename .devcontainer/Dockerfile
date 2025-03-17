@@ -2,6 +2,11 @@
 # See (https://github.com/devcontainers/images/tree/main/src/base-ubuntu)
 FROM mcr.microsoft.com/devcontainers/base:ubuntu
 
+# Labels
+LABEL "org.opencontainers.image.title"="Meshlab's devcontainer"
+LABEL "org.opencontainers.image.description"="A devcontainer for Meshlab"
+LABEL "org.opencontainers.image.source"="https://github.com/h0tbird/meshlab/tree/master/.devcontainer/Dockerfile"
+
 # Set locale to en_US.UTF-8
 ENV LOCALE=en_US.UTF-8 LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 

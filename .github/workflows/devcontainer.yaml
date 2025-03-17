@@ -28,6 +28,6 @@ jobs:
     - name: Build and push devcontainer
       uses: devcontainers/ci@v0.3
       with:
-        imageName: ghcr.io/h0tbird/meshlab-devcontainer
-        cacheFrom: ghcr.io/h0tbird/meshlab-devcontainer
+        imageName: ghcr.io/h0tbird/meshlab/devcontainer
+        cacheFrom: ghcr.io/h0tbird/meshlab/devcontainer
         push: always

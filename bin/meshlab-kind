@@ -144,22 +144,12 @@ for CLUSTER in $(list clusters all "${3:-1}"); do
   echo "${CLUSTER} = ${IP[${CLUSTER}]}"
 done
 
-#------------------------------------------------------------------------------
-# [i] Setup KUBECONFIG
-#------------------------------------------------------------------------------
-
-blue "───[ KUBECONFIG ]───────────────────────────────────────────────────────"
-
-# Use routable IPs
-for CLUSTER in $(list clusters all "${3:-1}"); do
-  SERVER="https://${IP[${CLUSTER}]}:6443"; echo "Server: ${SERVER}"
-  kubectl config set-cluster "kind-${CLUSTER}" --server="${SERVER}"
-done
-
+# Helper function k0
 function k0 {
   kubectl --context "kind-${MNGR}" "${@}"
 }
 
+# Helper function h0
 function h0 {
   helm --kube-context "kind-${MNGR}" "${@}"
 }
@@ -342,6 +332,14 @@ blue "───[ Register clusters to ArgoCD ]───────────�
 # Check if the ArgoCD context exists
 argocd context "${MNGR}" 2> /dev/null || {
 
+  # Switch to routable API server IPs
+  cp -f ~/.kube/config ./tmp/config.copy
+  for CLUSTER in $(list clusters all "${3:-1}"); do
+    kubectl --kubeconfig ./tmp/config.copy \
+    config set-cluster "kind-${CLUSTER}" \
+    --server="https://${IP[${CLUSTER}]}:6443"
+  done
+
   # Get the external LoadBalancer IP
   ARGOCD_IP=$(getExtIP "${MNGR}" argocd argocd-server)
 
@@ -356,10 +354,14 @@ argocd context "${MNGR}" 2> /dev/null || {
   for CELL in $(list cells wkld "${3:-1}"); do for CLUSTER in ${CELLS[${CELL}]}; do
     argocd cluster list | grep -q "${CLUSTER}" || \
     argocd cluster add -y "kind-${CLUSTER}" \
+      --kubeconfig ./tmp/config.copy \
       --name "${CLUSTER}" \
       --label name="${CLUSTER}" \
       --label cell="${CELL}"
   done; done
+
+  # Delete copy
+  rm -f ./tmp/config.copy
 }
 
 #------------------------------------------------------------------------------

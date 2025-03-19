@@ -7,8 +7,6 @@ export DOCKER_CLI_HINTS=false
 # Create and run dev container
 devcontainer up \
   --dotfiles-repository https://github.com/h0tbird/devcontainer.git \
-  --mount "type=bind,source=/run/host-services/ssh-auth.sock,target=/ssh-agent" \
-  --mount "type=bind,source=/host_mnt/Users/h0tbird/.kube/config,target=/root/.kube/config" \
   --workspace-folder . &>/dev/null
 
 # Copy ~/.gnupg to the dev container

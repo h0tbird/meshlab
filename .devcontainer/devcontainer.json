@@ -25,7 +25,7 @@
 	},
 	"remoteUser": "root",
 	"runArgs": [
-		"--name", "devcontainer",
+		"--name", "meshlab",
 		"--network", "host",
 		"--pid", "host",
 		"--privileged"

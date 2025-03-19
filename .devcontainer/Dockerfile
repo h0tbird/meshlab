@@ -7,8 +7,9 @@ LABEL "org.opencontainers.image.title"="Meshlab's devcontainer"
 LABEL "org.opencontainers.image.description"="A devcontainer for Meshlab"
 LABEL "org.opencontainers.image.source"="https://github.com/h0tbird/meshlab/tree/master/.devcontainer/Dockerfile"
 
-# Set locale to en_US.UTF-8
+# Environment variables
 ENV LOCALE=en_US.UTF-8 LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
+ENV PATH=/workspaces/meshlab/bin:${PATH}
 
 # Install base packages
 RUN apt update && \
@@ -92,6 +93,3 @@ RUN VERSION="v0.4.47" && ARCH=$(arch) && \
 RUN VERSION="0.3.3" && ARCH=$(dpkg --print-architecture) && \
     wget -qO- https://github.com/h0tbird/k-swarm/releases/download/v${VERSION}/swarmctl_${VERSION}_linux_${ARCH}.tar.gz | tar -xz -C /usr/local/bin/ && \
     chmod +x /usr/local/bin/swarmctl && echo "source <(swarmctl completion zsh) && compdef _swarmctl swarmctl" >> /etc/zsh/zshrc
-
-# Copy scripts to /usr/local/bin
-COPY scripts/* /usr/local/bin/

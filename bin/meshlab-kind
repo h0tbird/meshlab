@@ -233,6 +233,10 @@ for CELL in $(list cells wkld "${WLCNT}"); do (
   kubectl --context "kind-${CLUSTERS[1]}" -n kube-system get deploy clustermesh-apiserver 2>/dev/null &&
   exit 0
 
+  # Shared certificate authority
+  kubectl --context "kind-${CLUSTERS[0]}" -n kube-system get secret cilium-ca -o yaml |
+  kubectl --context "kind-${CLUSTERS[1]}" -n kube-system replace --force -f -
+
   # Install
   cilium clustermesh enable --context "kind-${CLUSTERS[0]}" --service-type LoadBalancer
   cilium clustermesh enable --context "kind-${CLUSTERS[1]}" --service-type LoadBalancer

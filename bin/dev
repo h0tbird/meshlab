@@ -10,17 +10,17 @@ devcontainer up \
   --workspace-folder . &>/dev/null
 
 # Copy ~/.gnupg to the dev container
-docker exec -t devcontainer test -d /root/.gnupg || {
-  docker cp ~/.gnupg devcontainer:/root &>/dev/null
-  docker exec -t devcontainer /bin/bash -c "
+docker exec -t meshlab test -d /root/.gnupg || {
+  docker cp ~/.gnupg meshlab:/root &>/dev/null
+  docker exec -t meshlab /bin/bash -c "
     chown -R root:root /root/.gnupg &&
     echo 'pinentry-mode loopback' > /root/.gnupg/gpg-agent.conf"
 }
 
 # Copy ~/.gitconfig to the dev container
-docker exec -t devcontainer test -f /root/.gitconfig || {
-  docker cp ~/.gitconfig devcontainer:/root/.gitconfig
-  docker exec -t devcontainer /bin/bash -c "
+docker exec -t meshlab test -f /root/.gitconfig || {
+  docker cp ~/.gitconfig meshlab:/root/.gitconfig
+  docker exec -t meshlab /bin/bash -c "
     chown root:root /root/.gitconfig &&
     chmod 644 /root/.gitconfig"
 }

@@ -144,6 +144,21 @@ for CLUSTER in $(list clusters all "${3:-1}"); do
   echo "${CLUSTER} = ${IP[${CLUSTER}]}"
 done
 
+#------------------------------------------------------------------------------
+# [i] Setup KUBECONFIG
+#------------------------------------------------------------------------------
+
+blue "───[ KUBECONFIG ]───────────────────────────────────────────────────────"
+
+# Setup an in-cluster reachable API server config
+cp -f ~/.kube/config ~/.kube/config.in-cluster
+for CLUSTER in $(list clusters all "${3:-1}"); do
+  echo "Server: https://${IP[${CLUSTER}]}:6443"
+  kubectl --kubeconfig ~/.kube/config.in-cluster \
+  config set-cluster "kind-${CLUSTER}" \
+  --server="https://${IP[${CLUSTER}]}:6443"
+done
+
 # Helper function k0
 function k0 {
   kubectl --context "kind-${MNGR}" "${@}"
@@ -332,14 +347,6 @@ blue "───[ Register clusters to ArgoCD ]───────────�
 # Check if the ArgoCD context exists
 argocd context "${MNGR}" 2> /dev/null || {
 
-  # Switch to routable API server IPs
-  cp -f ~/.kube/config ./tmp/config.copy
-  for CLUSTER in $(list clusters all "${3:-1}"); do
-    kubectl --kubeconfig ./tmp/config.copy \
-    config set-cluster "kind-${CLUSTER}" \
-    --server="https://${IP[${CLUSTER}]}:6443"
-  done
-
   # Get the external LoadBalancer IP
   ARGOCD_IP=$(getExtIP "${MNGR}" argocd argocd-server)
 
@@ -354,14 +361,11 @@ argocd context "${MNGR}" 2> /dev/null || {
   for CELL in $(list cells wkld "${3:-1}"); do for CLUSTER in ${CELLS[${CELL}]}; do
     argocd cluster list | grep -q "${CLUSTER}" || \
     argocd cluster add -y "kind-${CLUSTER}" \
-      --kubeconfig ./tmp/config.copy \
+      --kubeconfig ~/.kube/config.in-cluster \
       --name "${CLUSTER}" \
       --label name="${CLUSTER}" \
       --label cell="${CELL}"
   done; done
-
-  # Delete copy
-  rm -f ./tmp/config.copy
 }
 
 #------------------------------------------------------------------------------
@@ -622,10 +626,12 @@ done
 
 for CELL in $(list cells wkld "${3:-1}"); do (
   IFS=" " read -r -a CLUSTERS <<< "${CELLS[${CELL}]}"
-  istioctl create-remote-secret --context "kind-${CLUSTERS[0]}" --name="${CLUSTERS[0]}" | \
-  kubectl --context "kind-${CLUSTERS[1]}" apply -f -
-  istioctl create-remote-secret --context "kind-${CLUSTERS[1]}" --name="${CLUSTERS[1]}" | \
-  kubectl --context "kind-${CLUSTERS[0]}" apply -f -
+  istioctl --kubeconfig ~/.kube/config.in-cluster create-remote-secret \
+    --context "kind-${CLUSTERS[0]}" --name="${CLUSTERS[0]}" | \
+    kubectl --context "kind-${CLUSTERS[1]}" apply -f -
+  istioctl --kubeconfig ~/.kube/config.in-cluster create-remote-secret \
+    --context "kind-${CLUSTERS[1]}" --name="${CLUSTERS[1]}" | \
+    kubectl --context "kind-${CLUSTERS[0]}" apply -f -
 ) & done; wait
 
 #------------------------------------------------------------------------------

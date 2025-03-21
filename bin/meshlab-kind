@@ -35,7 +35,7 @@ ISTIO_CHART_VERSION='1.24.3'                  # https://artifacthub.io/packages/
 #------------------------------------------------------------------------------
 
 [[ $# -lt 1 || ($1 != "create" && $1 != "delete") ]] && \
-{ echo "Usage: $0 <create|delete> [1|2]"; exit 1; }
+{ echo "Usage: $(basename "$0") <create|delete> [1|2]"; exit 1; }
 
 #------------------------------------------------------------------------------
 # [i] Handle the delete command

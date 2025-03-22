@@ -29,6 +29,7 @@ VAULT_CHART_VERSION='0.29.1'                  # https://artifacthub.io/packages/
 CERT_MANAGER_CHART_VERSION='v1.17.1'          # https://artifacthub.io/packages/helm/cert-manager/cert-manager
 KUBERNETES_REPLICATOR_CHART_VERSION='2.11.1'  # https://artifacthub.io/packages/helm/kubernetes-replicator/kubernetes-replicator
 ISTIO_CHART_VERSION='1.24.3'                  # https://artifacthub.io/packages/helm/istio-official/base
+KIALI_CHART_VERSION='2.7.1'                   # https://artifacthub.io/packages/helm/kiali/kiali-operator
 
 #------------------------------------------------------------------------------
 # [i] Validate the command line arguments
@@ -387,6 +388,7 @@ helm template ./charts/vault --set "chartVersion=${VAULT_CHART_VERSION}" | k0 ap
 helm template ./charts/cert-manager --set "chartVersion=${CERT_MANAGER_CHART_VERSION}" | k0 apply -f -
 helm template ./charts/kubernetes-replicator --set "chartVersion=${KUBERNETES_REPLICATOR_CHART_VERSION}" | k0 apply -f -
 helm template ./charts/istio --set "chartVersion=${ISTIO_CHART_VERSION}" | k0 apply -f -
+helm template ./charts/kiali --set "chartVersion=${KIALI_CHART_VERSION}" | k0 apply -f -
 
 #------------------------------------------------------------------------------
 # [i] Setup ArgoWF
@@ -604,6 +606,21 @@ spec:
           parameters:
           - name: selectors
             value: name=istio-ewgw
+      - name: kiali-operator
+        dependencies:
+        - prometheus
+        - grafana
+        - istio-cni
+        - istio-ztunnel
+        - istio-nsgw
+        - istio-ewgw
+        templateRef:
+          name: argocd-sync-and-wait
+          template: argocd-sync-and-wait
+        arguments:
+          parameters:
+          - name: selectors
+            value: name=kiali-operator
 EOF
 
 #------------------------------------------------------------------------------

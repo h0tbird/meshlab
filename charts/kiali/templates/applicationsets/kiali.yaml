@@ -1,0 +1,28 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: kiali-operator
+  namespace: argocd
+spec:
+  generators:
+  - list:
+      elements:
+      - name: mnger-1
+        server: https://kubernetes.default.svc
+  template:
+    metadata:
+      name: {{`'{{name}}-kiali-operator'`}}
+      labels:
+        name: kiali-operator
+    spec:
+      project: monitoring
+      source:
+        repoURL: https://kiali.org/helm-charts
+        targetRevision: {{ .Values.chartVersion }}
+        chart: kiali-operator
+        helm:
+          releaseName: kiali-operator
+      destination:
+        server: {{`'{{server}}'`}}
+        namespace: monitoring

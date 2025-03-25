@@ -15,11 +15,9 @@ ENV PATH=/workspaces/meshlab/bin:${PATH}
 RUN apt update && \
     apt install -y --no-install-recommends \
     curl jq gnupg iputils-ping dnsutils neovim \
-    iptables socat netcat-openbsd && \
+    socat netcat-openbsd && \
     apt autoremove -y && apt clean -y && \
     rm -rf /var/lib/apt/lists/* && \
-    update-alternatives --install /usr/sbin/iptables iptables /usr/sbin/iptables-legacy 100 && \
-    update-alternatives --install /usr/sbin/ip6tables ip6tables /usr/sbin/ip6tables-legacy 100 && \
     chmod -x /etc/update-motd.d/*
 
 # Set zsh as default shell
@@ -34,14 +32,14 @@ RUN VERSION="v0.27.0" && ARCH=$(dpkg --print-architecture) && \
     wget https://github.com/kubernetes-sigs/kind/releases/download/${VERSION}/kind-linux-${ARCH} -O /usr/local/bin/kind && \
     chmod +x /usr/local/bin/kind && echo "source <(kind completion zsh) && compdef _kind kind" >> /etc/zsh/zshrc
 
-# Install kubectl (https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/)
-RUN VERSION="v1.32.2" && ARCH=$(dpkg --print-architecture) && \
+# Install kubectl (https://cdn.dl.k8s.io/release/stable.txt)
+RUN VERSION="v1.32.3" && ARCH=$(dpkg --print-architecture) && \
     wget https://dl.k8s.io/release/${VERSION}/bin/linux/${ARCH}/kubectl -O /usr/local/bin/kubectl && \
     chmod +x /usr/local/bin/kubectl && ln -s /usr/local/bin/kubectl /usr/local/bin/k && \
     echo "source <(kubectl completion zsh) && compdef _kubectl kubectl" >> /etc/zsh/zshrc
 
 # Install helm (https://github.com/helm/helm/releases)
-RUN VERSION="v3.17.1" && \
+RUN VERSION="v3.17.2" && \
     curl -fsSLo /tmp/get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 && \
     chmod 700 /tmp/get_helm.sh && /tmp/get_helm.sh --version ${VERSION} && rm -f /tmp/get_helm.sh && \
     echo "source <(helm completion zsh) && compdef _helm helm" >> /etc/zsh/zshrc
@@ -52,8 +50,8 @@ RUN VERSION="v4.45.1" && ARCH=$(dpkg --print-architecture) && \
     chmod +x /usr/local/bin/yq && echo "source <(yq completion zsh) && compdef _yq yq" >> /etc/zsh/zshrc
 
 # Install argocd (https://github.com/argoproj/argo-cd/releases)
-RUN VERSION="v2.14.5" && ARCH=$(dpkg --print-architecture) && \
-    wget https://github.com/argoproj/argo-cd/releases/download/${VERSION}/argocd-linux-${ARCH} -O /usr/local/bin/argocd && \
+RUN VERSION="v2.14.8" && ARCH=$(dpkg --print-architecture) && \
+    wget https://github.com/argoproj/argo-cd/releases/download/${VERSION}/argocd-linux-${ARCH} -qO /usr/local/bin/argocd && \
     chmod +x /usr/local/bin/argocd && echo "source <(argocd completion zsh) && compdef _argocd argocd" >> /etc/zsh/zshrc
 
 # Install argo (https://github.com/argoproj/argo-workflows/releases)
@@ -69,27 +67,32 @@ RUN VERSION="v0.18.2" && ARCH=$(dpkg --print-architecture) && \
 # Install istioctl (https://github.com/istio/istio/releases)
 RUN VERSION="1.24.3" && ARCH=$(dpkg --print-architecture) && \
     curl -fsSLo /tmp/istio.tar.gz https://github.com/istio/istio/releases/download/${VERSION}/istio-${VERSION}-linux-${ARCH}.tar.gz && \
-    tar -C /usr/local/bin --strip-components 2 -xvf /tmp/istio.tar.gz istio-${VERSION}/bin/istioctl && rm -f /tmp/istio.tar.gz && \
+    tar -xC /usr/local/bin --strip-components 2 -f /tmp/istio.tar.gz istio-${VERSION}/bin/istioctl && rm -f /tmp/istio.tar.gz && \
     echo "source <(istioctl completion zsh) && compdef _istioctl istioctl" >> /etc/zsh/zshrc
 
 # Install step (https://github.com/smallstep/cli/releases)
-RUN VERSION="0.28.5" && ARCH=$(dpkg --print-architecture) && \
+RUN VERSION="0.28.6" && ARCH=$(dpkg --print-architecture) && \
     wget -q https://dl.smallstep.com/gh-release/cli/gh-release-header/v${VERSION}/step-cli_${VERSION}-1_${ARCH}.deb && \
     dpkg -i step-cli_${VERSION}-1_${ARCH}.deb && rm -f step-cli_${VERSION}-1_${ARCH}.deb && \
     echo "source <(step completion zsh) && compdef _step step" >> /etc/zsh/zshrc
 
 # Install gh (https://github.com/cli/cli/releases)
-RUN VERSION="2.68.1" && ARCH=$(dpkg --print-architecture) && \
-    curl -LO https://github.com/cli/cli/releases/download/v${VERSION}/gh_${VERSION}_linux_${ARCH}.deb && \
+RUN VERSION="2.69.0" && ARCH=$(dpkg --print-architecture) && \
+    curl -fsSLO https://github.com/cli/cli/releases/download/v${VERSION}/gh_${VERSION}_linux_${ARCH}.deb && \
     dpkg -i gh_${VERSION}_linux_${ARCH}.deb && rm -f gh_${VERSION}_linux_${ARCH}.deb && \
     echo "source <(gh completion -s zsh) && compdef _gh gh" >> /etc/zsh/zshrc
 
 # Install mdbook (https://github.com/rust-lang/mdBook/releases)
 RUN VERSION="v0.4.47" && ARCH=$(arch) && \
-    curl -sSL https://github.com/rust-lang/mdbook/releases/download/${VERSION}/mdbook-${VERSION}-${ARCH}-unknown-linux-musl.tar.gz | \
+    curl -fsSL https://github.com/rust-lang/mdbook/releases/download/${VERSION}/mdbook-${VERSION}-${ARCH}-unknown-linux-musl.tar.gz | \
     tar -xzC /usr/local/bin mdbook && echo "source <(mdbook completions zsh) && compdef _mdbook mdbook" >> /etc/zsh/zshrc
 
 # Install swarmctl (https://github.com/h0tbird/k-swarm/releases)
 RUN VERSION="0.3.3" && ARCH=$(dpkg --print-architecture) && \
     wget -qO- https://github.com/h0tbird/k-swarm/releases/download/v${VERSION}/swarmctl_${VERSION}_linux_${ARCH}.tar.gz | tar -xz -C /usr/local/bin/ && \
     chmod +x /usr/local/bin/swarmctl && echo "source <(swarmctl completion zsh) && compdef _swarmctl swarmctl" >> /etc/zsh/zshrc
+
+# Install btop
+RUN VERSION="1.4.0" && ARCH=$(arch) && \
+    wget -qO- https://github.com/aristocratos/btop/releases/download/v${VERSION}/btop-${ARCH}-linux-musl.tbz | \
+    tar -xjC /usr/local/bin --strip-components 3 -f - ./btop/bin/btop

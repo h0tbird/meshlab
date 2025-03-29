@@ -6,10 +6,14 @@ metadata:
   namespace: argocd
 spec:
   generators:
-  - list:
-      elements:
-      - name: mnger-1
-        server: https://kubernetes.default.svc
+  - clusters:
+      selector:
+        matchExpressions:
+        - key: name
+          operator: In
+          values:
+          - pasta-1
+          - pizza-1
   template:
     metadata:
       name: {{`'{{name}}-kiali-operator'`}}

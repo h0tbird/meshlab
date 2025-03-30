@@ -27,6 +27,19 @@ spec:
         chart: kiali-operator
         helm:
           releaseName: kiali-operator
+          valuesObject:
+            cr:
+              create: true
+              namespace: monitoring
+              spec:
+                auth:
+                  strategy: anonymous
+                externalServices:
+                  grafana:
+                    internal_url: http://grafana.demo.lab
+                    external_url: http://grafana.demo.lab
+                  prometheus:
+                    url: http://prometheus.demo.lab
       destination:
         server: {{`'{{server}}'`}}
         namespace: monitoring

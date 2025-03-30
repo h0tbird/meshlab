@@ -32,16 +32,20 @@ spec:
               create: true
               namespace: monitoring
               spec:
+                deployment:
+                  service_type: LoadBalancer
+                server:
+                  port: 80
                 auth:
                   strategy: anonymous
+                kubernetes_config:
+                  cluster_name: {{`'{{name}}'`}}
                 externalServices:
                   grafana:
                     internal_url: http://grafana.demo.lab
                     external_url: http://grafana.demo.lab
                   prometheus:
                     url: http://prometheus.demo.lab
-                kubernetes_config:
-                  cluster_name: {{`'{{name}}'`}}
       destination:
         server: {{`'{{server}}'`}}
         namespace: monitoring

@@ -40,6 +40,8 @@ spec:
                     external_url: http://grafana.demo.lab
                   prometheus:
                     url: http://prometheus.demo.lab
+                kubernetes_config:
+                  cluster_name: {{`'{{name}}'`}}
       destination:
         server: {{`'{{server}}'`}}
         namespace: monitoring

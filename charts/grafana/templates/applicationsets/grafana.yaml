@@ -39,6 +39,8 @@ spec:
             service:
               type: LoadBalancer
               port: 80
+              annotations:
+                  coredns.io/hostname: grafana.demo.lab
       destination:
         server: {{`'{{server}}'`}}
         namespace: monitoring

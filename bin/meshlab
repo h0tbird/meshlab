@@ -694,3 +694,4 @@ swarmctl --context 'pasta-*|pizza-*' w 1:2 --yes --istio-revision stable --image
 publish "${MNGR}" vault vault 8082
 publish "${MNGR}" monitoring prometheus-server 8083
 publish "${MNGR}" monitoring grafana 8084
+publish pasta-1 monitoring kiali 8085

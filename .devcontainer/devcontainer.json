@@ -30,7 +30,7 @@
 		"--pid", "host",
 		"--privileged"
 	],
-	"forwardPorts": [8080, 8081, 8082, 8083, 8084],
+	"forwardPorts": [8080, 8081, 8082, 8083, 8084, 8085],
 	"portsAttributes": {
 		"8080": {
 			"label": "argocd",
@@ -54,6 +54,11 @@
 		},
 		"8084": {
 			"label": "grafana",
+			"onAutoForward": "notify",
+			"protocol": "http"
+		},
+		"8085": {
+			"label": "kiali-pasta",
 			"onAutoForward": "notify",
 			"protocol": "http"
 		}

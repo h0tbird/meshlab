@@ -59,6 +59,11 @@ spec:
                         regex: '(envoy_listener_manager)_worker_(?:.*)_(dispatcher_(?:loop_duration|poll_delay)_us)_(bucket|count|sum)'
                         target_label: __name__
                         replacement: '$${1}_$${2}_$${3}'
+                kubeletstats:
+                  collection_interval: 20s
+                  auth_type: "serviceAccount"
+                  endpoint: "https://${env:K8S_NODE_NAME}:10250"
+                  insecure_skip_verify: true
               processors:
                 resource:
                   attributes:

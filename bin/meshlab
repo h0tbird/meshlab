@@ -168,7 +168,7 @@ function k0 {
 
 # Helper function h0
 function h0 {
-  helm --kube-context "kind-${MNGR}" "${@}"
+  retry helm --kube-context "kind-${MNGR}" "${@}"
 }
 
 #------------------------------------------------------------------------------
@@ -196,7 +196,7 @@ for CLUSTER in $(list clusters all "${WLCNT}"); do (
     get deploy cilium-operator 2>/dev/null && exit 0
 
   # Install
-  helm --kube-context "kind-${CLUSTER}" \
+  retry helm --kube-context "kind-${CLUSTER}" \
     upgrade -i cilium cilium/cilium \
     --version "${CILIUM_CHART_VERSION}" \
     --namespace kube-system \
@@ -251,7 +251,7 @@ for CELL in $(list cells wkld "${WLCNT}"); do (
 blue "───[ k8s_gateway ]──────────────────────────────────────────────────────"
 
 for CLUSTER in $(list clusters all "${WLCNT}"); do (
-  helm --kube-context "kind-${CLUSTER}" \
+  retry helm --kube-context "kind-${CLUSTER}" \
     upgrade -i exdns k8s_gateway/k8s-gateway \
     --version "${K8S_GATEWAY_CHART_VERSION}" \
     --namespace kube-system \

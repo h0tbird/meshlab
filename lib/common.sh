@@ -74,3 +74,9 @@ function publish {
   # Setup socat for additional edge cases
   nohup socat TCP-LISTEN:"${4}",fork TCP:"${IP}":80 &> /dev/null & disown
 }
+
+#------------------------------------------------------------------------------
+# Retry til success
+#------------------------------------------------------------------------------
+
+retry() { until "$@"; do sleep 2; done; }

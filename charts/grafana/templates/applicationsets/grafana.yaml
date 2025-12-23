@@ -26,6 +26,11 @@ spec:
           valuesObject:
             adminPassword: admin
             adminUser: admin
+            grafana.ini:
+              auth.anonymous:
+                enabled: true
+                org_name: MeshLab
+                org_role: Viewer
             datasources:
               datasources.yaml:
                 apiVersion: 1

@@ -40,7 +40,7 @@ spec:
                   strategy: anonymous
                 kubernetes_config:
                   cluster_name: {{`'{{name}}'`}}
-                externalServices:
+                external_services:
                   grafana:
                     internal_url: http://grafana.demo.lab
                     external_url: http://grafana.demo.lab

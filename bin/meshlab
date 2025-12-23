@@ -683,6 +683,41 @@ for CELL in $(list cells wkld "${WLCNT}"); do (
     kubectl --context "kind-${CLUSTERS[0]}" apply -f -
 ) & done; wait
 
+#
+#
+#
+
+GRAFANA_URL="http://$(getExtIP "${MNGR}" monitoring grafana)"
+GRAFANA_ADMIN_USER='admin'
+GRAFANA_ADMIN_PASS='admin'
+
+SA_ID=$(curl -sS -u "${GRAFANA_ADMIN_USER}:${GRAFANA_ADMIN_PASS}" \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"kiali","role":"Viewer"}' \
+  "${GRAFANA_URL}/api/serviceaccounts" | jq '.id')
+
+# if SA_ID is a number
+[[ "${SA_ID}" =~ ^[0-9]+$ ]] && {
+  TOKEN=$(curl -sS -u "${GRAFANA_ADMIN_USER}:${GRAFANA_ADMIN_PASS}" \
+    -H 'Content-Type: application/json' \
+    -d '{"name":"kiali-token"}' \
+    "${GRAFANA_URL}/api/serviceaccounts/${SA_ID}/tokens" | jq -r '.key')
+}
+
+kubectl --context kind-pasta-1 -n monitoring patch kiali kiali --type=merge -p '{
+  "spec":{
+    "external_services":{
+      "grafana":{
+        "auth":{
+          "type":"token",
+          "token":"'"$TOKEN"'",
+          "use_kiali_token":false
+        }
+      }
+    }
+  }
+}'
+
 #------------------------------------------------------------------------------
 # [i] Deploy some workloads
 #------------------------------------------------------------------------------

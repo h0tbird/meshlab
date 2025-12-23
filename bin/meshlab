@@ -174,8 +174,6 @@ EOF
 			[host."http://registry-ghcr.io:5000"]
 			  capabilities = ["pull", "resolve"]
 EOF
-
-    systemctl restart containerd
   '
 ) & done; wait
 

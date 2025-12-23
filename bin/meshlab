@@ -690,38 +690,19 @@ for CELL in $(list cells wkld "${WLCNT}"); do (
 blue "───[ Kiali Grafana Integration ]────────────────────────────────────────"
 
 GRAFANA_URL="http://$(getExtIP "${MNGR}" monitoring grafana)"
-GRAFANA_ADMIN_USER='admin'
-GRAFANA_ADMIN_PASS='admin'
+GRAFANA_AUTH='admin:admin'
 
-SA_ID=$(curl -sS -u "${GRAFANA_ADMIN_USER}:${GRAFANA_ADMIN_PASS}" \
-  -H 'Content-Type: application/json' \
-  -d '{"name":"kiali","role":"Viewer"}' \
-  "${GRAFANA_URL}/api/serviceaccounts" | jq '.id')
+# Create service account and token (fails silently if already exists)
+SA_ID=$(curl -sS -u "${GRAFANA_AUTH}" -H 'Content-Type: application/json' \
+  -d '{"name":"kiali","role":"Viewer"}' "${GRAFANA_URL}/api/serviceaccounts" | jq '.id')
 
-# Only proceed if SA was created successfully (SA_ID is a number)
-if [[ "${SA_ID}" =~ ^[0-9]+$ ]]; then
-  TOKEN=$(curl -sS -u "${GRAFANA_ADMIN_USER}:${GRAFANA_ADMIN_PASS}" \
-    -H 'Content-Type: application/json' \
-    -d '{"name":"kiali-token"}' \
-    "${GRAFANA_URL}/api/serviceaccounts/${SA_ID}/tokens" | jq -r '.key')
-
-  # Patch Kiali on all workload clusters
-  for CLUSTER in $(list clusters wkld "${WLCNT}"); do
-    kubectl --context "kind-${CLUSTER}" -n monitoring patch kiali kiali --type=merge -p '{
-      "spec":{
-        "external_services":{
-          "grafana":{
-            "auth":{
-              "type":"token",
-              "token":"'"${TOKEN}"'",
-              "use_kiali_token":false
-            }
-          }
-        }
-      }
-    }'
-  done
-fi
+[[ "${SA_ID}" =~ ^[0-9]+$ ]] && \
+TOKEN=$(curl -sS -u "${GRAFANA_AUTH}" -H 'Content-Type: application/json' \
+  -d '{"name":"kiali-token"}' "${GRAFANA_URL}/api/serviceaccounts/${SA_ID}/tokens" | jq -r '.key') && \
+for CLUSTER in $(list clusters wkld "${WLCNT}"); do
+  kubectl --context "kind-${CLUSTER}" -n monitoring patch kiali kiali --type=merge \
+    -p '{"spec":{"external_services":{"grafana":{"auth":{"type":"token","token":"'"${TOKEN}"'","use_kiali_token":false}}}}}'
+done
 
 #------------------------------------------------------------------------------
 # [i] Deploy some workloads

@@ -115,6 +115,10 @@ for CELL in $(list cells all "${WLCNT}"); do
 		networking:
 		  disableDefaultCNI: true
 		  kubeProxyMode: "none"
+		containerdConfigPatches:
+		  - |-
+		    [plugins."io.containerd.cri.v1.images".registry]
+		      config_path = "/etc/containerd/certs.d"
 		kubeadmConfigPatches:
 		  - |-
 		    kind: ClusterConfiguration
@@ -137,6 +141,40 @@ for CLUSTER in $(list clusters all "${WLCNT}"); do
     jq -r '.[].NetworkSettings.Networks.kind.IPAddress')
   echo "${CLUSTER} = ${IP[${CLUSTER}]}"
 done
+
+#------------------------------------------------------------------------------
+# [i] Add the registries to containerd
+#------------------------------------------------------------------------------
+
+blue "───[ Configure containerd ]─────────────────────────────────────────────"
+
+for CLUSTER in $(list clusters all "${WLCNT}"); do (
+  docker exec -i "${CLUSTER}-control-plane" bash -c '
+    mkdir -p /etc/containerd/certs.d/docker.io
+    mkdir -p /etc/containerd/certs.d/quay.io
+    mkdir -p /etc/containerd/certs.d/ghcr.io
+
+    cat > /etc/containerd/certs.d/docker.io/hosts.toml <<EOF
+server = "https://registry-1.docker.io"
+[host."http://registry-docker.io:5000"]
+  capabilities = ["pull", "resolve"]
+EOF
+
+    cat > /etc/containerd/certs.d/quay.io/hosts.toml <<EOF
+server = "https://quay.io"
+[host."http://registry-quay.io:5000"]
+  capabilities = ["pull", "resolve"]
+EOF
+
+    cat > /etc/containerd/certs.d/ghcr.io/hosts.toml <<EOF
+server = "https://ghcr.io"
+[host."http://registry-ghcr.io:5000"]
+  capabilities = ["pull", "resolve"]
+EOF
+
+    systemctl restart containerd
+  '
+) & done; wait
 
 #------------------------------------------------------------------------------
 # [i] Setup KUBECONFIG

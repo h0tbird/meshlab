@@ -148,28 +148,31 @@ done
 
 blue "───[ Configure containerd ]─────────────────────────────────────────────"
 
+# Map registries to pull-through caches
+echo "docker.io --> http://registry-docker.io:5000"
+echo "quay.io   --> http://registry-quay.io:5000"
+echo "ghcr.io   --> http://registry-ghcr.io:5000"
+
+# Configure containerd in all clusters
 for CLUSTER in $(list clusters all "${WLCNT}"); do (
   docker exec -i "${CLUSTER}-control-plane" bash -c '
     mkdir -p /etc/containerd/certs.d/docker.io
+    cat <<- EOF > /etc/containerd/certs.d/docker.io/hosts.toml
+			server = "https://registry-1.docker.io"
+			[host."http://registry-docker.io:5000"]
+			  capabilities = ["pull", "resolve"]
+EOF
     mkdir -p /etc/containerd/certs.d/quay.io
+    cat <<- EOF > /etc/containerd/certs.d/quay.io/hosts.toml
+			server = "https://quay.io"
+			[host."http://registry-quay.io:5000"]
+			  capabilities = ["pull", "resolve"]
+EOF
     mkdir -p /etc/containerd/certs.d/ghcr.io
-
-    cat > /etc/containerd/certs.d/docker.io/hosts.toml <<EOF
-server = "https://registry-1.docker.io"
-[host."http://registry-docker.io:5000"]
-  capabilities = ["pull", "resolve"]
-EOF
-
-    cat > /etc/containerd/certs.d/quay.io/hosts.toml <<EOF
-server = "https://quay.io"
-[host."http://registry-quay.io:5000"]
-  capabilities = ["pull", "resolve"]
-EOF
-
-    cat > /etc/containerd/certs.d/ghcr.io/hosts.toml <<EOF
-server = "https://ghcr.io"
-[host."http://registry-ghcr.io:5000"]
-  capabilities = ["pull", "resolve"]
+    cat <<- EOF > /etc/containerd/certs.d/ghcr.io/hosts.toml
+			server = "https://ghcr.io"
+			[host."http://registry-ghcr.io:5000"]
+			  capabilities = ["pull", "resolve"]
 EOF
 
     systemctl restart containerd

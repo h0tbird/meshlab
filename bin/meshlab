@@ -115,10 +115,6 @@ for CELL in $(list cells all "${WLCNT}"); do
 		networking:
 		  disableDefaultCNI: true
 		  kubeProxyMode: "none"
-		containerdConfigPatches:
-		  - |-
-		    [plugins."io.containerd.cri.v1.images".registry]
-		      config_path = "/etc/containerd/certs.d"
 		kubeadmConfigPatches:
 		  - |-
 		    kind: ClusterConfiguration

@@ -683,9 +683,11 @@ for CELL in $(list cells wkld "${WLCNT}"); do (
     kubectl --context "kind-${CLUSTERS[0]}" apply -f -
 ) & done; wait
 
-#
-#
-#
+#------------------------------------------------------------------------------
+# [i] Kiali Grafana Integration
+#------------------------------------------------------------------------------
+
+blue "───[ Kiali Grafana Integration ]────────────────────────────────────────"
 
 GRAFANA_URL="http://$(getExtIP "${MNGR}" monitoring grafana)"
 GRAFANA_ADMIN_USER='admin'
@@ -696,27 +698,30 @@ SA_ID=$(curl -sS -u "${GRAFANA_ADMIN_USER}:${GRAFANA_ADMIN_PASS}" \
   -d '{"name":"kiali","role":"Viewer"}' \
   "${GRAFANA_URL}/api/serviceaccounts" | jq '.id')
 
-# if SA_ID is a number
-[[ "${SA_ID}" =~ ^[0-9]+$ ]] && {
+# Only proceed if SA was created successfully (SA_ID is a number)
+if [[ "${SA_ID}" =~ ^[0-9]+$ ]]; then
   TOKEN=$(curl -sS -u "${GRAFANA_ADMIN_USER}:${GRAFANA_ADMIN_PASS}" \
     -H 'Content-Type: application/json' \
     -d '{"name":"kiali-token"}' \
     "${GRAFANA_URL}/api/serviceaccounts/${SA_ID}/tokens" | jq -r '.key')
-}
 
-kubectl --context kind-pasta-1 -n monitoring patch kiali kiali --type=merge -p '{
-  "spec":{
-    "external_services":{
-      "grafana":{
-        "auth":{
-          "type":"token",
-          "token":"'"$TOKEN"'",
-          "use_kiali_token":false
+  # Patch Kiali on all workload clusters
+  for CLUSTER in $(list clusters wkld "${WLCNT}"); do
+    kubectl --context "kind-${CLUSTER}" -n monitoring patch kiali kiali --type=merge -p '{
+      "spec":{
+        "external_services":{
+          "grafana":{
+            "auth":{
+              "type":"token",
+              "token":"'"${TOKEN}"'",
+              "use_kiali_token":false
+            }
+          }
         }
       }
-    }
-  }
-}'
+    }'
+  done
+fi
 
 #------------------------------------------------------------------------------
 # [i] Deploy some workloads

@@ -432,25 +432,12 @@ h0 upgrade --install -n argowf --create-namespace --wait --timeout 5m \
   --set 'workflow.serviceAccount.create=true' \
   --set 'workflow.serviceAccount.name=argo-workflow' \
   --set 'workflow.rbac.create=true' \
-  --set 'controller.workflowNamespaces={argocd}' |
+  --set 'controller.workflowNamespaces={argocd}' \
+  --set-json 'workflow.rbac.rules=[{"apiGroups":["argoproj.io"],"resources":["applicationsets"],"verbs":["get","watch","patch"]}]' |
   grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
 
 # Set argowf.${DOMAIN} as ext DNS name
 k0 -n argowf annotate svc argo-workflows-server coredns.io/hostname=argowf."${DOMAIN}"
-
-# Patch the argo-workflow-role to allow patching of the ApplicationSets
-k0 -n argocd patch role argo-workflows-workflow --type json \
-  -p '[
-        {
-          "op": "add",
-          "path": "/rules/-",
-          "value": {
-            "apiGroups":["argoproj.io"],
-            "resources":["applicationsets"],
-            "verbs":["get","watch","patch"]
-          }
-        }
-      ]'
 
 # Publish the ArgoWF port
 publish "${MNGR}" argowf argo-workflows-server 8081
@@ -684,22 +671,44 @@ for CELL in $(list cells wkld "${WLCNT}"); do (
 ) & done; wait
 
 #------------------------------------------------------------------------------
-# [i] Kiali Grafana Integration
+# [i] External kiali multi-cluster setup
 #------------------------------------------------------------------------------
 
-blue "───[ Kiali Grafana Integration ]────────────────────────────────────────"
+blue "───[ External kiali multi-cluster setup ]───────────────────────────────────────"
+
+for CLUSTER in $(list clusters wkld "${WLCNT}"); do
+  kiali-prepare-remote-cluster.sh \
+    --kiali-cluster-context "kind-${MNGR}" \
+    --remote-cluster-context "kind-${CLUSTER}" \
+    --view-only false \
+    --process-kiali-secret true \
+    --process-remote-resources true \
+    --kiali-cluster-namespace monitoring \
+    --remote-cluster-name "${CLUSTER}" \
+    --remote-cluster-url "https://${IP[${CLUSTER}]}:6443" |
+    grep -v '^INFO:'
+done
+
+k0 -n monitoring annotate kiali kiali kiali.io/reconcile="$(date +%s)" --overwrite
+
+#------------------------------------------------------------------------------
+# [i] Kiali-Grafana integration
+#------------------------------------------------------------------------------
+
+blue "───[ Kiali-Grafana integration ]────────────────────────────────────────"
 
 GRAFANA_URL="http://$(getExtIP "${MNGR}" monitoring grafana)"
 GRAFANA_AUTH='admin:admin'
 
-# Create service account and token (fails silently if already exists)
+# Create service account
 SA_ID=$(curl -sS -u "${GRAFANA_AUTH}" -H 'Content-Type: application/json' \
   -d '{"name":"kiali","role":"Viewer"}' "${GRAFANA_URL}/api/serviceaccounts" | jq '.id')
 
+# Create token and patch Kiali
 [[ "${SA_ID}" =~ ^[0-9]+$ ]] && \
 TOKEN=$(curl -sS -u "${GRAFANA_AUTH}" -H 'Content-Type: application/json' \
   -d '{"name":"kiali-token"}' "${GRAFANA_URL}/api/serviceaccounts/${SA_ID}/tokens" | jq -r '.key') && \
-kubectl --context "kind-pasta-1" -n monitoring patch kiali kiali --type=merge \
+kubectl --context "kind-${MNGR}" -n monitoring patch kiali kiali --type=merge \
   -p '{"spec":{"external_services":{"grafana":{"auth":{"type":"token","token":"'"${TOKEN}"'","use_kiali_token":false}}}}}'
 
 #------------------------------------------------------------------------------
@@ -718,4 +727,4 @@ swarmctl --context 'pasta-*|pizza-*' w 1:2 --yes --istio-revision stable --image
 publish "${MNGR}" vault vault 8082
 publish "${MNGR}" monitoring prometheus-server 8083
 publish "${MNGR}" monitoring grafana 8084
-publish pasta-1 monitoring kiali 8085
+publish "${MNGR}" monitoring kiali 8085

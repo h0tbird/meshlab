@@ -96,3 +96,8 @@ RUN VERSION="0.3.3" && ARCH=$(dpkg --print-architecture) && \
 RUN VERSION="1.4.5" && ARCH=$(arch) && \
     wget -qO- https://github.com/aristocratos/btop/releases/download/v${VERSION}/btop-${ARCH}-linux-musl.tbz | \
     tar -xjC /usr/local/bin --strip-components 3 -f - ./btop/bin/btop
+
+# Install kiali-prepare-remote-cluster.sh (https://github.com/kiali/kiali)
+RUN curl -sLo /usr/local/bin/kiali-prepare-remote-cluster.sh \
+    https://raw.githubusercontent.com/kiali/kiali/master/hack/istio/multicluster/kiali-prepare-remote-cluster.sh && \
+    chmod +x /usr/local/bin/kiali-prepare-remote-cluster.sh

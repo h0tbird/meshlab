@@ -58,7 +58,7 @@
 			"protocol": "http"
 		},
 		"8085": {
-			"label": "kiali-pasta",
+			"label": "kiali",
 			"onAutoForward": "notify",
 			"protocol": "http"
 		}

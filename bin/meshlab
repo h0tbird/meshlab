@@ -31,6 +31,8 @@ KUBERNETES_REPLICATOR_CHART_VERSION='2.12.2'  # https://artifacthub.io/packages/
 ISTIO_CHART_VERSION='1.28.2'                  # https://artifacthub.io/packages/helm/istio-official/base
 KIALI_CHART_VERSION='2.20.0'                  # https://artifacthub.io/packages/helm/kiali/kiali-operator
 
+PWD='meshlab123'
+
 #------------------------------------------------------------------------------
 # [i] Validate the command line arguments
 #------------------------------------------------------------------------------
@@ -345,7 +347,7 @@ blue "───[ ArgoCD ]──────────────────�
 h0 upgrade --install -n argocd --create-namespace --wait --timeout 5m \
 argocd argo/argo-cd --version "${ARGOCD_CHART_VERSION}" \
 --set 'server.service.type=LoadBalancer' \
---set configs.secret.argocdServerAdminPassword='$2y$10$ahh8NB8Lz1Y8EHyYDQii6.laa4SH8EUV1tR3/XprOPc0radDPdxzy' \
+--set configs.secret.argocdServerAdminPassword=$(htpasswd -nbBC 10 "" ${PWD} | tr -d ':\n') \
 -f - << EOF | grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
 configs:
   cm:
@@ -377,7 +379,7 @@ argocd context "${MNGR}" 2> /dev/null || {
     --insecure \
     --name "${MNGR}" \
     --username admin \
-    --password '12345678'
+    --password "${PWD}"
 
   # Add clusters with labels
   for CELL in $(list cells wkld "${WLCNT}"); do for CLUSTER in ${CELLS[${CELL}]}; do
@@ -446,7 +448,7 @@ helm template ./charts/wftemplates | k0 -n argocd apply -f -
 # Create a secret with ArgoCD credentials
 k0 create secret generic argocd-credentials \
  --from-literal=username='admin' \
- --from-literal=password='12345678' \
+ --from-literal=password="${PWD}" \
  --from-literal=token='' \
  --dry-run=client -o yaml | k0 -n argocd apply -f -
 

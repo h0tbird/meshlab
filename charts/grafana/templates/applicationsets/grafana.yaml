@@ -24,7 +24,7 @@ spec:
         helm:
           releaseName: grafana
           valuesObject:
-            adminPassword: admin
+            adminPassword: meshlab123
             adminUser: admin
             grafana.ini:
               auth.anonymous:

@@ -356,34 +356,15 @@ EOF
 # Set argocd.${DOMAIN} as ext DNS name
 k0 -n argocd annotate svc argocd-server coredns.io/hostname=argocd."${DOMAIN}"
 
-# Get the password
-ARGOCD_PASS=$(
-  k0 -n argocd \
-  get secret argocd-initial-admin-secret \
-  -o jsonpath='{.data.password}' | base64 -d
-)
-
-# Change the admin password
-argocd account update-password \
-  --current-password "${ARGOCD_PASS}" \
-  --new-password 'admin'
-
-# Publish the ArgoCD port
-publish "${MNGR}" argocd argocd-server 8080
-
-echo
-echo "ArgoCD WebUI: https://$(hostname -I | awk '{print $2}'):8080"
-echo "ArgoCD User: admin"
-echo "ArgoCD Pass: ${ARGOCD_PASS}"
-
-#------------------------------------------------------------------------------
-# [i] Register clusters to ArgoCD
-#------------------------------------------------------------------------------
-
-blue "───[ Register clusters to ArgoCD ]──────────────────────────────────────"
-
 # Check if the ArgoCD context exists
 argocd context "${MNGR}" 2> /dev/null || {
+
+  # Get the password
+  ARGOCD_PASS=$(
+    k0 -n argocd \
+    get secret argocd-initial-admin-secret \
+    -o jsonpath='{.data.password}' | base64 -d
+  )
 
   # Get the external LoadBalancer IP
   ARGOCD_IP=$(getExtIP "${MNGR}" argocd argocd-server)
@@ -395,7 +376,23 @@ argocd context "${MNGR}" 2> /dev/null || {
     --username admin \
     --password "${ARGOCD_PASS}"
 
-  # Add clusters with labels
+  # Change the admin password
+  argocd account update-password \
+    --current-password "${ARGOCD_PASS}" \
+    --new-password '12345678'
+}
+
+# Publish the ArgoCD port
+publish "${MNGR}" argocd argocd-server 8080
+
+#------------------------------------------------------------------------------
+# [i] Register clusters to ArgoCD
+#------------------------------------------------------------------------------
+
+blue "───[ Register clusters to ArgoCD ]──────────────────────────────────────"
+
+# Add clusters with labels
+argocd context "${MNGR}" 2> /dev/null || {
   for CELL in $(list cells wkld "${WLCNT}"); do for CLUSTER in ${CELLS[${CELL}]}; do
     argocd cluster list | grep -q "${CLUSTER}" || \
     argocd cluster add -y "kind-${CLUSTER}" \
@@ -461,8 +458,8 @@ helm template ./charts/wftemplates | k0 -n argocd apply -f -
 
 # Create a secret with ArgoCD credentials
 k0 create secret generic argocd-credentials \
- --from-literal=password="${ARGOCD_PASS}" \
  --from-literal=username='admin' \
+ --from-literal=password='12345678' \
  --from-literal=token='' \
  --dry-run=client -o yaml | k0 -n argocd apply -f -
 

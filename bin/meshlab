@@ -433,9 +433,6 @@ k0 -n argowf annotate svc argo-workflows-server coredns.io/hostname=argowf."${DO
 # Publish the ArgoWF port
 publish "${MNGR}" argowf argo-workflows-server 8081
 
-echo
-echo "ArgoWF WebUI: http://$(hostname -I | awk '{print $2}'):8081"
-
 #------------------------------------------------------------------------------
 # [i] Bootstrap DAG
 #------------------------------------------------------------------------------

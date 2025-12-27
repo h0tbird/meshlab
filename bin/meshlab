@@ -363,6 +363,11 @@ ARGOCD_PASS=$(
   -o jsonpath='{.data.password}' | base64 -d
 )
 
+# Change the admin password
+argocd account update-password \
+  --current-password "${ARGOCD_PASS}" \
+  --new-password 'admin'
+
 # Publish the ArgoCD port
 publish "${MNGR}" argocd argocd-server 8080
 

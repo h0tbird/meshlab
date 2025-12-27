@@ -345,6 +345,7 @@ blue "───[ ArgoCD ]──────────────────�
 h0 upgrade --install -n argocd --create-namespace --wait --timeout 5m \
 argocd argo/argo-cd --version "${ARGOCD_CHART_VERSION}" \
 --set 'server.service.type=LoadBalancer' \
+--set configs.secret.argocdServerAdminPassword='$2y$10$ahh8NB8Lz1Y8EHyYDQii6.laa4SH8EUV1tR3/XprOPc0radDPdxzy' \
 -f - << EOF | grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
 configs:
   cm:
@@ -356,32 +357,6 @@ EOF
 # Set argocd.${DOMAIN} as ext DNS name
 k0 -n argocd annotate svc argocd-server coredns.io/hostname=argocd."${DOMAIN}"
 
-# Check if the ArgoCD context exists
-argocd context "${MNGR}" 2> /dev/null || {
-
-  # Get the password
-  ARGOCD_PASS=$(
-    k0 -n argocd \
-    get secret argocd-initial-admin-secret \
-    -o jsonpath='{.data.password}' | base64 -d
-  )
-
-  # Get the external LoadBalancer IP
-  ARGOCD_IP=$(getExtIP "${MNGR}" argocd argocd-server)
-
-  # Login to ArgoCD
-  argocd login "${ARGOCD_IP}" \
-    --insecure \
-    --name "${MNGR}" \
-    --username admin \
-    --password "${ARGOCD_PASS}"
-
-  # Change the admin password
-  argocd account update-password \
-    --current-password "${ARGOCD_PASS}" \
-    --new-password '12345678'
-}
-
 # Publish the ArgoCD port
 publish "${MNGR}" argocd argocd-server 8080
 
@@ -391,8 +366,20 @@ publish "${MNGR}" argocd argocd-server 8080
 
 blue "───[ Register clusters to ArgoCD ]──────────────────────────────────────"
 
-# Add clusters with labels
+# Check if the ArgoCD context exists
 argocd context "${MNGR}" 2> /dev/null || {
+
+  # Get the external LoadBalancer IP
+  ARGOCD_IP=$(getExtIP "${MNGR}" argocd argocd-server)
+
+  # Login to ArgoCD
+  argocd login "${ARGOCD_IP}" \
+    --insecure \
+    --name "${MNGR}" \
+    --username admin \
+    --password '12345678'
+
+  # Add clusters with labels
   for CELL in $(list cells wkld "${WLCNT}"); do for CLUSTER in ${CELLS[${CELL}]}; do
     argocd cluster list | grep -q "${CLUSTER}" || \
     argocd cluster add -y "kind-${CLUSTER}" \

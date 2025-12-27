@@ -27,7 +27,7 @@ spec:
             server:
               dev:
                 enabled: true
-                devRootToken: root
+                devRootToken: meshlab123
               service:
                 type: LoadBalancer
                 port: 80

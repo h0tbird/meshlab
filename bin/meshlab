@@ -686,7 +686,7 @@ k0 -n monitoring annotate kiali kiali kiali.io/reconcile="$(date +%s)" --overwri
 blue "───[ Kiali-Grafana integration ]────────────────────────────────────────"
 
 GRAFANA_URL="http://$(getExtIP "${MNGR}" monitoring grafana)"
-GRAFANA_AUTH='admin:admin'
+GRAFANA_AUTH="admin:${PWD}"
 
 # Create service account
 SA_ID=$(curl -sS -u "${GRAFANA_AUTH}" -H 'Content-Type: application/json' \

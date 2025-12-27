@@ -12,7 +12,7 @@ spec:
       - name: vault-address
         value: http://vault.vault.svc
       - name: vault-token
-        value: root
+        value: meshlab123
     script:
       image: ghcr.io/h0tbird/meshlab/toolbox:latest
       command: [sh]

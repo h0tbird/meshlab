@@ -40,6 +40,7 @@ spec:
                   config:
                     scrape_configs:
                     - job_name: envoy
+                      scrape_interval: 15s
                       metrics_path: /stats/prometheus
                       kubernetes_sd_configs:
                       - role: pod
@@ -65,11 +66,25 @@ spec:
                   endpoint: "https://${env:K8S_NODE_NAME}:10250"
                   insecure_skip_verify: true
               processors:
+                k8sattributes:
+                  extract:
+                    labels:
+                      - tag_name: app
+                        key: app
+                        from: pod
                 resource:
                   attributes:
                     - key: k8s.cluster.name
                       value: {{`'{{name}}'`}}
                       action: upsert
+                transform:
+                  metric_statements:
+                    - context: datapoint
+                      statements:
+                        - set(attributes["namespace"], resource.attributes["k8s.namespace.name"])
+                        - set(attributes["container"], resource.attributes["k8s.container.name"])
+                        - set(attributes["pod"], resource.attributes["k8s.pod.name"])
+                        - set(attributes["app"], resource.attributes["app"])
               exporters:
                 prometheusremotewrite:
                   endpoint: http://prometheus.demo.lab/api/v1/write
@@ -85,7 +100,7 @@ spec:
                   logs: null
                   metrics:
                     receivers: [prometheus, kubeletstats]
-                    processors: [resource, batch]
+                    processors: [k8sattributes, resource, transform, batch]
                     exporters: [prometheusremotewrite, debug]
             ports:
               jaeger-compact:

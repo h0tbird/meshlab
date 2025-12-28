@@ -28,6 +28,8 @@ spec:
               repository: otel/opentelemetry-collector-contrib
             mode: deployment
             presets:
+              kubernetesAttributes:
+                enabled: true
               clusterMetrics: # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/k8sclusterreceiver/documentation.md
                 enabled: true
             config:
@@ -38,6 +40,7 @@ spec:
                   config:
                     scrape_configs:
                       - job_name: istiod
+                        scrape_interval: 15s
                         kubernetes_sd_configs:
                           - role: pod
                             namespaces:
@@ -54,11 +57,25 @@ spec:
                             target_label: __address__
                             replacement: $1:15014
               processors:
+                k8sattributes:
+                  extract:
+                    labels:
+                      - tag_name: app
+                        key: app
+                        from: pod
                 resource:
                   attributes:
                     - key: k8s.cluster.name
                       value: {{`'{{name}}'`}}
                       action: upsert
+                transform:
+                  metric_statements:
+                    - context: datapoint
+                      statements:
+                        - set(attributes["namespace"], resource.attributes["k8s.namespace.name"])
+                        - set(attributes["container"], resource.attributes["k8s.container.name"])
+                        - set(attributes["pod"], resource.attributes["k8s.pod.name"])
+                        - set(attributes["app"], resource.attributes["app"])
               exporters:
                 prometheusremotewrite:
                   endpoint: http://prometheus.demo.lab/api/v1/write
@@ -74,7 +91,7 @@ spec:
                   logs: null
                   metrics:
                     receivers: [k8s_cluster, prometheus]
-                    processors: [resource, batch]
+                    processors: [k8sattributes, resource, transform, batch]
                     exporters: [prometheusremotewrite, debug]
             ports:
               jaeger-compact:

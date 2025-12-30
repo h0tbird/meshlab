@@ -62,31 +62,31 @@ spec:
               default:
                 istio-control-plane:
                   gnetId: 7645
-                  revision: 249
+                  revision: 283
                   datasource: Prometheus
                 istio-mesh-dashboard:
                   gnetId: 7639
-                  revision: 249
+                  revision: 283
                   datasource: Prometheus
                 istio-performance-dashboard:
                   gnetId: 11829
-                  revision: 249
+                  revision: 283
                   datasource: Prometheus
                 istio-service-dashboard:
                   gnetId: 7636
-                  revision: 249
+                  revision: 283
                   datasource: Prometheus
                 istio-wasm-extension-dashboard:
                   gnetId: 13277
-                  revision: 206
+                  revision: 240
                   datasource: Prometheus
                 istio-workload-dashboard:
                   gnetId: 7630
-                  revision: 249
+                  revision: 283
                   datasource: Prometheus
                 istio-ztunnel-dashboard:
                   gnetId: 21306
-                  revision: 16
+                  revision: 50
                   datasource: Prometheus
       destination:
         server: {{`'{{server}}'`}}

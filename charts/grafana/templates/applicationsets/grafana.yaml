@@ -62,7 +62,7 @@ spec:
               default:
                 istio-control-plane:
                   gnetId: 24618
-                  revision: 1
+                  revision: 2
                   datasource: Prometheus
                 istio-mesh-dashboard:
                   gnetId: 7639

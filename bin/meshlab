@@ -191,16 +191,6 @@ for CLUSTER in $(list clusters all "${WLCNT}"); do
   --server="https://${IP[${CLUSTER}]}:6443"
 done
 
-# Helper function k0
-function k0 {
-  kubectl --context "kind-${MNGR}" "${@}"
-}
-
-# Helper function h0
-function h0 {
-  retry helm --kube-context "kind-${MNGR}" "${@}"
-}
-
 #------------------------------------------------------------------------------
 # [i] Helm repositories
 #------------------------------------------------------------------------------

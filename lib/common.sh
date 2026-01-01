@@ -80,3 +80,17 @@ function publish {
 #------------------------------------------------------------------------------
 
 retry() { until "$@"; do sleep 2; done; }
+
+#------------------------------------------------------------------------------
+# Manager kubectl and helm helpers
+#------------------------------------------------------------------------------
+
+# Helper function k0
+function k0 {
+  kubectl --context "kind-${MNGR}" "${@}"
+}
+
+# Helper function h0
+function h0 {
+  retry helm --kube-context "kind-${MNGR}" "${@}"
+}

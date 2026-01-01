@@ -276,6 +276,57 @@ install-k8s-gateway() {
 }; SECTIONS+=( install-k8s-gateway )
 
 #------------------------------------------------------------------------------
+# [i] Setup internal CoreDNS for the ${DOMAIN}
+#------------------------------------------------------------------------------
+
+setup-coredns() {
+  blue "───[ CoreDNS ]──────────────────────────────────────────────────────────"
+
+  # Get the external LoadBalancer IP
+  MNGR_EXDNS_IP='null'; until [[ "${MNGR_EXDNS_IP}" != 'null' ]]; do
+    MNGR_EXDNS_IP=$(k0 -n kube-system get svc exdns-k8s-gateway -o yaml |
+    yq '.status.loadBalancer.ingress[0].ip'); sleep 1
+  done
+
+  # Configure CoreDNS
+  for CELL in $(list cells all "${WLCNT}"); do for CLUSTER in ${CELLS[${CELL}]}; do (
+
+    kubectl --context "kind-${CLUSTER}" -n kube-system create cm coredns \
+    --dry-run=client -o yaml --from-literal=Corefile="
+    .:53 {
+      errors
+      health {
+         lameduck 5s
+      }
+      ready
+      kubernetes ${CELL}.local in-addr.arpa ip6.arpa {
+         pods insecure
+         fallthrough in-addr.arpa ip6.arpa
+         ttl 30
+      }
+      prometheus :9153
+      forward . /etc/resolv.conf {
+         max_concurrent 1000
+      }
+      cache 30 {
+         disable success ${CELL}.local
+         disable denial ${CELL}.local
+      }
+      loop
+      reload
+      loadbalance
+    }
+    ${DOMAIN}:53 {
+      forward . ${MNGR_EXDNS_IP}
+    }" | kubectl --context "kind-${CLUSTER}" -n kube-system apply -f - 2>/dev/null
+
+    # Restart otherwise it takes a while to pick up the new config
+    kubectl --context "kind-${CLUSTER}" -n kube-system rollout restart deployment coredns
+
+  ) & done; done; wait
+}; SECTIONS+=( setup-coredns )
+
+#------------------------------------------------------------------------------
 # [i] Validate the command line arguments
 #------------------------------------------------------------------------------
 
@@ -307,55 +358,6 @@ fi
 #------------------------------------------------------------------------------
 
 for section in "${SECTIONS[@]}"; do "$section"; done
-
-#------------------------------------------------------------------------------
-# [i] Setup internal CoreDNS for the ${DOMAIN}
-#------------------------------------------------------------------------------
-
-blue "───[ CoreDNS ]──────────────────────────────────────────────────────────"
-
-# Get the external LoadBalancer IP
-MNGR_EXDNS_IP='null'; until [[ "${MNGR_EXDNS_IP}" != 'null' ]]; do
-  MNGR_EXDNS_IP=$(k0 -n kube-system get svc exdns-k8s-gateway -o yaml |
-  yq '.status.loadBalancer.ingress[0].ip'); sleep 1
-done
-
-# Configure CoreDNS
-for CELL in $(list cells all "${WLCNT}"); do for CLUSTER in ${CELLS[${CELL}]}; do (
-
-  kubectl --context "kind-${CLUSTER}" -n kube-system create cm coredns \
-  --dry-run=client -o yaml --from-literal=Corefile="
-  .:53 {
-    errors
-    health {
-       lameduck 5s
-    }
-    ready
-    kubernetes ${CELL}.local in-addr.arpa ip6.arpa {
-       pods insecure
-       fallthrough in-addr.arpa ip6.arpa
-       ttl 30
-    }
-    prometheus :9153
-    forward . /etc/resolv.conf {
-       max_concurrent 1000
-    }
-    cache 30 {
-       disable success ${CELL}.local
-       disable denial ${CELL}.local
-    }
-    loop
-    reload
-    loadbalance
-  }
-  ${DOMAIN}:53 {
-    forward . ${MNGR_EXDNS_IP}
-  }" | kubectl --context "kind-${CLUSTER}" -n kube-system apply -f - 2>/dev/null
-
-  # Restart otherwise it takes a while to pick up the new config
-  kubectl --context "kind-${CLUSTER}" -n kube-system rollout restart deployment coredns
-
-) & done; done; wait
 
 #------------------------------------------------------------------------------
 # [i] Setup ArgoCD

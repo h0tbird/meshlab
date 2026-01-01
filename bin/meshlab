@@ -85,6 +85,48 @@ pull-through-cache() {
 }; SECTIONS+=( pull-through-cache )
 
 #------------------------------------------------------------------------------
+# [i] Create the clusters
+#------------------------------------------------------------------------------
+
+create-clusters() {
+  blue "───[ KinD clusters ]────────────────────────────────────────────────────"
+
+  # Create the temporary directory
+  [ -d ./tmp ] || mkdir -p ./tmp
+
+  # Configure kind
+  for CELL in $(list cells all "${WLCNT}"); do
+    cat <<- EOF > "./tmp/kind-${CELL}.yaml"
+		kind: Cluster
+		apiVersion: kind.x-k8s.io/v1alpha4
+		networking:
+		  disableDefaultCNI: true
+		  kubeProxyMode: "none"
+		kubeadmConfigPatches:
+		  - |-
+		    kind: ClusterConfiguration
+		    networking:
+		      dnsDomain: "${CELL}.local"
+EOF
+  done
+
+  # Create the clusters
+  for CELL in $(list cells all "${WLCNT}"); do for CLUSTER in ${CELLS[${CELL}]}; do (
+    kind get clusters 2>/dev/null | grep -q "${CLUSTER}" || {
+      kind create cluster --name "${CLUSTER}" --config "./tmp/kind-${CELL}.yaml" -q
+    }
+  ) & done; done; wait
+
+  # Get all the IPs
+  declare -gA IP
+  for CLUSTER in $(list clusters all "${WLCNT}"); do
+    IP[${CLUSTER}]=$(docker inspect "${CLUSTER}-control-plane" |
+      jq -r '.[].NetworkSettings.Networks.kind.IPAddress')
+    echo "${CLUSTER} = ${IP[${CLUSTER}]}"
+  done
+}; SECTIONS+=( create-clusters )
+
+#------------------------------------------------------------------------------
 # [i] Validate the command line arguments
 #------------------------------------------------------------------------------
 
@@ -117,46 +159,6 @@ fi
 #------------------------------------------------------------------------------
 
 for section in "${SECTIONS[@]}"; do "$section"; done
-
-#------------------------------------------------------------------------------
-# [i] Create the clusters
-#------------------------------------------------------------------------------
-
-blue "───[ KinD clusters ]────────────────────────────────────────────────────"
-
-# Create the temporary directory
-[ -d ./tmp ] || mkdir -p ./tmp
-
-# Configure kind
-for CELL in $(list cells all "${WLCNT}"); do
-  cat <<- EOF > "./tmp/kind-${CELL}.yaml"
-		kind: Cluster
-		apiVersion: kind.x-k8s.io/v1alpha4
-		networking:
-		  disableDefaultCNI: true
-		  kubeProxyMode: "none"
-		kubeadmConfigPatches:
-		  - |-
-		    kind: ClusterConfiguration
-		    networking:
-		      dnsDomain: "${CELL}.local"
-EOF
-done
-
-# Create the clusters
-for CELL in $(list cells all "${WLCNT}"); do for CLUSTER in ${CELLS[${CELL}]}; do (
-  kind get clusters 2>/dev/null | grep -q "${CLUSTER}" || {
-    kind create cluster --name "${CLUSTER}" --config "./tmp/kind-${CELL}.yaml" -q
-  }
-) & done; done; wait
-
-# Get all the IPs
-declare -A IP
-for CLUSTER in $(list clusters all "${WLCNT}"); do
-  IP[${CLUSTER}]=$(docker inspect "${CLUSTER}-control-plane" |
-    jq -r '.[].NetworkSettings.Networks.kind.IPAddress')
-  echo "${CLUSTER} = ${IP[${CLUSTER}]}"
-done
 
 #------------------------------------------------------------------------------
 # [i] Add the registries to containerd

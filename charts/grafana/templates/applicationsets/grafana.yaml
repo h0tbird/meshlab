@@ -61,8 +61,8 @@ spec:
             dashboards:
               default:
                 istio-control-plane:
-                  gnetId: 7645
-                  revision: 283
+                  gnetId: 24618
+                  revision: 1
                   datasource: Prometheus
                 istio-mesh-dashboard:
                   gnetId: 7639

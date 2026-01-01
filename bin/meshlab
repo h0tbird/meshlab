@@ -348,6 +348,7 @@ blue "───[ ArgoCD ]──────────────────�
 h0 upgrade --install -n argocd --create-namespace --wait --timeout 5m \
 argocd argo/argo-cd --version "${ARGOCD_CHART_VERSION}" \
 --set 'server.service.type=LoadBalancer' \
+--set 'server.extraArgs={--insecure=true}' \
 --set configs.secret.argocdServerAdminPassword=$(htpasswd -nbBC 10 "" ${PWD} | tr -d ':\n') \
 -f - << EOF | grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
 configs:
@@ -377,7 +378,7 @@ argocd context "${MNGR}" 2> /dev/null || {
 
   # Login to ArgoCD
   argocd login "${ARGOCD_IP}" \
-    --insecure \
+    --plaintext \
     --name "${MNGR}" \
     --username admin \
     --password "${PWD}"

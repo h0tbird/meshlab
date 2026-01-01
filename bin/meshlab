@@ -259,6 +259,23 @@ install-clustermesh() {
 }; SECTIONS+=( install-clustermesh )
 
 #------------------------------------------------------------------------------
+# [i] Install k8s_gateway
+#------------------------------------------------------------------------------
+
+install-k8s-gateway() {
+  blue "───[ k8s_gateway ]──────────────────────────────────────────────────────"
+
+  for CLUSTER in $(list clusters all "${WLCNT}"); do (
+    retry helm --kube-context "kind-${CLUSTER}" \
+      upgrade -i exdns k8s_gateway/k8s-gateway \
+      --version "${K8S_GATEWAY_CHART_VERSION}" \
+      --namespace kube-system \
+      --set "domain=${DOMAIN}" |
+    grep 'LAST DEPLOYED'
+  ) & done; wait
+}; SECTIONS+=( install-k8s-gateway )
+
+#------------------------------------------------------------------------------
 # [i] Validate the command line arguments
 #------------------------------------------------------------------------------
 
@@ -290,21 +307,6 @@ fi
 #------------------------------------------------------------------------------
 
 for section in "${SECTIONS[@]}"; do "$section"; done
-
-#------------------------------------------------------------------------------
-# [i] Install k8s_gateway
-#------------------------------------------------------------------------------
-
-blue "───[ k8s_gateway ]──────────────────────────────────────────────────────"
-
-for CLUSTER in $(list clusters all "${WLCNT}"); do (
-  retry helm --kube-context "kind-${CLUSTER}" \
-    upgrade -i exdns k8s_gateway/k8s-gateway \
-    --version "${K8S_GATEWAY_CHART_VERSION}" \
-    --namespace kube-system \
-    --set "domain=${DOMAIN}" |
-  grep 'LAST DEPLOYED'
-) & done; wait
 
 #------------------------------------------------------------------------------
 # [i] Setup internal CoreDNS for the ${DOMAIN}

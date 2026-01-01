@@ -327,6 +327,34 @@ setup-coredns() {
 }; SECTIONS+=( setup-coredns )
 
 #------------------------------------------------------------------------------
+# [i] Setup ArgoCD
+#------------------------------------------------------------------------------
+
+setup-argocd() {
+  blue "───[ ArgoCD ]───────────────────────────────────────────────────────────"
+
+  # Install ArgoCD
+  h0 upgrade --install -n argocd --create-namespace --wait --timeout 5m \
+  argocd argo/argo-cd --version "${ARGOCD_CHART_VERSION}" \
+  --set 'server.service.type=LoadBalancer' \
+  --set 'server.extraArgs={--insecure=true}' \
+  --set configs.secret.argocdServerAdminPassword=$(htpasswd -nbBC 10 "" ${PWD} | tr -d ':\n') \
+  -f - <<- EOF | grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
+		configs:
+		  cm:
+		    resource.customizations.ignoreDifferences.admissionregistration.k8s.io_MutatingWebhookConfiguration: |
+		      jqPathExpressions:
+		      - '.webhooks[]?.clientConfig.caBundle'
+	EOF
+
+  # Set argocd.${DOMAIN} as ext DNS name
+  k0 -n argocd annotate svc argocd-server coredns.io/hostname=argocd."${DOMAIN}"
+
+  # Publish the ArgoCD port
+  publish "${MNGR}" argocd argocd-server 8080
+}; SECTIONS+=( setup-argocd )
+
+#------------------------------------------------------------------------------
 # [i] Validate the command line arguments
 #------------------------------------------------------------------------------
 
@@ -358,32 +386,6 @@ fi
 #------------------------------------------------------------------------------
 
 for section in "${SECTIONS[@]}"; do "$section"; done
-
-#------------------------------------------------------------------------------
-# [i] Setup ArgoCD
-#------------------------------------------------------------------------------
-
-blue "───[ ArgoCD ]───────────────────────────────────────────────────────────"
-
-# Install ArgoCD
-h0 upgrade --install -n argocd --create-namespace --wait --timeout 5m \
-argocd argo/argo-cd --version "${ARGOCD_CHART_VERSION}" \
---set 'server.service.type=LoadBalancer' \
---set 'server.extraArgs={--insecure=true}' \
---set configs.secret.argocdServerAdminPassword=$(htpasswd -nbBC 10 "" ${PWD} | tr -d ':\n') \
--f - << EOF | grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
-configs:
-  cm:
-    resource.customizations.ignoreDifferences.admissionregistration.k8s.io_MutatingWebhookConfiguration: |
-      jqPathExpressions:
-      - '.webhooks[]?.clientConfig.caBundle'
-EOF
-
-# Set argocd.${DOMAIN} as ext DNS name
-k0 -n argocd annotate svc argocd-server coredns.io/hostname=argocd."${DOMAIN}"
-
-# Publish the ArgoCD port
-publish "${MNGR}" argocd argocd-server 8080
 
 #------------------------------------------------------------------------------
 # [i] Register clusters to ArgoCD

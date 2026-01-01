@@ -228,6 +228,37 @@ install-cilium() {
 }; SECTIONS+=( install-cilium )
 
 #------------------------------------------------------------------------------
+# [i] Install ClusterMesh
+#------------------------------------------------------------------------------
+
+install-clustermesh() {
+  blue "───[ ClusterMesh ]──────────────────────────────────────────────────────"
+
+  # With --service-type LoadBalancer, cilium needs connectivity to the external IPs
+  # Works if it runns on the linux VM, but not on OSX without a route and a TCP proxy.
+
+  for CELL in $(list cells wkld "${WLCNT}"); do (
+
+    # Get the clusters of the cell
+    IFS=" " read -r -a CLUSTERS <<< "${CELLS[${CELL}]}"
+
+    # Return early if already running
+    kubectl --context "kind-${CLUSTERS[0]}" -n kube-system get deploy clustermesh-apiserver 2>/dev/null &&
+    kubectl --context "kind-${CLUSTERS[1]}" -n kube-system get deploy clustermesh-apiserver 2>/dev/null &&
+    exit 0
+
+    # Shared certificate authority
+    kubectl --context "kind-${CLUSTERS[0]}" -n kube-system get secret cilium-ca -o yaml |
+    kubectl --context "kind-${CLUSTERS[1]}" -n kube-system replace --force -f -
+
+    # Install
+    cilium clustermesh enable --context "kind-${CLUSTERS[0]}" --service-type LoadBalancer
+    cilium clustermesh enable --context "kind-${CLUSTERS[1]}" --service-type LoadBalancer
+    cilium clustermesh connect --context "kind-${CLUSTERS[0]}" --destination-context "kind-${CLUSTERS[1]}"
+  ) & done; wait
+}; SECTIONS+=( install-clustermesh )
+
+#------------------------------------------------------------------------------
 # [i] Validate the command line arguments
 #------------------------------------------------------------------------------
 
@@ -259,35 +290,6 @@ fi
 #------------------------------------------------------------------------------
 
 for section in "${SECTIONS[@]}"; do "$section"; done
-
-#------------------------------------------------------------------------------
-# [i] Install ClusterMesh
-#------------------------------------------------------------------------------
-
-blue "───[ ClusterMesh ]──────────────────────────────────────────────────────"
-
-# With --service-type LoadBalancer, cilium needs connectivity to the external IPs
-# Works if it runns on the linux VM, but not on OSX without a route and a TCP proxy.
-
-for CELL in $(list cells wkld "${WLCNT}"); do (
-
-  # Get the clusters of the cell
-  IFS=" " read -r -a CLUSTERS <<< "${CELLS[${CELL}]}"
-
-  # Return early if already running
-  kubectl --context "kind-${CLUSTERS[0]}" -n kube-system get deploy clustermesh-apiserver 2>/dev/null &&
-  kubectl --context "kind-${CLUSTERS[1]}" -n kube-system get deploy clustermesh-apiserver 2>/dev/null &&
-  exit 0
-
-  # Shared certificate authority
-  kubectl --context "kind-${CLUSTERS[0]}" -n kube-system get secret cilium-ca -o yaml |
-  kubectl --context "kind-${CLUSTERS[1]}" -n kube-system replace --force -f -
-
-  # Install
-  cilium clustermesh enable --context "kind-${CLUSTERS[0]}" --service-type LoadBalancer
-  cilium clustermesh enable --context "kind-${CLUSTERS[1]}" --service-type LoadBalancer
-  cilium clustermesh connect --context "kind-${CLUSTERS[0]}" --destination-context "kind-${CLUSTERS[1]}"
-) & done; wait
 
 #------------------------------------------------------------------------------
 # [i] Install k8s_gateway

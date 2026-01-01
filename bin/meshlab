@@ -180,6 +180,19 @@ setup-kubeconfig() {
 }; SECTIONS+=( setup-kubeconfig )
 
 #------------------------------------------------------------------------------
+# [i] Helm repositories
+#------------------------------------------------------------------------------
+
+helm-repositories() {
+  blue "───[ Helm repos ]───────────────────────────────────────────────────────"
+
+  helm repo add cilium https://helm.cilium.io/
+  helm repo add argo https://argoproj.github.io/argo-helm
+  helm repo add k8s_gateway https://k8s-gateway.github.io/k8s_gateway/
+  helm repo update
+}; SECTIONS+=( helm-repositories )
+
+#------------------------------------------------------------------------------
 # [i] Validate the command line arguments
 #------------------------------------------------------------------------------
 
@@ -211,17 +224,6 @@ fi
 #------------------------------------------------------------------------------
 
 for section in "${SECTIONS[@]}"; do "$section"; done
-
-#------------------------------------------------------------------------------
-# [i] Helm repositories
-#------------------------------------------------------------------------------
-
-blue "───[ Helm repos ]───────────────────────────────────────────────────────"
-
-helm repo add cilium https://helm.cilium.io/
-helm repo add argo https://argoproj.github.io/argo-helm
-helm repo add k8s_gateway https://k8s-gateway.github.io/k8s_gateway/
-helm repo update
 
 #------------------------------------------------------------------------------
 # [i] Install the Cilium CNI

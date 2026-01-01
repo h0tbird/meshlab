@@ -53,11 +53,40 @@ cloud-provider-kind() {
 }
 
 #------------------------------------------------------------------------------
+# [i] Pull-through image cache
+#------------------------------------------------------------------------------
+
+pull-through-cache() {
+  blue "───[ Pull-through registries ]──────────────────────────────────────────"
+
+  docker start registry-docker.io 2>/dev/null || docker run -d \
+    -e REGISTRY_PROXY_REMOTEURL=https://registry-1.docker.io \
+    --restart always \
+    --name registry-docker.io \
+    --network kind \
+    registry:2
+
+  docker start registry-quay.io 2>/dev/null || docker run -d \
+    -e REGISTRY_PROXY_REMOTEURL=https://quay.io \
+    --restart always \
+    --name registry-quay.io \
+    --network kind \
+    registry:2
+
+  docker start registry-ghcr.io 2>/dev/null || docker run -d \
+    -e REGISTRY_PROXY_REMOTEURL=https://ghcr.io \
+    --restart always \
+    --name registry-ghcr.io \
+    --network kind \
+    registry:2
+}
+
+#------------------------------------------------------------------------------
 # [i] Validate the command line arguments
 #------------------------------------------------------------------------------
 
 # Runnable sections (in order)
-SECTIONS=( cloud-provider-kind )
+SECTIONS=( cloud-provider-kind pull-through-cache )
 
 WLCNT="${2:-1}"
 case "${1:-}" in
@@ -88,33 +117,7 @@ fi
 #------------------------------------------------------------------------------
 
 cloud-provider-kind
-
-#------------------------------------------------------------------------------
-# [i] Pull-through image cache
-#------------------------------------------------------------------------------
-
-blue "───[ Pull-through registries ]──────────────────────────────────────────"
-
-docker start registry-docker.io 2>/dev/null || docker run -d \
-  -e REGISTRY_PROXY_REMOTEURL=https://registry-1.docker.io \
-  --restart always \
-  --name registry-docker.io \
-  --network kind \
-  registry:2
-
-docker start registry-quay.io 2>/dev/null || docker run -d \
-  -e REGISTRY_PROXY_REMOTEURL=https://quay.io \
-  --restart always \
-  --name registry-quay.io \
-  --network kind \
-  registry:2
-
-docker start registry-ghcr.io 2>/dev/null || docker run -d \
-  -e REGISTRY_PROXY_REMOTEURL=https://ghcr.io \
-  --restart always \
-  --name registry-ghcr.io \
-  --network kind \
-  registry:2
+pull-through-cache
 
 #------------------------------------------------------------------------------
 # [i] Create the clusters

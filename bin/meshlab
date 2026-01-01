@@ -19,6 +19,9 @@ PWD='meshlab123'
 # Runnable sections (in order)
 SECTIONS=()
 
+# Cluster IPs (populated lazily by ensure-ips)
+declare -gA IP; IP_INIT=false
+
 #------------------------------------------------------------------------------
 # [i] Versions
 #------------------------------------------------------------------------------
@@ -36,6 +39,18 @@ CERT_MANAGER_CHART_VERSION='v1.19.2'          # https://artifacthub.io/packages/
 KUBERNETES_REPLICATOR_CHART_VERSION='2.12.2'  # https://artifacthub.io/packages/helm/kubernetes-replicator/kubernetes-replicator
 ISTIO_CHART_VERSION='1.28.2'                  # https://artifacthub.io/packages/helm/istio-official/base
 KIALI_CHART_VERSION='2.20.0'                  # https://artifacthub.io/packages/helm/kiali/kiali-operator
+
+#------------------------------------------------------------------------------
+# [i] Cluster IPs (lazy initialization)
+#------------------------------------------------------------------------------
+
+ensure-ips() {
+  [[ "${IP_INIT}" == true ]] && return 0
+  for CLUSTER in $(list clusters all "${WLCNT}"); do
+    IP[${CLUSTER}]=$(docker inspect "${CLUSTER}-control-plane" |
+      jq -r '.[].NetworkSettings.Networks.kind.IPAddress')
+  done; IP_INIT=true
+}
 
 #------------------------------------------------------------------------------
 # [i] cloud-provider-kind
@@ -117,11 +132,9 @@ EOF
     }
   ) & done; done; wait
 
-  # Get all the IPs
-  declare -gA IP
+  # Get and display all the IPs
+  ensure-ips
   for CLUSTER in $(list clusters all "${WLCNT}"); do
-    IP[${CLUSTER}]=$(docker inspect "${CLUSTER}-control-plane" |
-      jq -r '.[].NetworkSettings.Networks.kind.IPAddress')
     echo "${CLUSTER} = ${IP[${CLUSTER}]}"
   done
 }; SECTIONS+=( create-clusters )
@@ -169,6 +182,7 @@ EOF
 
 setup-kubeconfig() {
   blue "───[ KUBECONFIG ]───────────────────────────────────────────────────────"
+  ensure-ips # Ensure cluster IPs are initialized
 
   # Setup an in-cluster reachable API server config
   cp -f ~/.kube/config ~/.kube/config.in-cluster

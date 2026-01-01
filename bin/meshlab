@@ -164,6 +164,23 @@ EOF
 }; SECTIONS+=( add-registries-to-containerd )
 
 #------------------------------------------------------------------------------
+# [i] Setup KUBECONFIG
+#------------------------------------------------------------------------------
+
+setup-kubeconfig() {
+  blue "───[ KUBECONFIG ]───────────────────────────────────────────────────────"
+
+  # Setup an in-cluster reachable API server config
+  cp -f ~/.kube/config ~/.kube/config.in-cluster
+  for CLUSTER in $(list clusters all "${WLCNT}"); do
+    echo "Server: https://${IP[${CLUSTER}]}:6443"
+    kubectl --kubeconfig ~/.kube/config.in-cluster \
+    config set-cluster "kind-${CLUSTER}" \
+    --server="https://${IP[${CLUSTER}]}:6443"
+  done
+}; SECTIONS+=( setup-kubeconfig )
+
+#------------------------------------------------------------------------------
 # [i] Validate the command line arguments
 #------------------------------------------------------------------------------
 
@@ -195,21 +212,6 @@ fi
 #------------------------------------------------------------------------------
 
 for section in "${SECTIONS[@]}"; do "$section"; done
-
-#------------------------------------------------------------------------------
-# [i] Setup KUBECONFIG
-#------------------------------------------------------------------------------
-
-blue "───[ KUBECONFIG ]───────────────────────────────────────────────────────"
-
-# Setup an in-cluster reachable API server config
-cp -f ~/.kube/config ~/.kube/config.in-cluster
-for CLUSTER in $(list clusters all "${WLCNT}"); do
-  echo "Server: https://${IP[${CLUSTER}]}:6443"
-  kubectl --kubeconfig ~/.kube/config.in-cluster \
-  config set-cluster "kind-${CLUSTER}" \
-  --server="https://${IP[${CLUSTER}]}:6443"
-done
 
 #------------------------------------------------------------------------------
 # [i] Helm repositories

@@ -16,6 +16,9 @@ source ./lib/common.sh
 # One password to rule them all
 PWD='meshlab123'
 
+# Runnable sections (in order)
+SECTIONS=()
+
 #------------------------------------------------------------------------------
 # [i] Versions
 #------------------------------------------------------------------------------
@@ -50,7 +53,7 @@ cloud-provider-kind() {
       --volume /var/run/docker.sock:/var/run/docker.sock \
       "registry.k8s.io/cloud-provider-kind/cloud-controller-manager:v${KINDCCM_VERSION}"
   }
-}
+}; SECTIONS+=( cloud-provider-kind )
 
 #------------------------------------------------------------------------------
 # [i] Pull-through image cache
@@ -79,14 +82,11 @@ pull-through-cache() {
     --name registry-ghcr.io \
     --network kind \
     registry:2
-}
+}; SECTIONS+=( pull-through-cache )
 
 #------------------------------------------------------------------------------
 # [i] Validate the command line arguments
 #------------------------------------------------------------------------------
-
-# Runnable sections (in order)
-SECTIONS=( cloud-provider-kind pull-through-cache )
 
 WLCNT="${2:-1}"
 case "${1:-}" in
@@ -116,8 +116,7 @@ fi
 # All sections in order
 #------------------------------------------------------------------------------
 
-cloud-provider-kind
-pull-through-cache
+for section in "${SECTIONS[@]}"; do "$section"; done
 
 #------------------------------------------------------------------------------
 # [i] Create the clusters

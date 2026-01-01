@@ -107,7 +107,7 @@ create-clusters() {
 		    kind: ClusterConfiguration
 		    networking:
 		      dnsDomain: "${CELL}.local"
-EOF
+		EOF
   done
 
   # Create the clusters
@@ -144,19 +144,19 @@ add-registries-to-containerd() {
 			server = "https://registry-1.docker.io"
 			[host."http://registry-docker.io:5000"]
 			  capabilities = ["pull", "resolve"]
-EOF
+			EOF
       mkdir -p /etc/containerd/certs.d/quay.io
       cat <<- EOF > /etc/containerd/certs.d/quay.io/hosts.toml
 			server = "https://quay.io"
 			[host."http://registry-quay.io:5000"]
 			  capabilities = ["pull", "resolve"]
-EOF
+			EOF
       mkdir -p /etc/containerd/certs.d/ghcr.io
       cat <<- EOF > /etc/containerd/certs.d/ghcr.io/hosts.toml
 			server = "https://ghcr.io"
 			[host."http://registry-ghcr.io:5000"]
 			  capabilities = ["pull", "resolve"]
-EOF
+			EOF
     '
   ) & done; wait
 }; SECTIONS+=( add-registries-to-containerd )

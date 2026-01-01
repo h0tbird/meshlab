@@ -355,6 +355,38 @@ setup-argocd() {
 }; SECTIONS+=( setup-argocd )
 
 #------------------------------------------------------------------------------
+# [i] Register clusters to ArgoCD
+#------------------------------------------------------------------------------
+
+register-argocd-clusters() {
+  blue "───[ Register clusters to ArgoCD ]──────────────────────────────────────"
+
+  # Check if the ArgoCD context exists
+  argocd context "${MNGR}" 2> /dev/null || {
+
+    # Get the external LoadBalancer IP
+    ARGOCD_IP=$(getExtIP "${MNGR}" argocd argocd-server)
+
+    # Login to ArgoCD
+    argocd login "${ARGOCD_IP}" \
+      --plaintext \
+      --name "${MNGR}" \
+      --username admin \
+      --password "${PWD}"
+
+    # Add clusters with labels
+    for CELL in $(list cells wkld "${WLCNT}"); do for CLUSTER in ${CELLS[${CELL}]}; do
+      argocd cluster list | grep -q "${CLUSTER}" || \
+      argocd cluster add -y "kind-${CLUSTER}" \
+        --kubeconfig ~/.kube/config.in-cluster \
+        --name "${CLUSTER}" \
+        --label name="${CLUSTER}" \
+        --label cell="${CELL}"
+    done; done
+  }
+}; SECTIONS+=( register-argocd-clusters )
+
+#------------------------------------------------------------------------------
 # [i] Validate the command line arguments
 #------------------------------------------------------------------------------
 
@@ -386,36 +418,6 @@ fi
 #------------------------------------------------------------------------------
 
 for section in "${SECTIONS[@]}"; do "$section"; done
-
-#------------------------------------------------------------------------------
-# [i] Register clusters to ArgoCD
-#------------------------------------------------------------------------------
-
-blue "───[ Register clusters to ArgoCD ]──────────────────────────────────────"
-
-# Check if the ArgoCD context exists
-argocd context "${MNGR}" 2> /dev/null || {
-
-  # Get the external LoadBalancer IP
-  ARGOCD_IP=$(getExtIP "${MNGR}" argocd argocd-server)
-
-  # Login to ArgoCD
-  argocd login "${ARGOCD_IP}" \
-    --plaintext \
-    --name "${MNGR}" \
-    --username admin \
-    --password "${PWD}"
-
-  # Add clusters with labels
-  for CELL in $(list cells wkld "${WLCNT}"); do for CLUSTER in ${CELLS[${CELL}]}; do
-    argocd cluster list | grep -q "${CLUSTER}" || \
-    argocd cluster add -y "kind-${CLUSTER}" \
-      --kubeconfig ~/.kube/config.in-cluster \
-      --name "${CLUSTER}" \
-      --label name="${CLUSTER}" \
-      --label cell="${CELL}"
-  done; done
-}
 
 #------------------------------------------------------------------------------
 # [i] Install all the ApplicationSets

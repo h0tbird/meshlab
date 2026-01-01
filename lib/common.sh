@@ -94,3 +94,17 @@ function k0 {
 function h0 {
   retry helm --kube-context "kind-${MNGR}" "${@}"
 }
+
+#------------------------------------------------------------------------------
+# Cluster IPs (lazy initialization)
+#------------------------------------------------------------------------------
+
+declare -gA IP; IP_INIT=false
+
+ensure-ips() {
+  [[ "${IP_INIT}" == true ]] && return 0
+  for CLUSTER in $(list clusters all "${WLCNT}"); do
+    IP[${CLUSTER}]=$(docker inspect "${CLUSTER}-control-plane" |
+      jq -r '.[].NetworkSettings.Networks.kind.IPAddress')
+  done; IP_INIT=true
+}

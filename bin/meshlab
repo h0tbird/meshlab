@@ -35,12 +35,37 @@ ISTIO_CHART_VERSION='1.28.2'                  # https://artifacthub.io/packages/
 KIALI_CHART_VERSION='2.20.0'                  # https://artifacthub.io/packages/helm/kiali/kiali-operator
 
 #------------------------------------------------------------------------------
+# [i] cloud-provider-kind
+#------------------------------------------------------------------------------
+
+cloud-provider-kind() {
+  blue "───[ cloud-provider-kind ]──────────────────────────────────────────────"
+
+  docker network create kind 2>/dev/null || true
+
+  docker ps --format '{{.Names}}' | grep -q '^kindccm$' || {
+    docker run --rm -d \
+      --name kindccm \
+      --network kind \
+      --volume /var/run/docker.sock:/var/run/docker.sock \
+      "registry.k8s.io/cloud-provider-kind/cloud-controller-manager:v${KINDCCM_VERSION}"
+  }
+}
+
+#------------------------------------------------------------------------------
 # [i] Validate the command line arguments
 #------------------------------------------------------------------------------
 
-[[ $# -lt 1 || ($1 != "create" && $1 != "delete") ]] && \
-{ echo "Usage: $(basename "$0") <create|delete> [1|2]"; exit 1; }
-WLCNT="${3:-1}" # Number of workload cells to create (default 1)
+# Runnable sections (in order)
+SECTIONS=( cloud-provider-kind )
+
+WLCNT="${2:-1}"
+case "${1:-}" in
+  create|delete) ;;
+  run)  "${2:?Usage: $0 run <section>}"; exit 0 ;;
+  list) printf '%s\n' "${SECTIONS[@]}"; exit 0 ;;
+  *)    echo "Usage: $(basename "$0") <create|delete|list|run SECTION>"; exit 1 ;;
+esac
 
 #------------------------------------------------------------------------------
 # [i] Handle the delete command
@@ -59,20 +84,10 @@ if [[ $1 == "delete" ]]; then
 fi
 
 #------------------------------------------------------------------------------
-# [i] cloud-provider-kind
+# All sections in order
 #------------------------------------------------------------------------------
 
-blue "───[ cloud-provider-kind ]──────────────────────────────────────────────"
-
-docker network create kind 2>/dev/null || true
-
-docker ps --format '{{.Names}}' | grep -q '^kindccm$' || {
-  docker run --rm -d \
-    --name kindccm \
-    --network kind \
-    --volume /var/run/docker.sock:/var/run/docker.sock \
-    "registry.k8s.io/cloud-provider-kind/cloud-controller-manager:v${KINDCCM_VERSION}"
-}
+cloud-provider-kind
 
 #------------------------------------------------------------------------------
 # [i] Pull-through image cache

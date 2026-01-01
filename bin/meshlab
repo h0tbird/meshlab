@@ -193,6 +193,41 @@ helm-repositories() {
 }; SECTIONS+=( helm-repositories )
 
 #------------------------------------------------------------------------------
+# [i] Install the Cilium CNI
+#------------------------------------------------------------------------------
+
+install-cilium() {
+  blue "───[ Cilium CNI ]───────────────────────────────────────────────────────"
+
+  # Install the Cilium CNI
+  for CLUSTER in $(list clusters all "${WLCNT}"); do (
+
+    # Return early if already running
+    kubectl --context "kind-${CLUSTER}" -n kube-system \
+      get deploy cilium-operator 2>/dev/null && exit 0
+
+    # Install
+    retry helm --kube-context "kind-${CLUSTER}" \
+      upgrade -i cilium cilium/cilium \
+      --version "${CILIUM_CHART_VERSION}" \
+      --namespace kube-system \
+      --values ./charts/cilium/values.yaml \
+      --values ./charts/cilium/values/"${CLUSTER}".yaml \
+      --set k8sServiceHost="${IP[${CLUSTER}]}" |
+    grep 'LAST DEPLOYED'
+  ) & done; wait
+
+  echo
+
+  # Wait for all the nodes to be ready
+  for CLUSTER in $(list clusters all "${WLCNT}"); do (
+    kubectl --context "kind-${CLUSTER}" \
+      wait --for=condition=Ready nodes \
+      --all --timeout=180s
+  ) & done; wait
+}; SECTIONS+=( install-cilium )
+
+#------------------------------------------------------------------------------
 # [i] Validate the command line arguments
 #------------------------------------------------------------------------------
 
@@ -224,39 +259,6 @@ fi
 #------------------------------------------------------------------------------
 
 for section in "${SECTIONS[@]}"; do "$section"; done
-
-#------------------------------------------------------------------------------
-# [i] Install the Cilium CNI
-#------------------------------------------------------------------------------
-
-blue "───[ Cilium CNI ]───────────────────────────────────────────────────────"
-
-# Install the Cilium CNI
-for CLUSTER in $(list clusters all "${WLCNT}"); do (
-
-  # Return early if already running
-  kubectl --context "kind-${CLUSTER}" -n kube-system \
-    get deploy cilium-operator 2>/dev/null && exit 0
-
-  # Install
-  retry helm --kube-context "kind-${CLUSTER}" \
-    upgrade -i cilium cilium/cilium \
-    --version "${CILIUM_CHART_VERSION}" \
-    --namespace kube-system \
-    --values ./charts/cilium/values.yaml \
-    --values ./charts/cilium/values/"${CLUSTER}".yaml \
-    --set k8sServiceHost="${IP[${CLUSTER}]}" |
-  grep 'LAST DEPLOYED'
-) & done; wait
-
-echo
-
-# Wait for all the nodes to be ready
-for CLUSTER in $(list clusters all "${WLCNT}"); do (
-  kubectl --context "kind-${CLUSTER}" \
-    wait --for=condition=Ready nodes \
-    --all --timeout=180s
-) & done; wait
 
 #------------------------------------------------------------------------------
 # [i] Install ClusterMesh

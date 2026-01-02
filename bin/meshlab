@@ -405,6 +405,33 @@ install-applicationsets() {
 }; SECTIONS+=( install-applicationsets )
 
 #------------------------------------------------------------------------------
+# [i] Setup ArgoWF
+#------------------------------------------------------------------------------
+
+setup-argowf() {
+  blue "───[ ArgoWF ]───────────────────────────────────────────────────────────"
+
+  # Install Argo Workflows
+  h0 upgrade --install -n argowf --create-namespace --wait --timeout 5m \
+    argo-workflows argo/argo-workflows --version "${ARGOWF_CHART_VERSION}" \
+    --set 'server.serviceType=LoadBalancer' \
+    --set 'server.authModes={server}' \
+    --set 'server.servicePort=80' \
+    --set 'workflow.serviceAccount.create=true' \
+    --set 'workflow.serviceAccount.name=argo-workflow' \
+    --set 'workflow.rbac.create=true' \
+    --set 'controller.workflowNamespaces={argocd}' \
+    --set-json 'workflow.rbac.rules=[{"apiGroups":["argoproj.io"],"resources":["applicationsets"],"verbs":["get","watch","patch"]}]' |
+    grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
+
+  # Set argowf.${DOMAIN} as ext DNS name
+  k0 -n argowf annotate svc argo-workflows-server coredns.io/hostname=argowf."${DOMAIN}"
+
+  # Publish the ArgoWF port
+  publish "${MNGR}" argowf argo-workflows-server 8081
+}; SECTIONS+=( setup-argowf )
+
+#------------------------------------------------------------------------------
 # [i] Validate the command line arguments
 #------------------------------------------------------------------------------
 
@@ -436,31 +463,6 @@ fi
 #------------------------------------------------------------------------------
 
 for section in "${SECTIONS[@]}"; do "$section"; done
-
-#------------------------------------------------------------------------------
-# [i] Setup ArgoWF
-#------------------------------------------------------------------------------
-
-blue "───[ ArgoWF ]───────────────────────────────────────────────────────────"
-
-# Install Argo Workflows
-h0 upgrade --install -n argowf --create-namespace --wait --timeout 5m \
-  argo-workflows argo/argo-workflows --version "${ARGOWF_CHART_VERSION}" \
-  --set 'server.serviceType=LoadBalancer' \
-  --set 'server.authModes={server}' \
-  --set 'server.servicePort=80' \
-  --set 'workflow.serviceAccount.create=true' \
-  --set 'workflow.serviceAccount.name=argo-workflow' \
-  --set 'workflow.rbac.create=true' \
-  --set 'controller.workflowNamespaces={argocd}' \
-  --set-json 'workflow.rbac.rules=[{"apiGroups":["argoproj.io"],"resources":["applicationsets"],"verbs":["get","watch","patch"]}]' |
-  grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
-
-# Set argowf.${DOMAIN} as ext DNS name
-k0 -n argowf annotate svc argo-workflows-server coredns.io/hostname=argowf."${DOMAIN}"
-
-# Publish the ArgoWF port
-publish "${MNGR}" argowf argo-workflows-server 8081
 
 #------------------------------------------------------------------------------
 # [i] Bootstrap DAG

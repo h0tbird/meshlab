@@ -661,6 +661,30 @@ istio-endpoint-discovery() {
 }; SECTIONS+=( istio-endpoint-discovery )
 
 #------------------------------------------------------------------------------
+# [i] External kiali multi-cluster setup
+#------------------------------------------------------------------------------
+
+kiali-multicluster() {
+  blue "───[ External kiali multi-cluster setup ]───────────────────────────────────────"
+  ensure-ips # Ensure cluster IPs are initialized
+
+  for CLUSTER in $(list clusters wkld "${WLCNT}"); do
+    kiali-prepare-remote-cluster.sh \
+      --kiali-cluster-context "kind-${MNGR}" \
+      --remote-cluster-context "kind-${CLUSTER}" \
+      --view-only false \
+      --process-kiali-secret true \
+      --process-remote-resources true \
+      --kiali-cluster-namespace monitoring \
+      --remote-cluster-name "${CLUSTER}" \
+      --remote-cluster-url "https://${IP[${CLUSTER}]}:6443" |
+      grep -v '^INFO:'
+  done
+
+  k0 -n monitoring annotate kiali kiali kiali.io/reconcile="$(date +%s)" --overwrite
+}; SECTIONS+=( kiali-multicluster )
+
+#------------------------------------------------------------------------------
 # [i] Validate the command line arguments
 #------------------------------------------------------------------------------
 
@@ -692,27 +716,6 @@ fi
 #------------------------------------------------------------------------------
 
 for section in "${SECTIONS[@]}"; do "$section"; done
-
-#------------------------------------------------------------------------------
-# [i] External kiali multi-cluster setup
-#------------------------------------------------------------------------------
-
-blue "───[ External kiali multi-cluster setup ]───────────────────────────────────────"
-
-for CLUSTER in $(list clusters wkld "${WLCNT}"); do
-  kiali-prepare-remote-cluster.sh \
-    --kiali-cluster-context "kind-${MNGR}" \
-    --remote-cluster-context "kind-${CLUSTER}" \
-    --view-only false \
-    --process-kiali-secret true \
-    --process-remote-resources true \
-    --kiali-cluster-namespace monitoring \
-    --remote-cluster-name "${CLUSTER}" \
-    --remote-cluster-url "https://${IP[${CLUSTER}]}:6443" |
-    grep -v '^INFO:'
-done
-
-k0 -n monitoring annotate kiali kiali kiali.io/reconcile="$(date +%s)" --overwrite
 
 #------------------------------------------------------------------------------
 # [i] Kiali-Grafana integration

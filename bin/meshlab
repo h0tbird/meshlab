@@ -685,6 +685,52 @@ kiali-multicluster() {
 }; SECTIONS+=( kiali-multicluster )
 
 #------------------------------------------------------------------------------
+# [i] Kiali-Grafana integration
+#------------------------------------------------------------------------------
+
+kiali-grafana() {
+  blue "───[ Kiali-Grafana integration ]────────────────────────────────────────"
+
+  GRAFANA_URL="http://$(getExtIP "${MNGR}" monitoring grafana)"
+  GRAFANA_AUTH="admin:${PWD}"
+
+  # Create service account
+  SA_ID=$(curl -sS -u "${GRAFANA_AUTH}" -H 'Content-Type: application/json' \
+    -d '{"name":"kiali","role":"Viewer"}' "${GRAFANA_URL}/api/serviceaccounts" | jq '.id')
+
+  # Create token and patch Kiali
+  [[ "${SA_ID}" =~ ^[0-9]+$ ]] && \
+  TOKEN=$(curl -sS -u "${GRAFANA_AUTH}" -H 'Content-Type: application/json' \
+    -d '{"name":"kiali-token"}' "${GRAFANA_URL}/api/serviceaccounts/${SA_ID}/tokens" | jq -r '.key') && \
+  kubectl --context "kind-${MNGR}" -n monitoring patch kiali kiali --type=merge \
+    -p '{"spec":{"external_services":{"grafana":{"auth":{"type":"token","token":"'"${TOKEN}"'","use_kiali_token":false}}}}}'
+}; SECTIONS+=( kiali-grafana )
+
+#------------------------------------------------------------------------------
+# [i] Deploy some workloads
+#------------------------------------------------------------------------------
+
+deploy-workloads() {
+  blue "---[ Deploy workloads ]-------------------------------------------------"
+
+  swarmctl --context 'pasta-*|pizza-*' i --yes --istio-revision stable --image-tag main
+  swarmctl --context 'pasta-*|pizza-*' w 1:2 --yes --istio-revision stable --image-tag main
+}; SECTIONS+=( deploy-workloads )
+
+#------------------------------------------------------------------------------
+# [i] Publish ports
+#------------------------------------------------------------------------------
+
+publish-ports() {
+  blue "───[ Publish ports ]────────────────────────────────────────────────────"
+
+  publish "${MNGR}" vault vault 8082
+  publish "${MNGR}" monitoring prometheus-server 8083
+  publish "${MNGR}" monitoring grafana 8084
+  publish "${MNGR}" monitoring kiali 8085
+}; SECTIONS+=( publish-ports )
+
+#------------------------------------------------------------------------------
 # [i] Validate the command line arguments
 #------------------------------------------------------------------------------
 
@@ -716,41 +762,3 @@ fi
 #------------------------------------------------------------------------------
 
 for section in "${SECTIONS[@]}"; do "$section"; done
-
-#------------------------------------------------------------------------------
-# [i] Kiali-Grafana integration
-#------------------------------------------------------------------------------
-
-blue "───[ Kiali-Grafana integration ]────────────────────────────────────────"
-
-GRAFANA_URL="http://$(getExtIP "${MNGR}" monitoring grafana)"
-GRAFANA_AUTH="admin:${PWD}"
-
-# Create service account
-SA_ID=$(curl -sS -u "${GRAFANA_AUTH}" -H 'Content-Type: application/json' \
-  -d '{"name":"kiali","role":"Viewer"}' "${GRAFANA_URL}/api/serviceaccounts" | jq '.id')
-
-# Create token and patch Kiali
-[[ "${SA_ID}" =~ ^[0-9]+$ ]] && \
-TOKEN=$(curl -sS -u "${GRAFANA_AUTH}" -H 'Content-Type: application/json' \
-  -d '{"name":"kiali-token"}' "${GRAFANA_URL}/api/serviceaccounts/${SA_ID}/tokens" | jq -r '.key') && \
-kubectl --context "kind-${MNGR}" -n monitoring patch kiali kiali --type=merge \
-  -p '{"spec":{"external_services":{"grafana":{"auth":{"type":"token","token":"'"${TOKEN}"'","use_kiali_token":false}}}}}'
-
-#------------------------------------------------------------------------------
-# [i] Deploy some workloads
-#------------------------------------------------------------------------------
-
-blue "---[ Deploy workloads ]-------------------------------------------------"
-
-swarmctl --context 'pasta-*|pizza-*' i --yes --istio-revision stable --image-tag main
-swarmctl --context 'pasta-*|pizza-*' w 1:2 --yes --istio-revision stable --image-tag main
-
-#------------------------------------------------------------------------------
-# [i] Publish ports
-#------------------------------------------------------------------------------
-
-publish "${MNGR}" vault vault 8082
-publish "${MNGR}" monitoring prometheus-server 8083
-publish "${MNGR}" monitoring grafana 8084
-publish "${MNGR}" monitoring kiali 8085

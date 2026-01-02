@@ -38,6 +38,20 @@ ISTIO_CHART_VERSION='1.28.2'                  # https://artifacthub.io/packages/
 KIALI_CHART_VERSION='2.20.0'                  # https://artifacthub.io/packages/helm/kiali/kiali-operator
 
 #------------------------------------------------------------------------------
+# [i] Cleanup
+#------------------------------------------------------------------------------
+
+cleanup() {
+  blue "───[ Cleanup ]──────────────────────────────────────────────────────────"
+
+  # shellcheck disable=SC2046
+  docker kill $(docker ps -f "name=kindccm" -q) 2>/dev/null || true
+  argocd context --delete "${MNGR}" 2>/dev/null || true
+  kind delete clusters --all
+  rm -rf ./tmp/*
+}
+
+#------------------------------------------------------------------------------
 # [i] cloud-provider-kind
 #------------------------------------------------------------------------------
 
@@ -735,27 +749,12 @@ publish-ports() {
 #------------------------------------------------------------------------------
 
 case "${1:-}" in
-  create|delete) WLCNT="${2:-1}" ;;
+  create) WLCNT="${2:-1}" ;;
+  delete) WLCNT="${2:-1}"; cleanup; exit 0 ;;
   run)  WLCNT="${3:-1}"; "${2:?Usage: $0 run <section> [count]}"; exit 0 ;;
   list) printf '%s\n' "${SECTIONS[@]}"; exit 0 ;;
   *)    echo "Usage: $(basename "$0") <create|delete|list|run SECTION [count]>"; exit 1 ;;
 esac
-
-#------------------------------------------------------------------------------
-# [i] Handle the delete command
-#------------------------------------------------------------------------------
-
-if [[ $1 == "delete" ]]; then
-
-  blue "───[ Cleanup ]────────────────────────────────────────────────────────"
-
-  # shellcheck disable=SC2046
-  docker kill $(docker ps -f "name=kindccm" -q) 2>/dev/null || true
-  argocd context --delete "${MNGR}" 2>/dev/null || true
-  kind delete clusters --all
-  rm -rf ./tmp/*
-  exit 0
-fi
 
 #------------------------------------------------------------------------------
 # All sections in order

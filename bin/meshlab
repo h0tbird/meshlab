@@ -626,6 +626,41 @@ bootstrap-dag() {
 }; SECTIONS+=( bootstrap-dag )
 
 #------------------------------------------------------------------------------
+# [i] Enable Istio endpoint discovery
+#------------------------------------------------------------------------------
+
+istio-endpoint-discovery() {
+  blue "───[ Istio remote secrets ]─────────────────────────────────────────────"
+
+  # Bug? Patch the Istio reader ClusterRole.
+  # TODO: Remove this if fixed by upstream.
+  # https://github.com/istio/istio/issues/52739
+  # https://github.com/istio/istio/issues/42137
+  for CLUSTER in $(list clusters wkld "${WLCNT}"); do
+
+    # Continue if already patched
+    k --context "kind-${CLUSTER}" get clusterrole \
+    "istio-reader-clusterrole-${ISTIO_CHART_VERSION//./-}-istio-system" \
+    -o jsonpath='{.rules[1].resources}' | grep -q configmaps && continue
+
+    # Patch
+    k --context "kind-${CLUSTER}" patch clusterrole \
+    "istio-reader-clusterrole-${ISTIO_CHART_VERSION//./-}-istio-system" \
+    --type='json' -p='[{"op": "add", "path": "/rules/1/resources/-", "value": "configmaps"}]'
+  done
+
+  for CELL in $(list cells wkld "${WLCNT}"); do (
+    IFS=" " read -r -a CLUSTERS <<< "${CELLS[${CELL}]}"
+    istioctl --kubeconfig ~/.kube/config.in-cluster create-remote-secret \
+      --context "kind-${CLUSTERS[0]}" --name="${CLUSTERS[0]}" | \
+      kubectl --context "kind-${CLUSTERS[1]}" apply -f -
+    istioctl --kubeconfig ~/.kube/config.in-cluster create-remote-secret \
+      --context "kind-${CLUSTERS[1]}" --name="${CLUSTERS[1]}" | \
+      kubectl --context "kind-${CLUSTERS[0]}" apply -f -
+  ) & done; wait
+}; SECTIONS+=( istio-endpoint-discovery )
+
+#------------------------------------------------------------------------------
 # [i] Validate the command line arguments
 #------------------------------------------------------------------------------
 
@@ -657,39 +692,6 @@ fi
 #------------------------------------------------------------------------------
 
 for section in "${SECTIONS[@]}"; do "$section"; done
-
-#------------------------------------------------------------------------------
-# [i] Enable Istio endpoint discovery
-#------------------------------------------------------------------------------
-
-blue "───[ Istio remote secrets ]─────────────────────────────────────────────"
-
-# Bug? Patch the Istio reader ClusterRole.
-# TODO: Remove this if fixed by upstream.
-# https://github.com/istio/istio/issues/52739
-# https://github.com/istio/istio/issues/42137
-for CLUSTER in $(list clusters wkld "${WLCNT}"); do
-
-  # Continue if already patched
-  k --context "kind-${CLUSTER}" get clusterrole \
-  "istio-reader-clusterrole-${ISTIO_CHART_VERSION//./-}-istio-system" \
-  -o jsonpath='{.rules[1].resources}' | grep -q configmaps && continue
-
-  # Patch
-  k --context "kind-${CLUSTER}" patch clusterrole \
-  "istio-reader-clusterrole-${ISTIO_CHART_VERSION//./-}-istio-system" \
-  --type='json' -p='[{"op": "add", "path": "/rules/1/resources/-", "value": "configmaps"}]'
-done
-
-for CELL in $(list cells wkld "${WLCNT}"); do (
-  IFS=" " read -r -a CLUSTERS <<< "${CELLS[${CELL}]}"
-  istioctl --kubeconfig ~/.kube/config.in-cluster create-remote-secret \
-    --context "kind-${CLUSTERS[0]}" --name="${CLUSTERS[0]}" | \
-    kubectl --context "kind-${CLUSTERS[1]}" apply -f -
-  istioctl --kubeconfig ~/.kube/config.in-cluster create-remote-secret \
-    --context "kind-${CLUSTERS[1]}" --name="${CLUSTERS[1]}" | \
-    kubectl --context "kind-${CLUSTERS[0]}" apply -f -
-) & done; wait
 
 #------------------------------------------------------------------------------
 # [i] External kiali multi-cluster setup

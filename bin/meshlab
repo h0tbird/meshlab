@@ -432,63 +432,31 @@ setup-argowf() {
 }; SECTIONS+=( setup-argowf )
 
 #------------------------------------------------------------------------------
-# [i] Validate the command line arguments
-#------------------------------------------------------------------------------
-
-case "${1:-}" in
-  create|delete) WLCNT="${2:-1}" ;;
-  run)  WLCNT="${3:-1}"; "${2:?Usage: $0 run <section> [count]}"; exit 0 ;;
-  list) printf '%s\n' "${SECTIONS[@]}"; exit 0 ;;
-  *)    echo "Usage: $(basename "$0") <create|delete|list|run SECTION [count]>"; exit 1 ;;
-esac
-
-#------------------------------------------------------------------------------
-# [i] Handle the delete command
-#------------------------------------------------------------------------------
-
-if [[ $1 == "delete" ]]; then
-
-  blue "───[ Cleanup ]────────────────────────────────────────────────────────"
-
-  # shellcheck disable=SC2046
-  docker kill $(docker ps -f "name=kindccm" -q) 2>/dev/null || true
-  argocd context --delete "${MNGR}" 2>/dev/null || true
-  kind delete clusters --all
-  rm -rf ./tmp/*
-  exit 0
-fi
-
-#------------------------------------------------------------------------------
-# All sections in order
-#------------------------------------------------------------------------------
-
-for section in "${SECTIONS[@]}"; do "$section"; done
-
-#------------------------------------------------------------------------------
 # [i] Bootstrap DAG
 #------------------------------------------------------------------------------
 
-blue "───[ Bootstrap DAG ]────────────────────────────────────────────────────"
+bootstrap-dag() {
+  blue "───[ Bootstrap DAG ]────────────────────────────────────────────────────"
 
-# Install Argo WorkflowTemplates
-helm template ./charts/wftemplates | k0 -n argocd apply -f -
+  # Install Argo WorkflowTemplates
+  helm template ./charts/wftemplates | k0 -n argocd apply -f -
 
-# Create a secret with ArgoCD credentials
-k0 create secret generic argocd-credentials \
- --from-literal=username='admin' \
- --from-literal=password="${PWD}" \
- --from-literal=token='' \
- --dry-run=client -o yaml | k0 -n argocd apply -f -
+  # Create a secret with ArgoCD credentials
+  k0 create secret generic argocd-credentials \
+   --from-literal=username='admin' \
+   --from-literal=password="${PWD}" \
+   --from-literal=token='' \
+   --dry-run=client -o yaml | k0 -n argocd apply -f -
 
-# Create the monitoring namespace on all clusters
-for CLUSTER in $(list clusters all "${WLCNT}"); do (
-  kubectl --context "kind-${CLUSTER}" create ns monitoring \
-  --dry-run=client -o yaml | kubectl --context "kind-${CLUSTER}" apply -f -
-) & done; wait
+  # Create the monitoring namespace on all clusters
+  for CLUSTER in $(list clusters all "${WLCNT}"); do (
+    kubectl --context "kind-${CLUSTER}" create ns monitoring \
+    --dry-run=client -o yaml | kubectl --context "kind-${CLUSTER}" apply -f -
+  ) & done; wait
 
-# Create the bootstrap workflow
-argo --context "kind-${MNGR}" list -n argocd | grep -q bootstrap || \
-argo --context "kind-${MNGR}" submit -n argocd -w - <<- EOF
+  # Create the bootstrap workflow
+  argo --context "kind-${MNGR}" list -n argocd | grep -q bootstrap || \
+  argo --context "kind-${MNGR}" submit -n argocd -w - <<- EOF
 	apiVersion: argoproj.io/v1alpha1
 	kind: Workflow
 	metadata:
@@ -655,6 +623,40 @@ argo --context "kind-${MNGR}" submit -n argocd -w - <<- EOF
 	          - name: selectors
 	            value: name=kiali-operator
 	EOF
+}; SECTIONS+=( bootstrap-dag )
+
+#------------------------------------------------------------------------------
+# [i] Validate the command line arguments
+#------------------------------------------------------------------------------
+
+case "${1:-}" in
+  create|delete) WLCNT="${2:-1}" ;;
+  run)  WLCNT="${3:-1}"; "${2:?Usage: $0 run <section> [count]}"; exit 0 ;;
+  list) printf '%s\n' "${SECTIONS[@]}"; exit 0 ;;
+  *)    echo "Usage: $(basename "$0") <create|delete|list|run SECTION [count]>"; exit 1 ;;
+esac
+
+#------------------------------------------------------------------------------
+# [i] Handle the delete command
+#------------------------------------------------------------------------------
+
+if [[ $1 == "delete" ]]; then
+
+  blue "───[ Cleanup ]────────────────────────────────────────────────────────"
+
+  # shellcheck disable=SC2046
+  docker kill $(docker ps -f "name=kindccm" -q) 2>/dev/null || true
+  argocd context --delete "${MNGR}" 2>/dev/null || true
+  kind delete clusters --all
+  rm -rf ./tmp/*
+  exit 0
+fi
+
+#------------------------------------------------------------------------------
+# All sections in order
+#------------------------------------------------------------------------------
+
+for section in "${SECTIONS[@]}"; do "$section"; done
 
 #------------------------------------------------------------------------------
 # [i] Enable Istio endpoint discovery

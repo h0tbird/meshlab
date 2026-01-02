@@ -13,12 +13,6 @@ cd "$(dirname "$0")"/..
 # shellcheck source=../lib/common.sh
 source ./lib/common.sh
 
-# One password to rule them all
-PWD='meshlab123'
-
-# Runnable sections (in order)
-SECTIONS=()
-
 #------------------------------------------------------------------------------
 # [i] Versions
 #------------------------------------------------------------------------------
@@ -751,14 +745,14 @@ publish-ports() {
 
 case "${1:-}" in
   create) WLCNT="${2:-1}" ;;
-  delete) WLCNT="${2:-1}"; cleanup; exit 0 ;;
+  delete) cleanup; exit 0 ;;
   run)  WLCNT="${3:-1}"; "${2:?Usage: $0 run <section> [count]}"; exit 0 ;;
   list) printf '%s\n' "${SECTIONS[@]}"; exit 0 ;;
   *)    echo "Usage: $(basename "$0") <create|delete|list|run SECTION [count]>"; exit 1 ;;
 esac
 
 #------------------------------------------------------------------------------
-# All sections in order
+# [i] Run all sections in order
 #------------------------------------------------------------------------------
 
 for section in "${SECTIONS[@]}"; do "$section"; done

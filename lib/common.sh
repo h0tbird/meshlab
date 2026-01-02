@@ -1,17 +1,24 @@
 #!/usr/bin/env bash
 
 #------------------------------------------------------------------------------
-# Define cells and clusters
+# Variables
 #------------------------------------------------------------------------------
 
 export MNGR="mnger-1"
 export DOMAIN="demo.lab"
 
+# Define cells and clusters
 declare -A CELLS=(
   [mngr]=${MNGR}
   [pasta]="pasta-1 pasta-2"
   [pizza]="pizza-1 pizza-2"
 )
+
+# One password to rule them all
+PWD='meshlab123'
+
+# Runnable sections (in order)
+SECTIONS=()
 
 #------------------------------------------------------------------------------
 # List cells and clusters

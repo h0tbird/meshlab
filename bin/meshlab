@@ -53,7 +53,8 @@ cleanup() {
 cloud-provider-kind() {
   blue "───[ cloud-provider-kind ]──────────────────────────────────────────────"
 
-  docker network create kind 2>/dev/null || true
+  docker network ls | grep -q ' kind ' || \
+  docker network create kind
 
   docker ps --format '{{.Names}}' | grep -q '^kindccm$' || {
     docker run --rm -d \

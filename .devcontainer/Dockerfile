@@ -15,7 +15,7 @@ ENV PATH=/workspaces/meshlab/bin:${PATH}
 RUN apt update && \
     apt install -y --no-install-recommends \
     curl jq gnupg iputils-ping dnsutils neovim \
-    socat netcat-openbsd apache2-utils && \
+    socat netcat-openbsd apache2-utils shellcheck && \
     apt autoremove -y && apt clean -y && \
     rm -rf /var/lib/apt/lists/* && \
     chmod -x /etc/update-motd.d/*

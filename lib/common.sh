@@ -20,10 +20,6 @@ PWD='meshlab123'
 # Runnable sections (in order)
 export SECTIONS=()
 
-# Auto-detect Docker API version
-DOCKER_API_VERSION=$(curl -s --unix-socket /var/run/docker.sock http://localhost/version | jq -r '.ApiVersion')
-export DOCKER_API_VERSION
-
 #------------------------------------------------------------------------------
 # List cells and clusters
 #------------------------------------------------------------------------------

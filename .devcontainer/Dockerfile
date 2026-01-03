@@ -24,6 +24,7 @@ RUN apt update && \
 RUN chsh -s /usr/bin/zsh root && \
     chsh -s /usr/bin/zsh vscode && \
     echo 'export GPG_TTY=$(tty)' >> /etc/zsh/zshenv && \
+    echo 'export DOCKER_API_VERSION=$(curl -s --unix-socket /var/run/docker.sock http://localhost/version | jq -r .ApiVersion)' >> /etc/zsh/zshenv && \
     sed -i '/^ZSH_THEME/c\ZSH_THEME="robbyrussell"' /root/.zshrc && \
     sed -i '/^ZSH_THEME/c\ZSH_THEME="robbyrussell"' /home/vscode/.zshrc
 

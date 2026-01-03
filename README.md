@@ -9,12 +9,12 @@ gh cs ssh -c ${CODESPACE}
 ```
 
 ### Bring up meshlab
-```
+```console
 meshlab create
 ```
 
 ### Forward the ports
-```
+```console
 gh cs ports forward \
 8080:8080 \
 8081:8081 \

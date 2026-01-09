@@ -9,28 +9,63 @@ SRC_CLUSTER="pasta-1"
 DST_CLUSTER="pasta-2"
 ISTIOD_DEBUG_PORT="9090"
 
-retoken () {
-  # New KUBECONFIG for $DST_CLUSTER with updated token
-  KUBECONFIG_B64=$(k --context kind-$SRC_CLUSTER -n istio-system get secret istio-remote-secret-$DST_CLUSTER -o yaml | yq ".data.$DST_CLUSTER" |
-  base64 -d | yq ".users[0].user.token = \"$(k --context kind-$DST_CLUSTER -n istio-system create token istio-reader-service-account)\"" | base64 -w0)
+#------------------------------------------------------------------------------
+# Implementation 1: Patch the existing secret (default)
+#-------------------------------------------------------------------------------
 
-  # Edit secret istio-remote-secret-$DST_CLUSTER in $SRC_CLUSTER
-  k --context kind-$SRC_CLUSTER -n istio-system patch secret istio-remote-secret-$DST_CLUSTER \
-  -p "{\"data\":{\"$DST_CLUSTER\":\"${KUBECONFIG_B64}\"}}"
+retoken_patch () {
+  # New KUBECONFIG for ${DST_CLUSTER} with updated token
+  KUBECONFIG_B64=$(k --context kind-${SRC_CLUSTER} -n istio-system get secret istio-remote-secret-${DST_CLUSTER} -o yaml | yq ".data.${DST_CLUSTER}" |
+  base64 -d | yq ".users[0].user.token = \"$(k --context kind-${DST_CLUSTER} -n istio-system create token istio-reader-service-account)\"" | base64 -w0)
+
+  # Edit secret istio-remote-secret-${DST_CLUSTER} in ${SRC_CLUSTER}
+  k --context kind-${SRC_CLUSTER} -n istio-system patch secret istio-remote-secret-${DST_CLUSTER} \
+  -p "{\"data\":{\"${DST_CLUSTER}\":\"${KUBECONFIG_B64}\"}}"
 }
+
+#------------------------------------------------------------------------------
+# Implementation 2: Delete and recreate the secret
+#-------------------------------------------------------------------------------
+
+retoken_recreate () {
+  # Get the current secret as YAML
+  SECRET_YAML=$(k --context kind-${SRC_CLUSTER} -n istio-system get secret istio-remote-secret-${DST_CLUSTER} -o yaml)
+
+  # Extract and update the KUBECONFIG with a new token
+  KUBECONFIG_B64=$(echo "$SECRET_YAML" | yq ".data.${DST_CLUSTER}" |
+  base64 -d | yq ".users[0].user.token = \"$(k --context kind-${DST_CLUSTER} -n istio-system create token istio-reader-service-account)\"" | base64 -w0)
+
+  # Delete the existing secret
+  k --context kind-${SRC_CLUSTER} -n istio-system delete secret istio-remote-secret-${DST_CLUSTER}
+
+  # Recreate the secret with updated token (strip resourceVersion and other metadata)
+  echo "$SECRET_YAML" | yq ".data.${DST_CLUSTER} = \"$KUBECONFIG_B64\" | del(.metadata.resourceVersion) | del(.metadata.uid) | del(.metadata.creationTimestamp)" |
+  k --context kind-${SRC_CLUSTER} apply -f -
+}
+
+#------------------------------------------------------------------------------
+# Entry Point
+#-------------------------------------------------------------------------------
+
+# Validate the retoken function exists
+RETOKEN="retoken_${1:-patch}"
+if ! declare -f "${RETOKEN}" > /dev/null; then
+  echo "Usage: $0 [patch|recreate]"
+  exit 1
+fi
 
 # Take the initial heap profile
 echo "Taking initial heap profile sample 0"
-curl -s "http://localhost:${ISTIOD_DEBUG_PORT}/debug/pprof/heap" > heap.sample-0.pb.gz
+curl -s "http://localhost:${ISTIOD_DEBUG_PORT}/debug/pprof/heap?gc=1" > heap.sample-0.pb.gz
 
 # Run retoken and take heap profile sample every 10 retokenings
 sample=1
 for i in {1..100}; do
-  retoken
+  ${RETOKEN}
   sleep 10
   if (( i % 10 == 0 )); then
     echo "Taking heap profile sample ${sample}"
-    curl -s "http://localhost:${ISTIOD_DEBUG_PORT}/debug/pprof/heap" > heap.sample-"${sample}".pb.gz
+    curl -s "http://localhost:${ISTIOD_DEBUG_PORT}/debug/pprof/heap?gc=1" > heap.sample-"${sample}".pb.gz
     ((sample++))
   fi
 done

@@ -51,7 +51,7 @@ RUN VERSION="v4.50.1" && ARCH=$(dpkg --print-architecture) && \
     chmod +x /usr/local/bin/yq && echo "source <(yq completion zsh) && compdef _yq yq" >> /etc/zsh/zshrc
 
 # Install argocd (https://github.com/argoproj/argo-cd/releases)
-RUN VERSION="v3.2.2" && ARCH=$(dpkg --print-architecture) && \
+RUN VERSION="v3.2.3" && ARCH=$(dpkg --print-architecture) && \
     wget https://github.com/argoproj/argo-cd/releases/download/${VERSION}/argocd-linux-${ARCH} -qO /usr/local/bin/argocd && \
     chmod +x /usr/local/bin/argocd && echo "source <(argocd completion zsh) && compdef _argocd argocd" >> /etc/zsh/zshrc
 
@@ -89,7 +89,7 @@ RUN VERSION="v0.5.2" && ARCH=$(arch) && \
     tar -xzC /usr/local/bin mdbook && echo "source <(mdbook completions zsh) && compdef _mdbook mdbook" >> /etc/zsh/zshrc
 
 # Install swarmctl (https://github.com/h0tbird/k-swarm/releases)
-RUN VERSION="0.3.5" && ARCH=$(dpkg --print-architecture) && \
+RUN VERSION="0.3.6" && ARCH=$(dpkg --print-architecture) && \
     wget -qO- https://github.com/h0tbird/k-swarm/releases/download/v${VERSION}/swarmctl_${VERSION}_linux_${ARCH}.tar.gz | tar -xz -C /usr/local/bin/ && \
     chmod +x /usr/local/bin/swarmctl && echo "source <(swarmctl completion zsh) && compdef _swarmctl swarmctl" >> /etc/zsh/zshrc
 

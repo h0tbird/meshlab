@@ -10,7 +10,7 @@ ARG BASE_IMAGE_TAG=latest
 # Buildtime
 #------------------------------------------------------------------------------
 
-FROM golang:1.22 AS builder
+FROM golang:1.25 AS builder
 
 # Build arguments
 ARG VERSION="unknown"

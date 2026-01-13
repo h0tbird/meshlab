@@ -1,5 +1,8 @@
+# Build and deploy:
+# make pilot-agent
+# k --context kind-pasta-1 -n service-1 patch deploy/worker --type='merge' -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"ghcr.io/h0tbird/proxyv2:1.28.2-patch.1"}}}}}'
+
 # Debug:
-# k --context kind-pasta-1 -n service-1 patch deployment worker --type='merge' -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"ghcr.io/h0tbird/proxyv2:1.24.3"}}}}}'
 # k --context kind-pasta-1 -n service-1 exec -it deployment/worker -c istio-proxy -- dlv dap --listen=:40000 --log=true
 # k --context kind-pasta-1 -n service-1 port-forward deployment/worker 40000:40000
 

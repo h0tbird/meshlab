@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # This script helps reproduce a memory leak in istiod that occurs when updating
-# the istio-remote-secret with a new access token. It performs 100 retokenings
-# and collects 11 heap profile samples: one initial sample and one after every
+# the istio-remote-secret with a new access token. It performs 200 retokenings
+# and collects 21 heap profile samples: one initial sample and one after every
 # 10 retokenings.
 
 SRC_CLUSTER="pasta-1"
@@ -60,9 +60,9 @@ curl -s "http://localhost:${ISTIOD_DEBUG_PORT}/debug/pprof/heap?gc=1" > heap.sam
 
 # Run retoken and take heap profile sample every 10 retokenings
 sample=1
-for i in {1..100}; do
+for i in {1..200}; do
   ${RETOKEN}
-  sleep 10
+  sleep 5
   if (( i % 10 == 0 )); then
     echo "Taking heap profile sample ${sample}"
     curl -s "http://localhost:${ISTIOD_DEBUG_PORT}/debug/pprof/heap?gc=1" > heap.sample-"${sample}".pb.gz

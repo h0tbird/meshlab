@@ -29,19 +29,19 @@
 <p>
 
 #### Start a codespace using `gh`
-  ```console
-  unset GITHUB_TOKEN
-  gh config set pager cat
-  gh auth refresh -h github.com -s codespace
-  gh cs create -R h0tbird/meshlab -m largePremiumLinux -d playground
-  CODESPACE=$(gh cs list --json name --jq '.[].name' | grep -m1 '^playground')
-  gh cs ssh -c ${CODESPACE}
-  ```
+```console
+unset GITHUB_TOKEN
+gh config set pager cat
+gh auth refresh -h github.com -s codespace
+gh cs create -R h0tbird/meshlab -m largePremiumLinux -d playground
+CODESPACE=$(gh cs list --json name --jq '.[].name' | grep -m1 '^playground')
+gh cs ssh -c ${CODESPACE}
+```
 
 #### Bring up meshlab
-    ```console
-    meshlab create
-    ```
+```console
+meshlab create
+```
 
 #### Forward the ports
 ```console

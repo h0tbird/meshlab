@@ -3,6 +3,7 @@
 
 <details><summary><b>Option A</b>: Local Development (Dev Containers)</summary>
 <p>
+
 1. Open the repository in **VS Code**.
 2. Make sure the **Dev Containers** extension is installed.
 3. When prompted, click **“Reopen in Container”**.
@@ -15,6 +16,7 @@
 
 <details><summary><b>Option B</b>: GitHub Codespaces (VS Code)</summary>
 <p>
+
 1. In the GitHub WebUI, go to **Code → Codespaces**.
 2. Click **“Create codespace on master”**.
 </p>
@@ -22,6 +24,7 @@
 
 <details><summary><b>Option C</b>: GitHub Codespaces (CLI)</summary>
 <p>
+
 1. Start a codespace using `gh`
 ```console
 unset GITHUB_TOKEN

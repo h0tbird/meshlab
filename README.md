@@ -1,7 +1,7 @@
 
 ## Getting Started
 
-<details><summary><b>Option A</b>: Local Development (Dev Containers)</summary>
+<details><summary><b>Option A</b>: Local Development (VS Code)</summary>
 <p>
 
 1. Open the repository in **VS Code**.
@@ -14,7 +14,14 @@
 </p>
 </details>
 
-<details><summary><b>Option B</b>: GitHub Codespaces (VS Code)</summary>
+<details><summary><b>Option B</b>: Local Development (CLI)</summary>
+<p>
+
+1. TODO: To be documented.
+</p>
+</details>
+
+<details><summary><b>Option C</b>: GitHub Codespaces (VS Code)</summary>
 <p>
 
 1. In the GitHub WebUI, go to **Code → Codespaces**.
@@ -22,7 +29,7 @@
 </p>
 </details>
 
-<details><summary><b>Option C</b>: GitHub Codespaces (CLI)</summary>
+<details><summary><b>Option D</b>: GitHub Codespaces (CLI)</summary>
 <p>
 
 1. Start a codespace using `gh`
@@ -70,6 +77,6 @@ As the lab starts up, the following services will become available:
 - **Vault:** http://127.0.0.1:8082
 - **Prometheus:** http://127.0.0.1:8083
 - **Grafana:** http://127.0.0.1:8084
-- **Kiali:** http://localhost:8085
+- **Kiali:** http://127.0.0.1:8085
 
 Use `meshlab123` as the password when prompted.

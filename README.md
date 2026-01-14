@@ -28,7 +28,7 @@
 <details><summary>Option C: GitHub Codespaces (CLI)</summary>
 <p>
 
-   #### Start a codespace using `gh`
+#### Start a codespace using `gh`
    ```console
    unset GITHUB_TOKEN
    gh config set pager cat
@@ -38,12 +38,12 @@
    gh cs ssh -c ${CODESPACE}
    ```
 
-   #### Bring up meshlab
+#### Bring up meshlab
    ```console
    meshlab create
    ```
 
-   #### Forward the ports
+#### Forward the ports
    ```console
    gh cs ports forward \
    8080:8080 \

@@ -5,7 +5,6 @@
 
 <details><summary><b>Option A</b>: Local Development (Dev Containers)</summary>
 <p>
-
 1. Open the repository in **VS Code**.
 2. Make sure the **Dev Containers** extension is installed.
 3. When prompted, click **“Reopen in Container”**.
@@ -18,7 +17,6 @@
 
 <details><summary><b>Option B</b>: GitHub Codespaces (VS Code)</summary>
 <p>
-
 1. In the GitHub WebUI, go to **Code → Codespaces**.
 2. Click **“Create codespace on master”**.
 </p>
@@ -26,7 +24,6 @@
 
 <details><summary><b>Option C</b>: GitHub Codespaces (CLI)</summary>
 <p>
-
 1. Start a codespace using `gh`
 ```console
 unset GITHUB_TOKEN
@@ -48,7 +45,6 @@ gh cs ports forward \
 8085:8085 \
 -c ${CODESPACE}
 ```
-
 </p>
 </details>
 
@@ -74,3 +70,5 @@ As the lab starts up, the following services will become available:
 - **Prometheus:** http://127.0.0.1:8083
 - **Grafana:** http://127.0.0.1:8084
 - **Kiali:** http://localhost:8085
+
+Use `meshlab123` as the password when prompted.

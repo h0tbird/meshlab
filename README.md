@@ -79,4 +79,4 @@ As the lab starts up, the following services will become available:
 - **Grafana:** http://127.0.0.1:8084
 - **Kiali:** http://127.0.0.1:8085
 
-Use `meshlab123` as the password when prompted.
+Use `admin` / `meshlab123` as credentials when prompted.

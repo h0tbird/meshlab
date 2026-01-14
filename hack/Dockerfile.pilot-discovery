@@ -1,10 +1,19 @@
+# This Dockerfile builds a debug version of Istio pilot-discovery with Delve installed.
+# It is based on the official istio/pilot image and adds debug symbols along with the Delve debugger.
+# The Go build steps were derived by observing the `make build` process in the main Istio repository,
+# specifically the `go build` command emitted by:
+# GOOS=darwin GOARCH=arm64 LDFLAGS='-extldflags -static -s -w' VERBOSE=1 DEBUG=1 \
+# common/scripts/gobuild.sh /work/out/darwin_arm64/ -tags=vtprotobuf,disable_pgv \
+# ./pilot/cmd/pilot-discovery 2>&1 | grep '+ go build'
+# This approach involves some creative interpretation—use at your own risk.
+#
 # Build and deploy:
-# make pilot-discovery
-# k --context kind-pasta-1 -n istio-system set image deploy/istiod-1-28-2 discovery=ghcr.io/h0tbird/pilot:1.28.2-patch.1
-
+#   make pilot-discovery
+#   k --context kind-pasta-1 -n istio-system set image deploy/istiod-1-28-2 discovery=ghcr.io/h0tbird/pilot:1.28.2-patch.1
+#
 # Debug:
-# k --context kind-pasta-1 -n istio-system exec -it deploy/istiod-1-28-2 -- dlv dap --listen=:40000 --log=true
-# k --context kind-pasta-1 -n istio-system port-forward deploy/istiod-1-28-2 40000:40000
+#   k --context kind-pasta-1 -n istio-system exec -it deploy/istiod-1-28-2 -- dlv dap --listen=:40000 --log=true
+#   k --context kind-pasta-1 -n istio-system port-forward deploy/istiod-1-28-2 40000:40000
 
 # Any ARG before the first FROM can be used in any FROM line
 ARG BASE_IMAGE_TAG=latest
@@ -35,20 +44,8 @@ COPY tools/ tools/
 COPY common/ common/
 COPY manifests/ manifests/
 
-# GOOS=darwin GOARCH=arm64 LDFLAGS='-extldflags -static -s -w' VERBOSE=1 DEBUG=1 common/scripts/gobuild.sh /work/out/darwin_arm64/ -tags=vtprotobuf,disable_pgv ./pilot/cmd/pilot-discovery 2>&1 | grep '+ go build'
-# go build -x -o /work/out/darwin_arm64/ -pkgdir=/pkg/darwin_arm64 -ldflags '-extldflags -static -s -w \
-# -X istio.io/istio/pkg/version.buildVersion=99083086c3d1604583d0bada8e08a086cc78beb0 \
-# -X istio.io/istio/pkg/version.buildGitRevision=99083086c3d1604583d0bada8e08a086cc78beb0 \
-# -X istio.io/istio/pkg/version.buildStatus=Clean \
-# -X istio.io/istio/pkg/version.buildTag=1.28.2-7-g99083086c3 \
-# -X istio.io/istio/pkg/version.buildHub=docker.io/istio \
-# -X istio.io/istio/pkg/version.buildOS=darwin \
-# -X istio.io/istio/pkg/version.buildArch=arm64' \
-# -tags=vtprotobuf,disable_pgv ./pilot/cmd/pilot-discovery
-
-
 # Build
-RUN CGO_ENABLED=0 go build -o pilot-discovery \
+RUN CGO_ENABLED=0 go build -x -o pilot-discovery \
   -gcflags=all="-N -l" -ldflags "-extldflags -static \
   -X istio.io/istio/pkg/version.buildVersion=${VERSION} \
   -X istio.io/istio/pkg/version.buildGitRevision=${GIT_SHA} \
@@ -57,7 +54,7 @@ RUN CGO_ENABLED=0 go build -o pilot-discovery \
   -X istio.io/istio/pkg/version.buildHub=${REGISTRY} \
   -X istio.io/istio/pkg/version.buildOS=${TARGETOS} \
   -X istio.io/istio/pkg/version.buildArch=${TARGETARCH}" \
-  ./pilot/cmd/pilot-discovery
+  -tags=vtprotobuf,disable_pgv ./pilot/cmd/pilot-discovery
 
 # Install delve
 RUN go install github.com/go-delve/delve/cmd/dlv@latest

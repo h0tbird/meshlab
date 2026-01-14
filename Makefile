@@ -34,7 +34,7 @@ pilot-agent:
 	cd ${ISTIO_PATH}
 	git fetch upstream --tags
 	git checkout ${GIT_REVISION}
-	docker buildx build -t ${IMG} \
+	docker buildx build --progress=plain -t ${IMG} \
 		--platform linux/amd64,linux/arm64 \
 		-f ${MESHLAB_PATH}/hack/Dockerfile.pilot-agent \
 		--build-arg="VERSION=${NEW_IMAGE_TAG}" \
@@ -50,7 +50,7 @@ pilot-discovery:
 	cd ${ISTIO_PATH}
 	git fetch upstream --tags
 	git checkout ${GIT_REVISION}
-	docker buildx build -t ${IMG} \
+	docker buildx build --progress=plain -t ${IMG} \
 		--platform linux/amd64,linux/arm64 \
 		-f ${MESHLAB_PATH}/hack/Dockerfile.pilot-discovery \
 		--build-arg="VERSION=${NEW_IMAGE_TAG}" \
@@ -63,7 +63,7 @@ pilot-discovery:
 toolbox: IMG := ${NEW_IMAGE_REGISTRY}/meshlab/toolbox:latest
 toolbox:
 	@echo "Building toolbox"
-	docker buildx build -t ${IMG} \
+	docker buildx build --progress=plain -t ${IMG} \
 		--platform linux/amd64,linux/arm64 \
 		-f ./hack/Dockerfile.toolbox \
 		--push .

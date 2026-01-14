@@ -3,14 +3,14 @@
 
 ## Getting Started
 
-<details><summary>Option A: Local Development (Dev Containers)</summary>
+<details><summary><b>Option A</b>: Local Development (Dev Containers)</summary>
 <p>
 
 1. Open the repository in **VS Code**.
 2. Make sure the **Dev Containers** extension is installed.
 3. When prompted, click **“Reopen in Container”**.
    - If the prompt doesn’t appear, open the Command Palette and run:
-     ```
+     ```console
      Dev Containers: Reopen in Container
      ```
 </p>
@@ -24,11 +24,10 @@
 </p>
 </details>
 
-
 <details><summary>Option C: GitHub Codespaces (CLI)</summary>
 <p>
 
-#### Start a codespace using `gh`
+1. Start a codespace using `gh`
 ```console
 unset GITHUB_TOKEN
 gh config set pager cat
@@ -38,12 +37,7 @@ CODESPACE=$(gh cs list --json name --jq '.[].name' | grep -m1 '^playground')
 gh cs ssh -c ${CODESPACE}
 ```
 
-#### Bring up meshlab
-```console
-meshlab create
-```
-
-#### Forward the ports
+2. Forward the ports
 ```console
 gh cs ports forward \
 8080:8080 \

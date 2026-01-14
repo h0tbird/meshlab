@@ -14,6 +14,7 @@
      Dev Containers: Reopen in Container
      ```
 </p>
+</details>
 
 <details><summary>Option B: GitHub Codespaces (WebUI)</summary>
 <p>
@@ -21,6 +22,7 @@
 1. In the GitHub web UI, go to **Code → Codespaces**.
 2. Click **“Create codespace on master”**.
 </p>
+</details>
 
 ### Option C: GitHub Codespaces (CLI)
 

@@ -62,6 +62,21 @@ gh cs ports forward \
 
 ## Usage
 
+Start the lab by running the following command in a terminal:
 ```bash
 meshlab create
 ```
+
+Optionally, you can monitor the status from another terminal by running:
+```bash
+mlw
+```
+
+As the lab starts up, the following services will become available:
+
+- **Argo CD:** http://127.0.0.1:8080
+- **Argo Workflows:** http://127.0.0.1:8081
+- **Vault:** http://127.0.0.1:8082
+- **Prometheus:** http://127.0.0.1:8083
+- **Grafana:** http://127.0.0.1:8084
+- **Kiali:** http://localhost:8085

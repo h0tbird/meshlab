@@ -35,6 +35,18 @@ COPY tools/ tools/
 COPY common/ common/
 COPY manifests/ manifests/
 
+# GOOS=darwin GOARCH=arm64 LDFLAGS='-extldflags -static -s -w' VERBOSE=1 DEBUG=1 common/scripts/gobuild.sh /work/out/darwin_arm64/ -tags=vtprotobuf,disable_pgv ./pilot/cmd/pilot-discovery 2>&1 | grep '+ go build'
+# go build -x -o /work/out/darwin_arm64/ -pkgdir=/pkg/darwin_arm64 -ldflags '-extldflags -static -s -w \
+# -X istio.io/istio/pkg/version.buildVersion=99083086c3d1604583d0bada8e08a086cc78beb0 \
+# -X istio.io/istio/pkg/version.buildGitRevision=99083086c3d1604583d0bada8e08a086cc78beb0 \
+# -X istio.io/istio/pkg/version.buildStatus=Clean \
+# -X istio.io/istio/pkg/version.buildTag=1.28.2-7-g99083086c3 \
+# -X istio.io/istio/pkg/version.buildHub=docker.io/istio \
+# -X istio.io/istio/pkg/version.buildOS=darwin \
+# -X istio.io/istio/pkg/version.buildArch=arm64' \
+# -tags=vtprotobuf,disable_pgv ./pilot/cmd/pilot-discovery
+
+
 # Build
 RUN CGO_ENABLED=0 go build -o pilot-discovery \
   -gcflags=all="-N -l" -ldflags "-extldflags -static \

@@ -1,3 +1,24 @@
+
+## Getting Started
+
+### Option A: Local Development (Dev Containers)
+
+1. Open the repository in **VS Code**.
+2. Make sure the **Dev Containers** extension is installed.
+3. When prompted, click **“Reopen in Container”**.
+   - If the prompt doesn’t appear, open the Command Palette and run:
+     ```
+     Dev Containers: Reopen in Container
+     ```
+
+### Option B: GitHub Codespaces
+
+1. In the GitHub web UI, go to **Code → Codespaces**.
+2. Click **“Create codespace on master”**.
+
+
+**Option B**: In the Github webUI go to Code --> Codespaces and click on “**Create codespace on master**”. Run `meshlab create` in the terminal.
+
 ### Start a codespace using `gh`
 ```console
 unset GITHUB_TOKEN

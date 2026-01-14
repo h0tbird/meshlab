@@ -16,7 +16,7 @@
 </p>
 </details>
 
-<details><summary>Option B: GitHub Codespaces (WebUI)</summary>
+<details><summary><b>Option B</b>: GitHub Codespaces (WebUI)</summary>
 <p>
 
 1. In the GitHub web UI, go to **Code → Codespaces**.
@@ -24,7 +24,7 @@
 </p>
 </details>
 
-<details><summary>Option C: GitHub Codespaces (CLI)</summary>
+<details><summary><b>Option C</b>: GitHub Codespaces (CLI)</summary>
 <p>
 
 1. Start a codespace using `gh`

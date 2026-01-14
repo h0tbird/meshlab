@@ -57,12 +57,12 @@ gh cs ports forward \
 ## Usage
 
 Start the lab by running the following command in a terminal:
-```bash
+```console
 meshlab create
 ```
 
 Optionally, you can monitor the status from another terminal by running:
-```bash
+```console
 mlw
 ```
 

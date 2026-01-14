@@ -57,7 +57,7 @@ meshlab create
 
 Optionally, you can monitor the status from another terminal by running:
 ```console
-mlw
+meshlab watch
 ```
 
 As the lab starts up, the following services will become available:

@@ -747,9 +747,10 @@ publish-ports() {
 case "${1:-}" in
   create) WLCNT="${2:-1}" ;;
   delete) cleanup; exit 0 ;;
+  watch) watch --color 'ml short'; exit 0 ;;
   run)  WLCNT="${3:-1}"; "${2:?Usage: $0 run <section> [count]}"; exit 0 ;;
   list) printf '%s\n' "${SECTIONS[@]}"; exit 0 ;;
-  *)    echo "Usage: $(basename "$0") <create|delete|list|run SECTION [count]>"; exit 1 ;;
+  *)    echo "Usage: $(basename "$0") <create|delete|watch|list|run SECTION [count]>"; exit 1 ;;
 esac
 
 #------------------------------------------------------------------------------

@@ -1,6 +1,4 @@
 
----
-
 ## Getting Started
 
 <details><summary><b>Option A</b>: Local Development (Dev Containers)</summary>

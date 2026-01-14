@@ -2,7 +2,7 @@
 
 # This script helps reproduce a memory leak in istiod that occurs when updating
 # the istio-remote-secret with a new access token. It performs 200 retokenings
-# and collects 11 heap profile samples: one initial sample and one after every
+# and collects 21 heap profile samples: one initial sample and one after every
 # 10 retokenings.
 
 SRC_CLUSTER="pasta-1"

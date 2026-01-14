@@ -24,18 +24,9 @@
 </p>
 </details>
 
-### Option C: GitHub Codespaces (CLI)
 
-
-
----
-
-## Usage
-
-```bash
-meshlab create
-```
-
+<details><summary>Option C: GitHub Codespaces (CLI)</summary>
+<p>
 
 ### Start a codespace using `gh`
 ```console
@@ -62,4 +53,15 @@ gh cs ports forward \
 8084:8084 \
 8085:8085 \
 -c ${CODESPACE}
+```
+
+</p>
+</details>
+
+---
+
+## Usage
+
+```bash
+meshlab create
 ```

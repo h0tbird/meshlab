@@ -16,10 +16,10 @@
 </p>
 </details>
 
-<details><summary><b>Option B</b>: GitHub Codespaces (WebUI)</summary>
+<details><summary><b>Option B</b>: GitHub Codespaces (VS Code)</summary>
 <p>
 
-1. In the GitHub web UI, go to **Code → Codespaces**.
+1. In the GitHub WebUI, go to **Code → Codespaces**.
 2. Click **“Create codespace on master”**.
 </p>
 </details>

@@ -15,7 +15,7 @@ SHELL = $(BASH_PATH)
 #------------------------------------------------------------------------------
 
 BASE_IMAGE_TAG ?= 1.28.2
-GIT_REVISION ?= upstream/petrmc/cherry-pick-58479-to-release-1.28
+GIT_REVISION ?= release-1.28
 
 NEW_IMAGE_REGISTRY ?= ghcr.io/h0tbird
 NEW_IMAGE_TAG ?= 1.28.2-patch.1

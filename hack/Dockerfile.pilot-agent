@@ -1,10 +1,21 @@
+# This Dockerfile builds a debug version of Istio pilot-agent with Delve installed.
+# It is based on the official istio/proxyv2 image and adds debug symbols along with the Delve debugger.
+# The Go build steps were derived by observing the `make build` process in the main Istio repository,
+# specifically the `go build` command emitted by:
+#
+#  GOOS=darwin GOARCH=arm64 LDFLAGS='-extldflags -static -s -w' VERBOSE=1 DEBUG=1 \
+#  common/scripts/gobuild.sh /work/out/darwin_arm64/ -tags=agent,disable_pgv,grpcnotrace,retrynotrace \
+#  ./pilot/cmd/pilot-agent 2>&1 | grep '+ go build'
+#
+# This approach involves some creative interpretation—use at your own risk.
+#
 # Build and deploy:
-# make pilot-agent
-# k --context kind-pasta-1 -n service-1 patch deploy/worker --type='merge' -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"ghcr.io/h0tbird/proxyv2:1.28.2-patch.1"}}}}}'
-
+#   make pilot-agent
+#   k --context kind-pasta-1 -n service-1 patch deploy/worker --type='merge' -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"ghcr.io/h0tbird/proxyv2:1.28.2-patch.1"}}}}}'
+#
 # Debug:
-# k --context kind-pasta-1 -n service-1 exec -it deployment/worker -c istio-proxy -- dlv dap --listen=:40000 --log=true
-# k --context kind-pasta-1 -n service-1 port-forward deployment/worker 40000:40000
+#   k --context kind-pasta-1 -n service-1 exec -it deployment/worker -c istio-proxy -- dlv dap --listen=:40000 --log=true
+#   k --context kind-pasta-1 -n service-1 port-forward deployment/worker 40000:40000
 
 # Any ARG before the first FROM can be used in any FROM line
 ARG BASE_IMAGE_TAG=latest
@@ -35,9 +46,8 @@ COPY tools/ tools/
 COPY common/ common/
 
 # Build
-RUN CGO_ENABLED=0 go build -o pilot-agent \
-  -gcflags=all="-N -l" -tags=agent,disable_pgv \
-  -ldflags "-extldflags -static \
+RUN CGO_ENABLED=0 go build -x -o pilot-agent \
+  -gcflags=all="-N -l" -ldflags "-extldflags -static \
   -X istio.io/istio/pkg/version.buildVersion=${VERSION} \
   -X istio.io/istio/pkg/version.buildGitRevision=${GIT_SHA} \
   -X istio.io/istio/pkg/version.buildStatus=debug \
@@ -45,6 +55,7 @@ RUN CGO_ENABLED=0 go build -o pilot-agent \
   -X istio.io/istio/pkg/version.buildHub=${REGISTRY} \
   -X istio.io/istio/pkg/version.buildOS=${TARGETOS} \
   -X istio.io/istio/pkg/version.buildArch=${TARGETARCH}" \
+  -tags=agent,disable_pgv,grpcnotrace,retrynotrace \
   ./pilot/cmd/pilot-agent
 
 # Install delve

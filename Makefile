@@ -20,9 +20,6 @@ GIT_REVISION ?= release-1.28
 NEW_IMAGE_REGISTRY ?= ghcr.io/h0tbird
 NEW_IMAGE_TAG ?= 1.28.2-patch.2
 
-MESHLAB_PATH ?= ~/git/h0tbird/meshlab
-ISTIO_PATH ?= ~/git/h0tbird/forked-istio
-
 #------------------------------------------------------------------------------
 # Targets
 #------------------------------------------------------------------------------
@@ -31,12 +28,12 @@ ISTIO_PATH ?= ~/git/h0tbird/forked-istio
 pilot-agent: IMG := ${NEW_IMAGE_REGISTRY}/proxyv2:${NEW_IMAGE_TAG}
 pilot-agent:
 	@echo "Building pilot-agent"
-	cd ${ISTIO_PATH}
+	cd ../istio
 	git fetch upstream --tags
 	git checkout ${GIT_REVISION}
 	docker buildx build --progress=plain -t ${IMG} \
 		--platform linux/amd64,linux/arm64 \
-		-f ${MESHLAB_PATH}/hack/Dockerfile.pilot-agent \
+		-f ../meshlab/hack/Dockerfile.pilot-agent \
 		--build-arg="VERSION=${NEW_IMAGE_TAG}" \
 		--build-arg="REGISTRY=${NEW_IMAGE_REGISTRY}" \
 		--build-arg="GIT_SHA=$$(git rev-parse HEAD)" \
@@ -47,12 +44,12 @@ pilot-agent:
 pilot-discovery: IMG := ${NEW_IMAGE_REGISTRY}/pilot:${NEW_IMAGE_TAG}
 pilot-discovery:
 	@echo "Building pilot-discovery"
-	cd ${ISTIO_PATH}
+	cd ../istio
 	git fetch upstream --tags
 	git checkout ${GIT_REVISION}
 	docker buildx build --progress=plain -t ${IMG} \
 		--platform linux/amd64,linux/arm64 \
-		-f ${MESHLAB_PATH}/hack/Dockerfile.pilot-discovery \
+		-f ../meshlab/hack/Dockerfile.pilot-discovery \
 		--build-arg="VERSION=${NEW_IMAGE_TAG}" \
 		--build-arg="REGISTRY=${NEW_IMAGE_REGISTRY}" \
 		--build-arg="GIT_SHA=$$(git rev-parse HEAD)" \

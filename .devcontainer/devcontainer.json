@@ -78,5 +78,11 @@
 	"hostRequirements": {
 		"cpus": 8,
 		"memory": "16gb"
+	},
+	"initializeCommand": {
+		"create-istio-dir": "mkdir -p ${localWorkspaceFolder}/../istio"
+	},
+	"postCreateCommand": {
+		"clone-istio": "test -d /workspaces/istio/.git || { gh repo clone h0tbird/forked-istio /workspaces/istio && cd /workspaces/istio && git remote add upstream https://github.com/istio/istio.git; }"
 	}
 }

@@ -8,7 +8,8 @@
 	},
 	"mounts": [
 		"type=bind,source=/run/host-services/ssh-auth.sock,target=/ssh-agent",
-		"type=bind,source=${localEnv:HOME}/.kube/config,target=/root/.kube/config"
+		"type=bind,source=${localEnv:HOME}/.kube/config,target=/root/.kube/config",
+		"type=bind,source=${localWorkspaceFolder}/../istio,target=/workspaces/istio"
 	],
 	"features": {
 		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},

@@ -42,6 +42,7 @@ cleanup() {
   docker kill $(docker ps -f "name=kindccm" -q) 2>/dev/null || true
   argocd context --delete "${MNGR}" 2>/dev/null || true
   pkill socat 2>/dev/null || true
+  pkill tilt 2>/dev/null || true
   kind delete clusters --all
   rm -rf ./tmp/*
 }
@@ -678,26 +679,21 @@ kiali-multicluster() {
 }; SECTIONS+=( kiali-multicluster )
 
 #------------------------------------------------------------------------------
-# [i] Kiali-Grafana integration
+# [i] Start tilt instances
 #------------------------------------------------------------------------------
 
-kiali-grafana() {
-  blue "───[ Kiali-Grafana integration ]────────────────────────────────────────"
+start-tilts() {
+  blue "───[ Start tilt instances ]────────────────────────────────────────"
 
-  GRAFANA_URL="http://$(getExtIP "${MNGR}" monitoring grafana)"
-  GRAFANA_AUTH="admin:${PWD}"
-
-  # Create service account
-  SA_ID=$(curl -sS -u "${GRAFANA_AUTH}" -H 'Content-Type: application/json' \
-    -d '{"name":"kiali","role":"Viewer"}' "${GRAFANA_URL}/api/serviceaccounts" | jq '.id')
-
-  # Create token and patch Kiali
-  [[ "${SA_ID}" =~ ^[0-9]+$ ]] && \
-  TOKEN=$(curl -sS -u "${GRAFANA_AUTH}" -H 'Content-Type: application/json' \
-    -d '{"name":"kiali-token"}' "${GRAFANA_URL}/api/serviceaccounts/${SA_ID}/tokens" | jq -r '.key') && \
-  kubectl --context "kind-${MNGR}" -n monitoring patch kiali kiali --type=merge \
-    -p '{"spec":{"external_services":{"grafana":{"auth":{"type":"token","token":"'"${TOKEN}"'","use_kiali_token":false}}}}}'
-}; SECTIONS+=( kiali-grafana )
+  PORT=9091; for CLUSTER in $(list clusters wkld "${WLCNT}"); do
+    pgrep -f "Tiltfile.${CLUSTER}" &>/dev/null || {
+      setsid tilt up --context "kind-${CLUSTER}" --port "${PORT}" --file Tiltfile."${CLUSTER}" \
+      &> "./tmp/tilt-${CLUSTER}.log" &
+      echo "tilt ${CLUSTER} on port ${PORT} (pid: $!)"
+    }
+    ((PORT++))
+  done
+}; SECTIONS+=( start-tilts )
 
 #------------------------------------------------------------------------------
 # [i] Deploy some workloads

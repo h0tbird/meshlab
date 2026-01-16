@@ -6,6 +6,9 @@
 			"--tag", "ghcr.io/h0tbird/meshlab/devcontainer:latest"
 		]
 	},
+	"initializeCommand": {
+		"create-istio-dir": "mkdir -p ${localWorkspaceFolder}/../istio"
+	},
 	"mounts": [
 		"type=bind,source=/run/host-services/ssh-auth.sock,target=/ssh-agent",
 		"type=bind,source=${localEnv:HOME}/.kube/config,target=/root/.kube/config",
@@ -78,9 +81,6 @@
 	"hostRequirements": {
 		"cpus": 8,
 		"memory": "16gb"
-	},
-	"initializeCommand": {
-		"create-istio-dir": "mkdir -p ${localWorkspaceFolder}/../istio"
 	},
 	"postCreateCommand": {
 		"clone-istio": "test -d /workspaces/istio/.git || { gh repo clone h0tbird/forked-istio /workspaces/istio && cd /workspaces/istio && git remote add upstream https://github.com/istio/istio.git; }"

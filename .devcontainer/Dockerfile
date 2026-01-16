@@ -105,7 +105,7 @@ RUN VERSION="1.4.5" && ARCH=$(arch) && \
     tar -xjC /usr/local/bin --strip-components 3 -f - ./btop/bin/btop
 
 # Install tilt (https://github.com/tilt-dev/tilt/releases)
-RUN VERSION="0.36.0" && ARCH=$(dpkg --print-architecture) && \
+RUN VERSION="0.36.0" && ARCH=$(dpkg --print-architecture) && [ "$ARCH" = "amd64" ] && ARCH="x86_64" || true && \
     curl -fsSL https://github.com/tilt-dev/tilt/releases/download/v${VERSION}/tilt.${VERSION}.linux.${ARCH}.tar.gz | \
     tar -xzC /usr/local/bin tilt && echo "source <(tilt completion zsh) && compdef _tilt tilt" >> /etc/zsh/zshrc
 

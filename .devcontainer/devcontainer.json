@@ -35,7 +35,7 @@
 		"--pid", "host",
 		"--privileged"
 	],
-	"forwardPorts": [8080, 8081, 8082, 8083, 8084, 8085],
+	"forwardPorts": [8080, 8081, 8082, 8083, 8084, 8085, 9091, 9092],
 	"portsAttributes": {
 		"8080": {
 			"label": "argocd",
@@ -64,6 +64,16 @@
 		},
 		"8085": {
 			"label": "kiali",
+			"onAutoForward": "notify",
+			"protocol": "http"
+		},
+		"9091": {
+			"label": "tilt-pasta-1",
+			"onAutoForward": "notify",
+			"protocol": "http"
+		},
+		"9092": {
+			"label": "tilt-pasta-2",
 			"onAutoForward": "notify",
 			"protocol": "http"
 		}

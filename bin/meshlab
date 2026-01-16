@@ -718,9 +718,13 @@ publish-ports() {
   blue "───[ Publish ports ]────────────────────────────────────────────────────"
 
   publish "${MNGR}" vault vault 8082
+  printf "vault:\t\thttp://127.0.0.1:8082\n"
   publish "${MNGR}" monitoring prometheus-server 8083
+  printf "prometheus:\thttp://127.0.0.1:8083\n"
   publish "${MNGR}" monitoring grafana 8084
+  printf "grafana:\thttp://127.0.0.1:8084\n"
   publish "${MNGR}" monitoring kiali 8085
+  printf "kiali:\t\thttp://127.0.0.1:8085\n"
 }; SECTIONS+=( publish-ports )
 
 #------------------------------------------------------------------------------

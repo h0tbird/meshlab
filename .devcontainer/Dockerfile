@@ -98,6 +98,11 @@ RUN VERSION="1.4.5" && ARCH=$(arch) && \
     wget -qO- https://github.com/aristocratos/btop/releases/download/v${VERSION}/btop-${ARCH}-linux-musl.tbz | \
     tar -xjC /usr/local/bin --strip-components 3 -f - ./btop/bin/btop
 
+# Install tilt (https://github.com/tilt-dev/tilt/releases)
+RUN VERSION="0.36.0" && ARCH=$(dpkg --print-architecture) && \
+    curl -fsSL https://github.com/tilt-dev/tilt/releases/download/v${VERSION}/tilt.${VERSION}.linux.${ARCH}.tar.gz | \
+    tar -xzC /usr/local/bin tilt && echo "source <(tilt completion zsh) && compdef _tilt tilt" >> /etc/zsh/zshrc
+
 # Install kiali-prepare-remote-cluster.sh (https://github.com/kiali/kiali)
 RUN curl -sLo /usr/local/bin/kiali-prepare-remote-cluster.sh \
     https://raw.githubusercontent.com/kiali/kiali/master/hack/istio/multicluster/kiali-prepare-remote-cluster.sh && \

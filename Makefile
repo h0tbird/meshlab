@@ -18,7 +18,7 @@ BASE_IMAGE_TAG ?= 1.28.2
 GIT_REVISION ?= release-1.28
 
 NEW_IMAGE_REGISTRY ?= ghcr.io/h0tbird
-NEW_IMAGE_TAG ?= 1.28.2-patch.2
+NEW_IMAGE_TAG ?= 1.28.2-patch.3
 
 MESHLAB_PATH ?= ~/git/h0tbird/meshlab
 ISTIO_PATH ?= ~/git/h0tbird/forked-istio

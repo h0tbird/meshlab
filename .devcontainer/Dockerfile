@@ -28,6 +28,12 @@ RUN chsh -s /usr/bin/zsh root && \
     sed -i '/^ZSH_THEME/c\ZSH_THEME="robbyrussell"' /root/.zshrc && \
     sed -i '/^ZSH_THEME/c\ZSH_THEME="robbyrussell"' /home/vscode/.zshrc
 
+# Install Go (https://go.dev/dl/)
+RUN VERSION="1.25.6" && ARCH=$(dpkg --print-architecture) && \
+    curl -fsSL https://go.dev/dl/go${VERSION}.linux-${ARCH}.tar.gz | tar -xzC /usr/local && \
+    echo 'export PATH=$PATH:/usr/local/go/bin' >> /etc/zsh/zshenv && \
+    echo 'export PATH=$PATH:$HOME/go/bin' >> /etc/zsh/zshenv
+
 # Install kind (https://github.com/kubernetes-sigs/kind/releases)
 RUN VERSION="v0.31.0" && ARCH=$(dpkg --print-architecture) && \
     wget https://github.com/kubernetes-sigs/kind/releases/download/${VERSION}/kind-linux-${ARCH} -O /usr/local/bin/kind && \

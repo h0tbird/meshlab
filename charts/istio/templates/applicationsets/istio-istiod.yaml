@@ -39,7 +39,7 @@ spec:
             global:
             # hub: ghcr.io/h0tbird
             # tag: 1.28.2-patch.1
-            # variant: ""
+              variant: "debug"
               meshID: {{`'{{metadata.labels.cell}}'`}}
               network: {{`'{{metadata.labels.cell}}'`}}
               logAsJson: true

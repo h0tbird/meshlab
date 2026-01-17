@@ -46,7 +46,7 @@ RUN VERSION="v1.35.0" && ARCH=$(dpkg --print-architecture) && \
     echo "source <(kubectl completion zsh) && compdef _kubectl kubectl" >> /etc/zsh/zshrc
 
 # Install helm (https://github.com/helm/helm/releases)
-RUN VERSION="v4.0.4" && \
+RUN VERSION="v4.0.5" && \
     curl -fsSLo /tmp/get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 && \
     chmod 700 /tmp/get_helm.sh && /tmp/get_helm.sh --version ${VERSION} && rm -f /tmp/get_helm.sh && \
     echo "source <(helm completion zsh) && compdef _helm helm" >> /etc/zsh/zshrc
@@ -57,12 +57,12 @@ RUN VERSION="v4.50.1" && ARCH=$(dpkg --print-architecture) && \
     chmod +x /usr/local/bin/yq && echo "source <(yq completion zsh) && compdef _yq yq" >> /etc/zsh/zshrc
 
 # Install argocd (https://github.com/argoproj/argo-cd/releases)
-RUN VERSION="v3.2.3" && ARCH=$(dpkg --print-architecture) && \
+RUN VERSION="v3.2.5" && ARCH=$(dpkg --print-architecture) && \
     wget https://github.com/argoproj/argo-cd/releases/download/${VERSION}/argocd-linux-${ARCH} -qO /usr/local/bin/argocd && \
     chmod +x /usr/local/bin/argocd && echo "source <(argocd completion zsh) && compdef _argocd argocd" >> /etc/zsh/zshrc
 
 # Install argo (https://github.com/argoproj/argo-workflows/releases)
-RUN VERSION="v3.7.6" && ARCH=$(dpkg --print-architecture) && \
+RUN VERSION="v3.7.7" && ARCH=$(dpkg --print-architecture) && \
     wget -qO- https://github.com/argoproj/argo-workflows/releases/download/${VERSION}/argo-linux-${ARCH}.gz | gunzip -c > /usr/local/bin/argo && \
     chmod +x /usr/local/bin/argo && echo "source <(argo completion zsh) && compdef _argo argo" >> /etc/zsh/zshrc
 
@@ -84,7 +84,7 @@ RUN VERSION="0.29.0" && ARCH=$(dpkg --print-architecture) && \
     echo "source <(step completion zsh) && compdef _step step" >> /etc/zsh/zshrc
 
 # Install gh (https://github.com/cli/cli/releases)
-RUN VERSION="2.83.2" && ARCH=$(dpkg --print-architecture) && \
+RUN VERSION="2.85.0" && ARCH=$(dpkg --print-architecture) && \
     curl -fsSLO https://github.com/cli/cli/releases/download/v${VERSION}/gh_${VERSION}_linux_${ARCH}.deb && \
     dpkg -i gh_${VERSION}_linux_${ARCH}.deb && rm -f gh_${VERSION}_linux_${ARCH}.deb && \
     echo "source <(gh completion -s zsh) && compdef _gh gh" >> /etc/zsh/zshrc

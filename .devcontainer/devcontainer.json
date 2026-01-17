@@ -83,7 +83,16 @@
 		"vscode": {
 			"settings": {
 				"remote.autoForwardPorts":false
-			}
+			},
+			"extensions": [
+				"github.copilot",
+				"github.copilot-chat",
+				"github.vscode-pull-request-github",
+				"ms-azuretools.vscode-docker",
+				"timonwong.shellcheck",
+				"shardulm94.trailing-spaces",
+				"tilt-dev.tiltfile"
+			]
 		}
 	},
 	"hostRequirements": {

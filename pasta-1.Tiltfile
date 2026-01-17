@@ -41,7 +41,15 @@ metadata:
   name: istiod-1-28-2
   namespace: istio-system
 spec:
+  selector:
+    matchLabels:
+      app: istiod
+      istio.io/rev: 1-28-2
   template:
+    metadata:
+      labels:
+        app: istiod
+        istio.io/rev: 1-28-2
     spec:
       containers:
       - name: discovery

@@ -1,10 +1,10 @@
 # This Dockerfile builds a debug version of Istio pilot-agent with Delve installed.
 # It is based on the official istio/proxyv2 image and adds debug symbols along with the Delve debugger.
-# The Go build steps were derived by observing the `make build` process in the main Istio repository,
-# specifically the `go build` command emitted by:
+# The Go build steps were derived by observing the `DEBUG=1 make build` process
+# in the main Istio repository, specifically the `go build` command emitted by:
 #
-#  GOOS=darwin GOARCH=arm64 LDFLAGS='-extldflags -static -s -w' VERBOSE=1 DEBUG=1 \
-#  common/scripts/gobuild.sh /work/out/darwin_arm64/ -tags=agent,disable_pgv,grpcnotrace,retrynotrace \
+#  GOOS=linux GOARCH=arm64 LDFLAGS='' VERBOSE=1 DEBUG=1 common/scripts/gobuild.sh \
+#  /work/out/linux_arm64/ -tags=agent,disable_pgv,grpcnotrace,retrynotrace \
 #  ./pilot/cmd/pilot-agent 2>&1 | grep '+ go build'
 #
 # This approach involves some creative interpretation—use at your own risk.
@@ -46,7 +46,7 @@ COPY tools/ tools/
 COPY common/ common/
 
 # Build
-RUN CGO_ENABLED=0 go build -x -o pilot-agent \
+RUN go build -x -o pilot-agent \
   -gcflags=all="-N -l" -ldflags "-extldflags -static \
   -X istio.io/istio/pkg/version.buildVersion=${VERSION} \
   -X istio.io/istio/pkg/version.buildGitRevision=${GIT_SHA} \

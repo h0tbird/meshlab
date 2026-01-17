@@ -46,7 +46,7 @@ COPY tools/ tools/
 COPY common/ common/
 
 # Build
-RUN go build -x -o pilot-agent \
+RUN CGO_ENABLED=0 go build -x -o pilot-agent \
   -gcflags=all="-N -l" -ldflags "-extldflags -static \
   -X istio.io/istio/pkg/version.buildVersion=${VERSION} \
   -X istio.io/istio/pkg/version.buildGitRevision=${GIT_SHA} \

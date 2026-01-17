@@ -679,23 +679,22 @@ kiali-multicluster() {
 }; SECTIONS+=( kiali-multicluster )
 
 #------------------------------------------------------------------------------
-# [i] Start tilt instances
+# [i] tilt up instances
 #------------------------------------------------------------------------------
 
-start-tilts() {
-  blue "───[ Start tilt instances ]────────────────────────────────────────"
-
+tilt-up() {
+  blue "───[ tilt up ]──────────────────────────────────────────────────────────"
   PORT=9091; for CLUSTER in $(list clusters wkld "${WLCNT}"); do
-    if pgrep -f "${CLUSTER}.Tiltfile" &>/dev/null; then
+    if pgrep -f "tilt up --context kind-${CLUSTER}" &>/dev/null; then
       echo "tilt ${CLUSTER} on port ${PORT} (running)"
     else
-      setsid tilt up --context "kind-${CLUSTER}" --port "${PORT}" --file "${CLUSTER}".Tiltfile \
+      setsid tilt up --context "kind-${CLUSTER}" --port "${PORT}" \
       &> "./tmp/tilt-${CLUSTER}.log" &
       echo "tilt ${CLUSTER} on port ${PORT} (started)"
     fi
     ((PORT++))
   done
-}; SECTIONS+=( start-tilts )
+}; SECTIONS+=( tilt-up )
 
 #------------------------------------------------------------------------------
 # [i] Deploy some workloads

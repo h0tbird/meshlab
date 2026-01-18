@@ -1,26 +1,39 @@
-# Tilt Live-Update for pilot-discovery
-# Watches externally-built pilot-discovery binary and live-syncs into istiod container
-
 load('ext://restart_process', 'docker_build_with_restart')
 
-# Architecture detection
-arch = str(local('uname -m', quiet=True)).strip()
-if arch == 'x86_64':
-    arch = 'amd64'
-elif arch == 'aarch64':
-    arch = 'arm64'
+#------------------------------------------------------------------------------
+# Restrict to local Kind cluster contexts only
+#------------------------------------------------------------------------------
 
-print('Detected architecture: ' + arch)
+allow_k8s_contexts([
+    'kind-pasta-1',
+    'kind-pasta-2',
+    'kind-pizza-1',
+    'kind-pizza-2',
+])
 
-# Paths
+#------------------------------------------------------------------------------
+# Variables
+#------------------------------------------------------------------------------
+
+istio_version = '1-28-2'
+image_ref = 'pilot-discovery-dev'
+
+#------------------------------------------------------------------------------
+# Determine architecture and binary path
+#------------------------------------------------------------------------------
+
+arch = str(local('dpkg --print-architecture', quiet=True)).strip()
 istio_dir = '../istio'
 binary_path = 'out/linux_' + arch + '/pilot-discovery'
 binary_full_path = istio_dir + '/' + binary_path
 
-# Image reference for Tilt-managed image
-image_ref = 'pilot-discovery-dev'
+print('Detected architecture: ' + arch)
+print('Watching pilot-discovery binary at: ' + binary_full_path)
 
+#------------------------------------------------------------------------------
 # Build image with restart capability for live updates
+#------------------------------------------------------------------------------
+
 docker_build_with_restart(
     ref=image_ref,
     context=istio_dir,
@@ -33,24 +46,27 @@ docker_build_with_restart(
     only=[binary_path],
 )
 
-# Patch the istiod deployment to use our Tilt-managed image
-# Note: Tilt replaces rather than merges, so we need the full spec
+#------------------------------------------------------------------------------
+# Objects in this YAML matching the image_ref will be updated to use the
+# newly built image with live updates.
+#------------------------------------------------------------------------------
+
 k8s_yaml(blob("""
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: istiod-1-28-2
+  name: istiod-{istio_version}
   namespace: istio-system
   labels:
     app: istiod
     istio: pilot
-    istio.io/rev: 1-28-2
+    istio.io/rev: {istio_version}
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: istiod
-      istio.io/rev: 1-28-2
+      istio.io/rev: {istio_version}
   strategy:
     rollingUpdate:
       maxSurge: 100%
@@ -64,17 +80,17 @@ spec:
       labels:
         app: istiod
         istio: istiod
-        istio.io/rev: 1-28-2
+        istio.io/rev: {istio_version}
         istio.io/dataplane-mode: none
         sidecar.istio.io/inject: "false"
     spec:
-      serviceAccountName: istiod-1-28-2
+      serviceAccountName: istiod-{istio_version}
       tolerations:
       - key: cni.istio.io/not-ready
         operator: Exists
       containers:
       - name: discovery
-        image: pilot-discovery-dev
+        image: {image_ref}
         args:
         - discovery
         - --monitoringAddr=:15014
@@ -86,7 +102,7 @@ spec:
         - 30m
         env:
         - name: REVISION
-          value: 1-28-2
+          value: {istio_version}
         - name: PILOT_CERT_PROVIDER
           value: istiod
         - name: POD_NAME
@@ -218,11 +234,14 @@ spec:
           defaultMode: 420
           name: istio-ca-root-cert
           optional: true
-"""))
+""".format(image_ref=image_ref, istio_version=istio_version)))
 
+#------------------------------------------------------------------------------
 # Configure the k8s resource
+#------------------------------------------------------------------------------
+
 k8s_resource(
-    workload='istiod-1-28-2',
+    workload='istiod-' + istio_version,
     new_name='istiod',
     labels=['istio'],
 )

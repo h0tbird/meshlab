@@ -16,6 +16,7 @@ allow_k8s_contexts([
 #------------------------------------------------------------------------------
 
 istio_version = '1-28-2'
+istio_dotted = istio_version.replace('-', '.')
 image_ref = 'pilot-discovery-dev'
 cluster_name = k8s_context().removeprefix('kind-')
 
@@ -48,8 +49,10 @@ docker_build_with_restart(
 )
 
 #------------------------------------------------------------------------------
-# Objects in this YAML matching the image_ref will be updated to use the
-# newly built image with live updates.
+# The YAML below matches the configuration applied by ArgoCD for the istiod
+# deployment. When Tilt detects a matching image_ref, it mutates this YAML to
+# inject its live sync functionality. You can then check the diff in ArgoCD to
+# see exactly what was modified.
 #------------------------------------------------------------------------------
 
 k8s_yaml(blob("""
@@ -58,10 +61,21 @@ kind: Deployment
 metadata:
   name: istiod-{istio_version}
   namespace: istio-system
+  annotations:
+    argocd.argoproj.io/tracking-id: {cluster_name}-istio-istiod:apps/Deployment:istio-system/istiod-{istio_version}
   labels:
     app: istiod
+    app.kubernetes.io/instance: istio-istiod
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: istiod
+    app.kubernetes.io/part-of: istio
+    app.kubernetes.io/version: {istio_dotted}
+    helm.sh/chart: istiod-{istio_dotted}
+    install.operator.istio.io/owning-resource: unknown
     istio: pilot
     istio.io/rev: {istio_version}
+    operator.istio.io/component: Pilot
+    release: istio-istiod
 spec:
   replicas: 1
   selector:
@@ -80,9 +94,17 @@ spec:
         sidecar.istio.io/inject: "false"
       labels:
         app: istiod
+        app.kubernetes.io/instance: istio-istiod
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: istiod
+        app.kubernetes.io/part-of: istio
+        app.kubernetes.io/version: {istio_dotted}
+        helm.sh/chart: istiod-{istio_dotted}
+        install.operator.istio.io/owning-resource: unknown
         istio: istiod
-        istio.io/rev: {istio_version}
         istio.io/dataplane-mode: none
+        istio.io/rev: {istio_version}
+        operator.istio.io/component: Pilot
         sidecar.istio.io/inject: "false"
     spec:
       serviceAccountName: istiod-{istio_version}
@@ -235,7 +257,7 @@ spec:
           defaultMode: 420
           name: istio-ca-root-cert
           optional: true
-""".format(image_ref=image_ref, istio_version=istio_version, cluster_name=cluster_name)))
+""".format(image_ref=image_ref, istio_version=istio_version, istio_dotted=istio_dotted, cluster_name=cluster_name)))
 
 #------------------------------------------------------------------------------
 # Configure the k8s resource

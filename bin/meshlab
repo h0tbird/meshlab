@@ -684,6 +684,14 @@ kiali-multicluster() {
 
 tilt-up() {
   blue "───[ tilt up ]──────────────────────────────────────────────────────────"
+
+  # Git clone tilt extensions if not already done, otherwise update
+  # This prevents parallel tilt instances from cloning simultaneously
+  TILT_EXT_DIR="/root/.local/share/tilt-dev/tilt_modules/github.com/tilt-dev/tilt-extensions"
+  if [ -d "${TILT_EXT_DIR}" ]; then git -C "${TILT_EXT_DIR}" pull --ff-only
+  else git clone https://github.com/tilt-dev/tilt-extensions "${TILT_EXT_DIR}"; fi
+
+  # Start tilt for each workload cluster
   PORT=9091; for CLUSTER in $(list clusters wkld "${WLCNT}"); do
     if pgrep -f "tilt up --context kind-${CLUSTER}" &>/dev/null; then
       echo "tilt ${CLUSTER} on port ${PORT} (running)"

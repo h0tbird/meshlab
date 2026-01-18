@@ -17,6 +17,7 @@ allow_k8s_contexts([
 
 istio_version = '1-28-2'
 image_ref = 'pilot-discovery-dev'
+cluster_name = k8s_context().removeprefix('kind-')
 
 #------------------------------------------------------------------------------
 # Determine architecture and binary path
@@ -129,7 +130,7 @@ spec:
         - name: ENABLE_NATIVE_SIDECARS
           value: "true"
         - name: ISTIOD_CUSTOM_HOST
-          value: istiod.pasta-1
+          value: istiod.{cluster_name}
         - name: PILOT_ENABLE_AMBIENT
           value: "true"
         - name: PILOT_ENABLE_WORKLOAD_ENTRY_AUTOREGISTRATION
@@ -141,7 +142,7 @@ spec:
         - name: PILOT_ENABLE_ANALYSIS
           value: "false"
         - name: CLUSTER_ID
-          value: pasta-1
+          value: {cluster_name}
         - name: GOMEMLIMIT
           valueFrom:
             resourceFieldRef:
@@ -234,7 +235,7 @@ spec:
           defaultMode: 420
           name: istio-ca-root-cert
           optional: true
-""".format(image_ref=image_ref, istio_version=istio_version)))
+""".format(image_ref=image_ref, istio_version=istio_version, cluster_name=cluster_name)))
 
 #------------------------------------------------------------------------------
 # Configure the k8s resource

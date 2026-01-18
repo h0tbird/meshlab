@@ -685,8 +685,8 @@ kiali-multicluster() {
 tilt-up() {
   blue "───[ tilt up ]──────────────────────────────────────────────────────────"
 
-  # Git clone tilt extensions if not already done, otherwise update
-  # This prevents parallel tilt instances from cloning simultaneously
+  # Git clone tilt extensions if not already done, otherwise update.
+  # This prevents parallel tilt instances from cloning simultaneously.
   TILT_EXT_DIR="/root/.local/share/tilt-dev/tilt_modules/github.com/tilt-dev/tilt-extensions"
   if [ -d "${TILT_EXT_DIR}" ]; then git -C "${TILT_EXT_DIR}" pull --ff-only
   else git clone https://github.com/tilt-dev/tilt-extensions "${TILT_EXT_DIR}"; fi

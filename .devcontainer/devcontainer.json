@@ -27,7 +27,8 @@
 	},
 	"containerEnv": {
 		"GITHUB_TOKEN": "${localEnv:GITHUB_TOKEN}",
-		"GITHUB_USER": "${localEnv:GITHUB_USER}"
+		"GITHUB_USER": "${localEnv:GITHUB_USER}",
+		"DOCKER_HOST": "unix:///var/run/docker-host.sock"
 	},
 	"remoteUser": "root",
 	"runArgs": [

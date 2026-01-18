@@ -13,9 +13,6 @@ cd "$(dirname "$0")"/..
 # shellcheck source=../lib/common.sh
 source ./lib/common.sh
 
-# Use DooD (docker -H)
-export DOCKER_HOST='unix:///var/run/docker-host.sock'
-
 #------------------------------------------------------------------------------
 # [i] Versions
 #------------------------------------------------------------------------------
@@ -704,7 +701,7 @@ tilt-up() {
 #------------------------------------------------------------------------------
 
 deploy-workloads() {
-  blue "---[ Deploy workloads ]-------------------------------------------------"
+  blue "───[ Deploy workloads ]─────────────────────────────────────────────────"
 
   swarmctl --context 'pasta-*|pizza-*' i --yes --istio-revision stable --image-tag main
   swarmctl --context 'pasta-*|pizza-*' w 1:2 --yes --istio-revision stable --image-tag main

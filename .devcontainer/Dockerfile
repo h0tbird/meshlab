@@ -14,8 +14,8 @@ ENV PATH=/workspaces/meshlab/bin:${PATH}
 # Install base packages
 RUN apt update && \
     apt install -y --no-install-recommends \
-    curl jq gnupg iputils-ping dnsutils neovim \
-    socat netcat-openbsd apache2-utils shellcheck && \
+    curl jq iputils-ping dnsutils neovim socat \
+    netcat-openbsd apache2-utils shellcheck && \
     apt autoremove -y && apt clean -y && \
     rm -rf /var/lib/apt/lists/* && \
     chmod -x /etc/update-motd.d/*
@@ -23,7 +23,6 @@ RUN apt update && \
 # Set zsh as default shell
 RUN chsh -s /usr/bin/zsh root && \
     chsh -s /usr/bin/zsh vscode && \
-    echo 'export GPG_TTY=$(tty)' >> /etc/zsh/zshenv && \
     echo 'export DOCKER_API_VERSION=$(curl -s --unix-socket /var/run/docker.sock http://localhost/version | jq -r .ApiVersion)' >> /etc/zsh/zshenv && \
     sed -i '/^ZSH_THEME/c\ZSH_THEME="robbyrussell"' /root/.zshrc && \
     sed -i '/^ZSH_THEME/c\ZSH_THEME="robbyrussell"' /home/vscode/.zshrc

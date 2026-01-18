@@ -78,5 +78,15 @@ As the lab starts up, the following services will become available:
 - **Prometheus:** http://127.0.0.1:8083
 - **Grafana:** http://127.0.0.1:8084
 - **Kiali:** http://127.0.0.1:8085
+- **Tilt pasta-1:** http://127.0.0.1:9091
+- **Tilt pasta-2:** http://127.0.0.1:9092
 
 Use `admin` + `meshlab123` as credentials when prompted.
+
+---
+
+## Tips
+
+- The VS Code Dev Containers extension automatically copies the host's `~/.gitconfig` into the container.
+- The host's SSH agent is accessible at `/ssh-agent` inside the container.
+- Two Docker sockets are available: DinD at `/var/run/docker.sock` and DooD at `/var/run/docker-host.sock` (default).

@@ -15,7 +15,7 @@ allow_k8s_contexts([
 # Variables
 #------------------------------------------------------------------------------
 
-istio_version = '1-28-2'
+istio_version = '1-29-0-alpha-0'
 istio_dotted = istio_version.replace('-', '.')
 image_ref = 'pilot-discovery-dev'
 cluster_name = k8s_context().removeprefix('kind-')
@@ -165,11 +165,6 @@ spec:
           value: "false"
         - name: CLUSTER_ID
           value: {cluster_name}
-        - name: GOMEMLIMIT
-          valueFrom:
-            resourceFieldRef:
-              divisor: "1"
-              resource: limits.memory
         - name: GOMAXPROCS
           valueFrom:
             resourceFieldRef:

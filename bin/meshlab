@@ -28,7 +28,7 @@ OTEL_COLLECTOR_CHART_VERSION='0.143.0'        # https://artifacthub.io/packages/
 VAULT_CHART_VERSION='0.32.0'                  # https://artifacthub.io/packages/helm/hashicorp/vault
 CERT_MANAGER_CHART_VERSION='v1.19.2'          # https://artifacthub.io/packages/helm/cert-manager/cert-manager
 KUBERNETES_REPLICATOR_CHART_VERSION='2.12.2'  # https://artifacthub.io/packages/helm/kubernetes-replicator/kubernetes-replicator
-ISTIO_CHART_VERSION='1.28.2'                  # https://artifacthub.io/packages/helm/istio-official/base
+ISTIO_CHART_VERSION='1.28.3'                  # https://artifacthub.io/packages/helm/istio-official/base
 KIALI_CHART_VERSION='2.20.0'                  # https://artifacthub.io/packages/helm/kiali/kiali-operator
 
 #------------------------------------------------------------------------------

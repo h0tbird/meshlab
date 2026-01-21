@@ -60,6 +60,27 @@ istio-images:
 	&& cp ~/.docker/config.json.bkp ~/.docker/config.json
 
 #------------------------------------------------------------------------------
+# Build Istio charts using Istio's own build system.
+#  make istio-charts APP_VERSION=1.28.3 ISTIO_TAG=1.28.3-patch.1-dev
+#------------------------------------------------------------------------------
+
+.PHONY: istio-charts
+istio-charts:
+	@echo "Building Istio charts"
+	cd /workspaces/istio \
+	&& helm package manifests/charts/base --app-version ${APP_VERSION} --version ${ISTIO_TAG} --destination /tmp/charts \
+	&& helm package manifests/charts/gateway --app-version ${APP_VERSION} --version ${ISTIO_TAG} --destination /tmp/charts \
+	&& helm package manifests/charts/istio-cni --app-version ${APP_VERSION} --version ${ISTIO_TAG} --destination /tmp/charts \
+	&& helm package manifests/charts/istio-control/istio-discovery --app-version ${APP_VERSION} --version ${ISTIO_TAG} --destination /tmp/charts \
+	&& helm package manifests/charts/ztunnel --app-version ${APP_VERSION} --version ${ISTIO_TAG} --destination /tmp/charts \
+	&& git checkout helm-repo \
+	&& mv /tmp/charts/*.tgz . \
+	&& helm repo index . --url https://h0tbird.github.io/forked-istio \
+	&& git add . \
+	&& git commit -m "Istio charts for ${ISTIO_TAG}" \
+	&& git push
+
+#------------------------------------------------------------------------------
 # Add labels to Istio images.
 #  make istio-labels ISTIO_HUB=ghcr.io/h0tbird ISTIO_TAG=1.28.3-patch.1-dev
 #

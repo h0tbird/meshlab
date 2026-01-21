@@ -107,6 +107,6 @@
 		// Host's ../istio is mounted read-write, so clone istio repo if not already present.
 		"clone-istio": "test -d /workspaces/istio/.git || { gh repo clone h0tbird/forked-istio /workspaces/istio && cd /workspaces/istio && git remote add upstream https://github.com/istio/istio.git; }"
 	},
-	// DinD cannot use VS Code credential helpers; force inline Docker auth for build pushes.
-	"postStartCommand": "mv ~/.docker/config.json ~/.docker/config.json.bkp"
+	// Backup config.json for restoring after DinD.
+	"postStartCommand": "cp ~/.docker/config.json ~/.docker/config.json.bkp"
 }

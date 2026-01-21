@@ -31,12 +31,17 @@ toolbox:
 istio-images: HUB ?= localhost:5005
 istio-images: TAG ?= latest
 istio-images: DOCKER_TARGETS ?= pilot proxyv2 install-cni istioctl ztunnel ext-authz
+istio-images: IMAGE_SOURCE ?= https://github.com/h0tbird/forked-istio
 istio-images:
 	@echo "Building Istio images"
 	rm ~/.docker/config.json || true \
 	&& echo ${GITHUB_TOKEN} | docker login ghcr.io -u ${GITHUB_USER} --password-stdin 2>/dev/null \
 	&& cd /workspaces/istio \
 	&& DOCKER_ARCHITECTURES="linux/amd64,linux/arm64" \
-	&& DOCKER_BUILD_ARGS="--label org.opencontainers.image.source=https://github.com/h0tbird/forked-istio" \
-	DOCKER_HOST= HUB=${HUB} TAG=${TAG} make docker.push \
+	DOCKER_HOST= HUB=${HUB} TAG=${TAG} DOCKER_TARGETS="${DOCKER_TARGETS}" make docker.push \
+	&& for target in ${DOCKER_TARGETS}; do \
+		echo "Adding labels to $${target}"; \
+		crane mutate ${HUB}/$${target}:${TAG} \
+			--label org.opencontainers.image.source=${IMAGE_SOURCE}; \
+	done \
 	&& cp ~/.docker/config.json.bkp ~/.docker/config.json

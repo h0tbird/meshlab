@@ -108,6 +108,11 @@ RUN VERSION="0.36.0" && ARCH=$(dpkg --print-architecture) && [ "$ARCH" = "amd64"
     curl -fsSL https://github.com/tilt-dev/tilt/releases/download/v${VERSION}/tilt.${VERSION}.linux.${ARCH}.tar.gz | \
     tar -xzC /usr/local/bin tilt && echo "source <(tilt completion zsh) && compdef _tilt tilt" >> /etc/zsh/zshrc
 
+# Install crane (https://github.com/google/go-containerregistry/releases)
+RUN VERSION="v0.20.7" && ARCH=$(dpkg --print-architecture) && [ "$ARCH" = "amd64" ] && ARCH="x86_64" || true && \
+    curl -fsSL https://github.com/google/go-containerregistry/releases/download/${VERSION}/go-containerregistry_Linux_${ARCH}.tar.gz | \
+    tar -xzC /usr/local/bin crane && echo "source <(crane completion zsh) && compdef _crane crane" >> /etc/zsh/zshrc
+
 # Install kiali-prepare-remote-cluster.sh (https://github.com/kiali/kiali)
 RUN curl -sLo /usr/local/bin/kiali-prepare-remote-cluster.sh \
     https://raw.githubusercontent.com/kiali/kiali/master/hack/istio/multicluster/kiali-prepare-remote-cluster.sh && \

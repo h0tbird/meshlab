@@ -11,6 +11,15 @@ SHELL = $(BASH_PATH)
 .SHELLFLAGS = -o pipefail -ec
 
 #------------------------------------------------------------------------------
+# Variables
+#------------------------------------------------------------------------------
+
+ISTIO_HUB ?= localhost:5005
+ISTIO_TAG ?= latest
+ISTIO_TARGETS ?= pilot proxyv2 install-cni istioctl ztunnel ext-authz
+ISTIO_SOURCE ?= https://github.com/h0tbird/forked-istio
+
+#------------------------------------------------------------------------------
 # Toolbox image used by WorkflowTemplates, e.g. to populate Vault.
 #------------------------------------------------------------------------------
 
@@ -28,26 +37,23 @@ toolbox:
 #------------------------------------------------------------------------------
 
 .PHONY: istio-images
-istio-images: HUB ?= localhost:5005
-istio-images: TAG ?= latest
-istio-images: DOCKER_TARGETS ?= pilot proxyv2 install-cni istioctl ztunnel ext-authz
 istio-images:
 	@echo "Building Istio images"
 	rm ~/.docker/config.json || true \
 	&& echo ${GITHUB_TOKEN} | docker login ghcr.io -u ${GITHUB_USER} --password-stdin 2>/dev/null \
 	&& cd /workspaces/istio \
 	&& DOCKER_ARCHITECTURES="linux/amd64,linux/arm64" \
-	DOCKER_HOST= HUB=${HUB} TAG=${TAG} DOCKER_TARGETS="${DOCKER_TARGETS}" make docker.push \
+	DOCKER_HOST= HUB=${ISTIO_HUB} TAG=${ISTIO_TAG} DOCKER_TARGETS="${ISTIO_TARGETS}" make docker.push \
 	&& cp ~/.docker/config.json.bkp ~/.docker/config.json
 
+#------------------------------------------------------------------------------
+# Add labels to Istio images.
+#------------------------------------------------------------------------------
+
 .PHONY: istio-labels
-istio-labels: HUB ?= localhost:5005
-istio-labels: TAG ?= latest
-istio-labels: DOCKER_TARGETS ?= pilot proxyv2 install-cni istioctl ztunnel ext-authz
-istio-labels: IMAGE_SOURCE ?= https://github.com/h0tbird/forked-istio
 istio-labels:
-	@for target in ${DOCKER_TARGETS}; do \
+	@for target in ${ISTIO_TARGETS}; do \
 		echo "Adding labels to $${target}"; \
-		crane mutate ${HUB}/$${target}:${TAG} \
-			--label org.opencontainers.image.source=${IMAGE_SOURCE}; \
+		crane mutate ${ISTIO_HUB}/$${target}:${ISTIO_TAG} \
+			--label org.opencontainers.image.source=${ISTIO_SOURCE}; \
 	done

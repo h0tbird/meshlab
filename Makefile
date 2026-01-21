@@ -33,6 +33,17 @@ toolbox:
 		--push .
 
 #------------------------------------------------------------------------------
+# Build Istio binaries using Istio's own build system.
+#------------------------------------------------------------------------------
+
+.PHONY: istio-binaries
+istio-binaries: DOCKER_HOST := unix:///var/run/docker.sock
+istio-binaries:
+	@echo "Building Istio binaries"
+	cd /workspaces/istio \
+	&& make build-linux
+
+#------------------------------------------------------------------------------
 # Build Istio images using Istio's own build system.
 #   make istio-images ISTIO_HUB=ghcr.io/h0tbird ISTIO_TAG=1.28.3-patch.1-dev
 #------------------------------------------------------------------------------

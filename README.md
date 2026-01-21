@@ -91,3 +91,10 @@ Use `admin` + `meshlab123` as credentials when prompted.
 - The host's SSH agent is accessible at `/ssh-agent` inside the container.
 - Two Docker sockets are available: DinD at `/var/run/docker.sock` and DooD at `/var/run/docker-host.sock` (default).
 - Kind clusters use DooD, while the Istio `build-tools` container runs DinD.
+
+
+## Working with Istio source
+
+When the devcontainer is created, the `../istio` directory is generated alongside the `meshlab` directory if it doesn’t already exist, and the Istio sources are cloned into it. Both repositories are mounted under `/workspaces`.
+
+For each workload cluster in the lab, a dedicated Tilt instance watches for changes to `/workspaces/istio/out/linux_${ARCH}/pilot-discovery`. When the binary changes, Tilt triggers a live update on the corresponding cluster. New binaries are built by running `make istio-binaries`.

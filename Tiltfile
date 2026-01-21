@@ -25,7 +25,7 @@ cluster_name = k8s_context().removeprefix('kind-')
 #------------------------------------------------------------------------------
 
 arch = str(local('dpkg --print-architecture', quiet=True)).strip()
-istio_dir = '../istio'
+istio_dir = '/workspaces/istio'
 binary_path = 'out/linux_' + arch + '/pilot-discovery'
 binary_full_path = istio_dir + '/' + binary_path
 

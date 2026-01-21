@@ -51,6 +51,16 @@ istio-images:
 #------------------------------------------------------------------------------
 # Add labels to Istio images.
 #  make istio-labels ISTIO_HUB=ghcr.io/h0tbird ISTIO_TAG=1.28.3-patch.1-dev
+#
+# GitHub Container Registry: Repository Connection
+#
+# The org.opencontainers.image.source label only triggers repository linking
+# when present during the initial push. Relabeling images afterward (e.g., with
+# crane) does not create the connection. There is no REST API, GraphQL mutation,
+# or gh CLI command to link a repository to an existing package programmatically.
+#
+# Workaround: Manually connect via GitHub UI (Package → Connect repository).
+# This is a one-time setup per package.
 #------------------------------------------------------------------------------
 
 .PHONY: istio-labels

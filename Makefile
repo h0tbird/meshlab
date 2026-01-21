@@ -66,10 +66,12 @@ toolbox:
 		--push .
 
 .PHONY: istio-images
+istio-images: HUB ?= localhost:5005
+istio-images: TAG ?= latest
 istio-images:
 	@echo "Building all Istio images"
 	rm ~/.docker/config.json \
 	&& echo ${GITHUB_TOKEN} | docker login ghcr.io -u ${GITHUB_USER} --password-stdin 2>/dev/null \
 	&& cd /workspaces/istio && DOCKER_ARCHITECTURES="linux/amd64,linux/arm64" \
-	DOCKER_HOST= HUB=ghcr.io/h0tbird TAG=1.28.2-patch.2 make docker.push \
+	DOCKER_HOST= HUB=${HUB} TAG=${TAG} make docker.push \
 	&& cp ~/.docker/config.json.bkp ~/.docker/config.json

@@ -39,7 +39,7 @@ print('Watching pilot-discovery binary at: ' + binary_full_path)
 docker_build_with_restart(
     ref=image_ref,
     context=istio_dir,
-    dockerfile='hack/Dockerfile.pilot-discovery-tilt',
+    dockerfile='hack/Dockerfile.pilot-discovery',
     build_args={'TARGETARCH': arch},
     entrypoint=['/usr/local/bin/pilot-discovery'],
     live_update=[

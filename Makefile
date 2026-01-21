@@ -11,50 +11,17 @@ SHELL = $(BASH_PATH)
 .SHELLFLAGS = -o pipefail -ec
 
 #------------------------------------------------------------------------------
-# Set variables
+# Variables
 #------------------------------------------------------------------------------
 
-BASE_IMAGE_TAG ?= 1.28.2
-GIT_REVISION ?= release-1.28
-
-NEW_IMAGE_REGISTRY ?= ghcr.io/h0tbird
-NEW_IMAGE_TAG ?= 1.28.2-patch.2
+ISTIO_HUB ?= localhost:5005
+ISTIO_TAG ?= latest
+ISTIO_TARGETS ?= pilot proxyv2 install-cni istioctl ztunnel ext-authz
+ISTIO_SOURCE ?= https://github.com/h0tbird/forked-istio
 
 #------------------------------------------------------------------------------
-# Targets
+# Toolbox image used by WorkflowTemplates, e.g. to populate Vault.
 #------------------------------------------------------------------------------
-
-.PHONY: pilot-agent
-pilot-agent: IMG := ${NEW_IMAGE_REGISTRY}/proxyv2:${NEW_IMAGE_TAG}
-pilot-agent:
-	@echo "Building pilot-agent"
-	cd ../istio
-	git fetch upstream --tags
-	git checkout ${GIT_REVISION}
-	docker buildx build --progress=plain -t ${IMG} \
-		--platform linux/amd64,linux/arm64 \
-		-f ../meshlab/hack/Dockerfile.pilot-agent \
-		--build-arg="VERSION=${NEW_IMAGE_TAG}" \
-		--build-arg="REGISTRY=${NEW_IMAGE_REGISTRY}" \
-		--build-arg="GIT_SHA=$$(git rev-parse HEAD)" \
-		--build-arg="BASE_IMAGE_TAG=${BASE_IMAGE_TAG}" \
-		--push .
-
-.PHONY: pilot-discovery
-pilot-discovery: IMG := ${NEW_IMAGE_REGISTRY}/pilot:${NEW_IMAGE_TAG}
-pilot-discovery:
-	@echo "Building pilot-discovery"
-	cd ../istio
-	git fetch upstream --tags
-	git checkout ${GIT_REVISION}
-	docker buildx build --progress=plain -t ${IMG} \
-		--platform linux/amd64,linux/arm64 \
-		-f ../meshlab/hack/Dockerfile.pilot-discovery \
-		--build-arg="VERSION=${NEW_IMAGE_TAG}" \
-		--build-arg="REGISTRY=${NEW_IMAGE_REGISTRY}" \
-		--build-arg="GIT_SHA=$$(git rev-parse HEAD)" \
-		--build-arg="BASE_IMAGE_TAG=${BASE_IMAGE_TAG}" \
-		--push .
 
 .PHONY: toolbox
 toolbox: IMG := ${NEW_IMAGE_REGISTRY}/meshlab/toolbox:latest
@@ -64,3 +31,32 @@ toolbox:
 		--platform linux/amd64,linux/arm64 \
 		-f ./hack/Dockerfile.toolbox \
 		--push .
+
+#------------------------------------------------------------------------------
+# Build Istio images using Istio's own build system.
+#   make istio-images ISTIO_HUB=ghcr.io/h0tbird ISTIO_TAG=1.28.3-patch.1-dev
+#------------------------------------------------------------------------------
+
+.PHONY: istio-images
+istio-images: DOCKER_HOST := unix:///var/run/docker.sock
+istio-images:
+	@echo "Building Istio images"
+	rm ~/.docker/config.json || true \
+	&& echo ${GITHUB_TOKEN} | docker login ghcr.io -u ${GITHUB_USER} --password-stdin 2>/dev/null \
+	&& cd /workspaces/istio \
+	&& make docker.push DOCKER_ARCHITECTURES="linux/amd64,linux/arm64" \
+	HUB=${ISTIO_HUB} TAG=${ISTIO_TAG} DOCKER_TARGETS="${ISTIO_TARGETS}"  \
+	&& cp ~/.docker/config.json.bkp ~/.docker/config.json
+
+#------------------------------------------------------------------------------
+# Add labels to Istio images.
+#  make istio-labels ISTIO_HUB=ghcr.io/h0tbird ISTIO_TAG=1.28.3-patch.1-dev
+#------------------------------------------------------------------------------
+
+.PHONY: istio-labels
+istio-labels:
+	@for target in ${ISTIO_TARGETS}; do \
+		echo "Adding labels to $${target}"; \
+		crane mutate ${ISTIO_HUB}/$${target}:${ISTIO_TAG} \
+			--label org.opencontainers.image.source=${ISTIO_SOURCE}; \
+	done

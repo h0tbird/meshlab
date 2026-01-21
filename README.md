@@ -90,3 +90,4 @@ Use `admin` + `meshlab123` as credentials when prompted.
 - The VS Code Dev Containers extension automatically copies the host's `~/.gitconfig` into the container.
 - The host's SSH agent is accessible at `/ssh-agent` inside the container.
 - Two Docker sockets are available: DinD at `/var/run/docker.sock` and DooD at `/var/run/docker-host.sock` (default).
+- Kind clusters use DooD, while the Istio `build-tools` container runs DinD.

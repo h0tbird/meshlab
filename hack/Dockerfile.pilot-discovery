@@ -1,78 +1,13 @@
-# This Dockerfile builds a debug version of Istio pilot-discovery with Delve installed.
-# It is based on the official istio/pilot image and adds debug symbols along with the Delve debugger.
-# The Go build steps were derived by observing the `DEBUG=1 make build-linux` process
-# in the main Istio repository, specifically the `go build` command emitted by:
-#
-#  GOOS=linux GOARCH=arm64 LDFLAGS='' VERBOSE=1 DEBUG=1 common/scripts/gobuild.sh \
-#  /work/out/linux_arm64/ -tags=vtprotobuf,disable_pgv ./pilot/cmd/pilot-discovery \
-#  2>&1 | grep '+ go build'
-#
-# This approach involves some creative interpretation—use at your own risk.
-#
-# Build and deploy:
-#   make pilot-discovery
-#   k --context kind-pasta-1 -n istio-system set image deploy/istiod-1-28-2 discovery=ghcr.io/h0tbird/pilot:1.28.2-patch.1
-#
-# Debug:
-#   k --context kind-pasta-1 -n istio-system exec -it deploy/istiod-1-28-2 -- dlv dap --listen=:40000 --log=true
-#   k --context kind-pasta-1 -n istio-system port-forward deploy/istiod-1-28-2 40000:40000
+# Dockerfile for Tilt live-update of pilot-discovery
+# Uses pre-built binary from out/linux_${TARGETARCH}/pilot-discovery
 
-# Any ARG before the first FROM can be used in any FROM line
-ARG BASE_IMAGE_TAG=latest
+ARG TARGETARCH=amd64
 
-#------------------------------------------------------------------------------
-# Buildtime
-#------------------------------------------------------------------------------
+FROM docker.io/istio/pilot:1.28.2-debug
 
-FROM golang:1.25 AS builder
+ARG TARGETARCH
 
-# Build arguments
-ARG VERSION="unknown"
-ARG REGISTRY="unknown"
-ARG GIT_SHA="unknown"
-
-# Cache dependencies
-WORKDIR /workspace
-COPY go.mod go.mod
-COPY go.sum go.sum
-RUN go mod download
-
-# Copy the code
-COPY pilot/ pilot/
-COPY pkg/ pkg/
-COPY operator/ operator/
-COPY security/ security/
-COPY tools/ tools/
-COPY common/ common/
-COPY manifests/ manifests/
-
-# Build
-RUN CGO_ENABLED=0 go build -x -o pilot-discovery \
-  -gcflags=all="-N -l" -ldflags "-extldflags -static \
-  -X istio.io/istio/pkg/version.buildVersion=${VERSION} \
-  -X istio.io/istio/pkg/version.buildGitRevision=${GIT_SHA} \
-  -X istio.io/istio/pkg/version.buildStatus=debug \
-  -X istio.io/istio/pkg/version.buildTag=${VERSION} \
-  -X istio.io/istio/pkg/version.buildHub=${REGISTRY} \
-  -X istio.io/istio/pkg/version.buildOS=${TARGETOS} \
-  -X istio.io/istio/pkg/version.buildArch=${TARGETARCH}" \
-  -tags=vtprotobuf,disable_pgv ./pilot/cmd/pilot-discovery
-
-# Install delve
-RUN go install github.com/go-delve/delve/cmd/dlv@latest
-
-#------------------------------------------------------------------------------
-# Runtime
-#------------------------------------------------------------------------------
-
-FROM istio/pilot:${BASE_IMAGE_TAG}
-
-USER 0:0
-
-# Copy binaries and source code
-COPY --from=builder /go/bin/dlv /usr/local/bin/dlv
-COPY --from=builder /workspace /workspace
-COPY --from=builder /go /go
-RUN mv /workspace/pilot-discovery /usr/local/bin/
+# Copy the pre-built pilot-discovery binary
+COPY out/linux_${TARGETARCH}/pilot-discovery /usr/local/bin/pilot-discovery
 
 USER 1337:1337

@@ -18,7 +18,7 @@ spec:
     spec:
       project: istio
       sources:
-      - repoURL: https://istio-release.storage.googleapis.com/charts
+      - repoURL: https://h0tbird.github.io/forked-istio
         targetRevision: {{ .Values.chartVersion }}
         chart: gateway
         helm:

@@ -18,7 +18,7 @@ spec:
     spec:
       project: istio
       source:
-        repoURL: https://istio-release.storage.googleapis.com/charts
+        repoURL: https://h0tbird.github.io/forked-istio
         targetRevision: {{ .Values.chartVersion }}
         chart: istiod
         helm:
@@ -28,7 +28,7 @@ spec:
             revision: {{ .Values.chartVersion | replace "." "-" }}
             revisionTags: [ "stable", "canary" ]
             pilot:
-            # image: ghcr.io/h0tbird/pilot:1.28.3-patch.1-dev
+              image: ghcr.io/h0tbird/pilot:1.28.3-patch.1-dev
               autoscaleEnabled: false
               env:
                 AUTO_RELOAD_PLUGIN_CERTS: true
@@ -37,9 +37,9 @@ spec:
                 ISTIOD_CUSTOM_HOST: {{`'istiod.{{name}}'`}}
                 ENABLE_NATIVE_SIDECARS: true
             global:
-            # hub: ghcr.io/h0tbird
-            # tag: 1.28.3-patch.1-dev
-            # variant: ""
+              hub: ghcr.io/h0tbird
+              tag: 1.28.3-patch.1-dev
+              variant: ""
               meshID: {{`'{{metadata.labels.cell}}'`}}
               network: {{`'{{metadata.labels.cell}}'`}}
               logAsJson: true

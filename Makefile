@@ -31,7 +31,6 @@ toolbox:
 istio-images: HUB ?= localhost:5005
 istio-images: TAG ?= latest
 istio-images: DOCKER_TARGETS ?= pilot proxyv2 install-cni istioctl ztunnel ext-authz
-istio-images: IMAGE_SOURCE ?= https://github.com/h0tbird/forked-istio
 istio-images:
 	@echo "Building Istio images"
 	rm ~/.docker/config.json || true \
@@ -39,9 +38,16 @@ istio-images:
 	&& cd /workspaces/istio \
 	&& DOCKER_ARCHITECTURES="linux/amd64,linux/arm64" \
 	DOCKER_HOST= HUB=${HUB} TAG=${TAG} DOCKER_TARGETS="${DOCKER_TARGETS}" make docker.push \
-	&& for target in ${DOCKER_TARGETS}; do \
+	&& cp ~/.docker/config.json.bkp ~/.docker/config.json
+
+.PHONY: istio-labels
+istio-labels: HUB ?= localhost:5005
+istio-labels: TAG ?= latest
+istio-labels: DOCKER_TARGETS ?= pilot proxyv2 install-cni istioctl ztunnel ext-authz
+istio-labels: IMAGE_SOURCE ?= https://github.com/h0tbird/forked-istio
+istio-labels:
+	@for target in ${DOCKER_TARGETS}; do \
 		echo "Adding labels to $${target}"; \
 		crane mutate ${HUB}/$${target}:${TAG} \
 			--label org.opencontainers.image.source=${IMAGE_SOURCE}; \
-	done \
-	&& cp ~/.docker/config.json.bkp ~/.docker/config.json
+	done

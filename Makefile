@@ -24,16 +24,19 @@ toolbox:
 		--push .
 
 #------------------------------------------------------------------------------
-# Build all Istio images using Istio's own build system.
+# Build Istio images using Istio's own build system.
 #------------------------------------------------------------------------------
 
 .PHONY: istio-images
 istio-images: HUB ?= localhost:5005
 istio-images: TAG ?= latest
+istio-images: DOCKER_TARGETS ?= pilot proxyv2 install-cni istioctl ztunnel ext-authz
 istio-images:
-	@echo "Building all Istio images"
-	rm ~/.docker/config.json \
+	@echo "Building Istio images"
+	rm ~/.docker/config.json || true \
 	&& echo ${GITHUB_TOKEN} | docker login ghcr.io -u ${GITHUB_USER} --password-stdin 2>/dev/null \
-	&& cd /workspaces/istio && DOCKER_ARCHITECTURES="linux/amd64,linux/arm64" \
+	&& cd /workspaces/istio \
+	&& DOCKER_ARCHITECTURES="linux/amd64,linux/arm64" \
+	&& DOCKER_BUILD_ARGS="--label org.opencontainers.image.source=https://github.com/h0tbird/forked-istio" \
 	DOCKER_HOST= HUB=${HUB} TAG=${TAG} make docker.push \
 	&& cp ~/.docker/config.json.bkp ~/.docker/config.json

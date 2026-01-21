@@ -34,20 +34,23 @@ toolbox:
 
 #------------------------------------------------------------------------------
 # Build Istio images using Istio's own build system.
+#   make istio-images ISTIO_HUB=ghcr.io/h0tbird ISTIO_TAG=1.28.3-patch.1-dev
 #------------------------------------------------------------------------------
 
 .PHONY: istio-images
+istio-images: DOCKER_HOST := unix:///var/run/docker.sock
 istio-images:
 	@echo "Building Istio images"
 	rm ~/.docker/config.json || true \
 	&& echo ${GITHUB_TOKEN} | docker login ghcr.io -u ${GITHUB_USER} --password-stdin 2>/dev/null \
 	&& cd /workspaces/istio \
-	&& DOCKER_ARCHITECTURES="linux/amd64,linux/arm64" \
-	DOCKER_HOST= HUB=${ISTIO_HUB} TAG=${ISTIO_TAG} DOCKER_TARGETS="${ISTIO_TARGETS}" make docker.push \
+	&& make docker.push DOCKER_ARCHITECTURES="linux/amd64,linux/arm64" \
+	HUB=${ISTIO_HUB} TAG=${ISTIO_TAG} DOCKER_TARGETS="${ISTIO_TARGETS}"  \
 	&& cp ~/.docker/config.json.bkp ~/.docker/config.json
 
 #------------------------------------------------------------------------------
 # Add labels to Istio images.
+#  make istio-labels ISTIO_HUB=ghcr.io/h0tbird ISTIO_TAG=1.28.3-patch.1-dev
 #------------------------------------------------------------------------------
 
 .PHONY: istio-labels

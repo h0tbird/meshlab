@@ -5,7 +5,9 @@
 FROM alpine:edge AS build
 
 ARG TARGETPLATFORM
-ARG VERSION=1.16.2
+ARG VERSION=1.21.2
+
+# https://releases.hashicorp.com/vault
 
 WORKDIR /tmp/
 

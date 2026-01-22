@@ -21,10 +21,11 @@ ISTIO_SOURCE ?= https://github.com/h0tbird/forked-istio
 
 #------------------------------------------------------------------------------
 # Toolbox image used by WorkflowTemplates, e.g. to populate Vault.
+#  make toolbox REGISTRY=ghcr.io/h0tbird
 #------------------------------------------------------------------------------
 
 .PHONY: toolbox
-toolbox: IMG := ${NEW_IMAGE_REGISTRY}/meshlab/toolbox:latest
+toolbox: IMG := ${REGISTRY}/meshlab/toolbox:latest
 toolbox:
 	@echo "Building toolbox"
 	docker buildx build --progress=plain -t ${IMG} \

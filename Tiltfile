@@ -15,8 +15,8 @@ allow_k8s_contexts([
 # Variables
 #------------------------------------------------------------------------------
 
-istio_version = '1-28-3-patch-1-dev'
-istio_dotted = '1.28.3-patch.1-dev'
+version_dash = '1-28-3-patch-1-dev'
+version_dot = '1.28.3-patch.1-dev'
 image_ref = 'pilot-discovery-dev'
 cluster_name = k8s_context().removeprefix('kind-')
 
@@ -40,7 +40,7 @@ docker_build_with_restart(
     ref=image_ref,
     context=istio_dir,
     dockerfile='hack/Dockerfile.pilot-discovery',
-    build_args={'TARGETARCH': arch},
+    build_args={'ARCH': arch, 'TAG': version_dot},
     entrypoint=['/usr/local/bin/pilot-discovery'],
     live_update=[
         sync(binary_full_path, '/usr/local/bin/pilot-discovery'),
@@ -59,21 +59,21 @@ k8s_yaml(blob("""
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: istiod-{istio_version}
+  name: istiod-{version_dash}
   namespace: istio-system
   annotations:
-    argocd.argoproj.io/tracking-id: {cluster_name}-istio-istiod:apps/Deployment:istio-system/istiod-{istio_version}
+    argocd.argoproj.io/tracking-id: {cluster_name}-istio-istiod:apps/Deployment:istio-system/istiod-{version_dash}
   labels:
     app: istiod
     app.kubernetes.io/instance: istio-istiod
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: istiod
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: {istio_dotted}
-    helm.sh/chart: istiod-{istio_dotted}
+    app.kubernetes.io/version: {version_dot}
+    helm.sh/chart: istiod-{version_dot}
     install.operator.istio.io/owning-resource: unknown
     istio: pilot
-    istio.io/rev: {istio_version}
+    istio.io/rev: {version_dash}
     operator.istio.io/component: Pilot
     release: istio-istiod
 spec:
@@ -81,7 +81,7 @@ spec:
   selector:
     matchLabels:
       app: istiod
-      istio.io/rev: {istio_version}
+      istio.io/rev: {version_dash}
   strategy:
     rollingUpdate:
       maxSurge: 100%
@@ -98,16 +98,16 @@ spec:
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: istiod
         app.kubernetes.io/part-of: istio
-        app.kubernetes.io/version: {istio_dotted}
-        helm.sh/chart: istiod-{istio_dotted}
+        app.kubernetes.io/version: {version_dot}
+        helm.sh/chart: istiod-{version_dot}
         install.operator.istio.io/owning-resource: unknown
         istio: istiod
         istio.io/dataplane-mode: none
-        istio.io/rev: {istio_version}
+        istio.io/rev: {version_dash}
         operator.istio.io/component: Pilot
         sidecar.istio.io/inject: "false"
     spec:
-      serviceAccountName: istiod-{istio_version}
+      serviceAccountName: istiod-{version_dash}
       tolerations:
       - key: cni.istio.io/not-ready
         operator: Exists
@@ -125,7 +125,7 @@ spec:
         - 30m
         env:
         - name: REVISION
-          value: {istio_version}
+          value: {version_dash}
         - name: PILOT_CERT_PROVIDER
           value: istiod
         - name: POD_NAME
@@ -257,14 +257,14 @@ spec:
           defaultMode: 420
           name: istio-ca-root-cert
           optional: true
-""".format(image_ref=image_ref, istio_version=istio_version, istio_dotted=istio_dotted, cluster_name=cluster_name)))
+""".format(image_ref=image_ref, version_dash=version_dash, version_dot=version_dot, cluster_name=cluster_name)))
 
 #------------------------------------------------------------------------------
 # Configure the k8s resource
 #------------------------------------------------------------------------------
 
 k8s_resource(
-    workload='istiod-' + istio_version,
+    workload='istiod-' + version_dash,
     new_name='istiod',
     labels=['istio'],
 )

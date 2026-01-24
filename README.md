@@ -108,10 +108,10 @@ Development Targets
 
 ## Design Notes
 
-- The VS Code Dev Containers extension automatically copies the host's `~/.gitconfig` into the container.
-- The host's SSH agent is accessible at `/ssh-agent` inside the container.
-- Two Docker sockets are available: DinD at `/var/run/docker.sock` and DooD at `/var/run/docker-host.sock` (default).
-- Kind clusters use DooD, while the Istio `build-tools` container runs DinD.
-- The `../istio` directory is generated alongside `meshlab` if it doesn't already exist, and the Istio sources are cloned into it. Both repositories are mounted under `/workspaces`.
-- A dedicated Tilt instance per workload cluster watches `/workspaces/istio/out/linux_${ARCH}/pilot-discovery` and triggers a live update when the binary changes.
-- New Istio binaries are built by running `make istio-binaries`.
+- VS Code Dev Containers copies `~/.gitconfig` into the container.
+- Host SSH agent available at `/ssh-agent`.
+- Docker sockets: DinD at `/var/run/docker.sock`, DooD at `/var/run/docker-host.sock` (default).
+- Kind uses DooD; Istio `build-tools` uses DinD.
+- Istio sources are cloned to `../istio` if missing. Both repos mount under `/workspaces`.
+- Each workload cluster's Tilt watches `pilot-discovery` and live-updates on change.
+- Run `make istio-binaries` to build new Istio binaries.

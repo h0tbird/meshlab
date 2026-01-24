@@ -69,19 +69,20 @@ istio-images:
 
 .PHONY: istio-charts
 istio-charts: CHARTS := base gateway istio-cni istio-control/istio-discovery ztunnel
+istio-charts: URL := https://h0tbird.github.io/forked-istio
 istio-charts:
 	@echo "Building Istio charts"
 	cd /workspaces/istio \
 	&& for CHART in ${CHARTS}; do \
 		find manifests/charts/$${CHART} -type f -exec sed -i 's| hub:.*| hub: ${HUB}|g' {} \;; \
 		find manifests/charts/$${CHART} -type f -exec sed -i 's| tag:.*| tag: ${VERSION}|g' {} \;; \
-		find manifests/charts/$${CHART} -type f -exec sed -i 's| variant:.*| variant: "distroless"|g' {} \;; \
+		find manifests/charts/$${CHART} -type f -exec sed -i 's| variant:.*| variant: distroless|g' {} \;; \
 		helm package manifests/charts/$${CHART} --app-version ${VERSION} --version ${VERSION} --destination /tmp/charts; \
 	done \
 	&& git restore manifests/charts \
 	&& git checkout helm-repo \
 	&& mv /tmp/charts/*.tgz . \
-	&& helm repo index . --url https://h0tbird.github.io/forked-istio \
+	&& helm repo index . --url ${URL} \
 	&& git add . \
 	&& git commit -m "Istio charts for ${VERSION}" \
 	&& git push

@@ -56,8 +56,10 @@ istio-images:
 	rm ~/.docker/config.json || true \
 	&& echo ${GITHUB_TOKEN} | docker login ghcr.io -u ${GITHUB_USER} --password-stdin 2>/dev/null \
 	&& cd /workspaces/istio \
-	&& make docker.push DOCKER_ARCHITECTURES="linux/amd64,linux/arm64" \
-	HUB=${ISTIO_HUB} TAG=${ISTIO_TAG} DOCKER_TARGETS="${ISTIO_TARGETS}"  \
+	&& make docker.push HUB=${ISTIO_HUB} TAG=${ISTIO_TAG} \
+	DOCKER_BUILD_VARIANTS="distroless debug" \
+	DOCKER_ARCHITECTURES="linux/amd64,linux/arm64" \
+	DOCKER_TARGETS="${ISTIO_TARGETS}" \
 	&& cp ~/.docker/config.json.bkp ~/.docker/config.json
 
 #------------------------------------------------------------------------------

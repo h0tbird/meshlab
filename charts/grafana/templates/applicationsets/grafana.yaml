@@ -46,48 +46,10 @@ spec:
               port: 80
               annotations:
                   coredns.io/hostname: grafana.demo.lab
-            dashboardProviders:
-              dashboardproviders.yaml:
-                apiVersion: 1
-                providers:
-                  - name: 'default'
-                    orgId: 1
-                    folder: ''
-                    type: file
-                    disableDeletion: false
-                    editable: true
-                    options:
-                      path: /var/lib/grafana/dashboards/default
-            dashboards:
-              default:
-                istio-control-plane:
-                  gnetId: 24618
-                  revision: 2
-                  datasource: Prometheus
-                istio-mesh-dashboard:
-                  gnetId: 7639
-                  revision: 283
-                  datasource: Prometheus
-                istio-performance-dashboard:
-                  gnetId: 11829
-                  revision: 283
-                  datasource: Prometheus
-                istio-service-dashboard:
-                  gnetId: 7636
-                  revision: 283
-                  datasource: Prometheus
-                istio-wasm-extension-dashboard:
-                  gnetId: 13277
-                  revision: 240
-                  datasource: Prometheus
-                istio-workload-dashboard:
-                  gnetId: 7630
-                  revision: 283
-                  datasource: Prometheus
-                istio-ztunnel-dashboard:
-                  gnetId: 21306
-                  revision: 50
-                  datasource: Prometheus
+            grafana.ini:
+              feature_toggles:
+                provisioning: true
+                kubernetesDashboards: true
       destination:
         server: {{`'{{server}}'`}}
         namespace: monitoring

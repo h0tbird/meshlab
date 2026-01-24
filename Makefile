@@ -73,9 +73,9 @@ istio-charts:
 	@echo "Building Istio charts"
 	cd /workspaces/istio \
 	&& for CHART in ${CHARTS}; do \
-		yq -i '._internal_defaults_do_not_set.global.hub = "${HUB}"' manifests/charts/$${CHART}/values.yaml; \
-		yq -i '._internal_defaults_do_not_set.global.tag = "${VERSION}"' manifests/charts/$${CHART}/values.yaml; \
-		yq -i '._internal_defaults_do_not_set.global.variant = ""' manifests/charts/$${CHART}/values.yaml; \
+		find manifests/charts/$${CHART} -type f -exec sed -i 's| hub:.*| hub: ${HUB}|g' {} \;; \
+		find manifests/charts/$${CHART} -type f -exec sed -i 's| tag:.*| tag: ${VERSION}|g' {} \;; \
+		find manifests/charts/$${CHART} -type f -exec sed -i 's| variant:.*| variant: "debug"|g' {} \;; \
 		helm package manifests/charts/$${CHART} --app-version ${VERSION} --version ${VERSION} --destination /tmp/charts; \
 	done \
 	&& git restore manifests/charts \

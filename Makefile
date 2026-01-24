@@ -62,23 +62,26 @@ istio-images:
 
 #------------------------------------------------------------------------------
 # Build Istio charts using Istio's own build system.
-#  make istio-charts APP_VERSION=1.28.3 ISTIO_TAG=1.28.3-patch.1-dev
+#  make istio-charts HUB=ghcr.io/h0tbird VERSION=1.28.3-patch.1-dev
 #------------------------------------------------------------------------------
 
 .PHONY: istio-charts
+istio-charts: CHARTS := base gateway istio-cni istio-control/istio-discovery ztunnel
 istio-charts:
 	@echo "Building Istio charts"
 	cd /workspaces/istio \
-	&& helm package manifests/charts/base --app-version ${APP_VERSION} --version ${ISTIO_TAG} --destination /tmp/charts \
-	&& helm package manifests/charts/gateway --app-version ${APP_VERSION} --version ${ISTIO_TAG} --destination /tmp/charts \
-	&& helm package manifests/charts/istio-cni --app-version ${APP_VERSION} --version ${ISTIO_TAG} --destination /tmp/charts \
-	&& helm package manifests/charts/istio-control/istio-discovery --app-version ${APP_VERSION} --version ${ISTIO_TAG} --destination /tmp/charts \
-	&& helm package manifests/charts/ztunnel --app-version ${APP_VERSION} --version ${ISTIO_TAG} --destination /tmp/charts \
+	&& for CHART in ${CHARTS}; do \
+		yq -i '._internal_defaults_do_not_set.global.hub = "${HUB}"' manifests/charts/$${CHART}/values.yaml; \
+		yq -i '._internal_defaults_do_not_set.global.tag = "${VERSION}"' manifests/charts/$${CHART}/values.yaml; \
+		yq -i '._internal_defaults_do_not_set.global.variant = ""' manifests/charts/$${CHART}/values.yaml; \
+		helm package manifests/charts/$${CHART} --app-version ${VERSION} --version ${VERSION} --destination /tmp/charts; \
+	done \
+	&& git restore manifests/charts \
 	&& git checkout helm-repo \
 	&& mv /tmp/charts/*.tgz . \
 	&& helm repo index . --url https://h0tbird.github.io/forked-istio \
 	&& git add . \
-	&& git commit -m "Istio charts for ${ISTIO_TAG}" \
+	&& git commit -m "Istio charts for ${VERSION}" \
 	&& git push
 
 #------------------------------------------------------------------------------

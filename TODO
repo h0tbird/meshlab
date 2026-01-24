@@ -1,2 +1,2 @@
-- tilt up --context kind-pasta-1 --port 9091 --file Tiltfile.pasta-1
-- tilt up --context kind-pasta-2 --port 9092 --file Tiltfile.pasta-2
+- Grafana dashboards need some love.
+- Setup ambient multi-cluster (with multi-network).

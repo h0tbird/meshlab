@@ -87,7 +87,7 @@ Use `admin` + `meshlab123` as credentials when prompted.
 
 ## Make targets
 
-In addition to the lab deployed by `meshlab create`, this repository has some `make` targets to help with Istio development:
+In addition to the lab deployed via `meshlab create`, this repository includes a few `make` targets to help with Istio development:
 
 ```console
 $ make help

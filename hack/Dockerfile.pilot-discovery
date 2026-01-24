@@ -1,5 +1,5 @@
 # Dockerfile for Tilt live-update of pilot-discovery
-# Uses pre-built binary from out/linux_${TARGETARCH}/pilot-discovery
+# Uses pre-built binary from out/linux_${ARCH}/pilot-discovery
 
 ARG TAG
 

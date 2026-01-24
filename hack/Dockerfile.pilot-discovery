@@ -3,7 +3,7 @@
 
 ARG TARGETARCH=amd64
 
-FROM docker.io/istio/pilot:1.28.2-debug
+FROM ghcr.io/h0tbird/pilot:1.28.3-patch.1-dev-debug
 
 ARG TARGETARCH
 

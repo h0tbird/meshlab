@@ -15,9 +15,9 @@ allow_k8s_contexts([
 # Variables
 #------------------------------------------------------------------------------
 
-istio_version = '1-28-3'
-istio_dotted = istio_version.replace('-', '.')
-image_ref = '1.28.3-patch.1-dev-debug'
+istio_version = '1-28-3-patch-1-dev'
+istio_dotted = '1.28.3-patch.1-dev'
+image_ref = 'pilot-discovery-dev'
 cluster_name = k8s_context().removeprefix('kind-')
 
 #------------------------------------------------------------------------------

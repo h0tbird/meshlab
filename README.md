@@ -85,13 +85,33 @@ Use `admin` + `meshlab123` as credentials when prompted.
 
 ---
 
-## Tips
+## Make targets
+
+In addition to the lab deployed by `meshlab create`, this repository has some `make` targets to help with Istio development:
+
+```console
+$ make help
+
+Usage:
+  make <target>
+  help             Display this help.
+
+Development Targets
+  toolbox          Build toolbox image.
+  istio-binaries   Build Istio binaries.
+  istio-images     Build Istio images.
+  istio-charts     Build Istio charts.
+  istio-labels     Add labels to Istio images.
+```
+
+---
+
+## Design Notes
 
 - The VS Code Dev Containers extension automatically copies the host's `~/.gitconfig` into the container.
 - The host's SSH agent is accessible at `/ssh-agent` inside the container.
 - Two Docker sockets are available: DinD at `/var/run/docker.sock` and DooD at `/var/run/docker-host.sock` (default).
 - Kind clusters use DooD, while the Istio `build-tools` container runs DinD.
-
 
 ## Working with Istio source
 

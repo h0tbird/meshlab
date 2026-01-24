@@ -20,13 +20,23 @@ ISTIO_TARGETS ?= pilot proxyv2 install-cni istioctl ztunnel ext-authz
 ISTIO_SOURCE ?= https://github.com/h0tbird/forked-istio
 
 #------------------------------------------------------------------------------
+# Help Target
+#------------------------------------------------------------------------------
+
+.PHONY: help
+help: ## Display this help.
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+
+##@ Development Targets
+
+#------------------------------------------------------------------------------
 # Toolbox image used by WorkflowTemplates, e.g. to populate Vault.
 #  make toolbox REGISTRY=ghcr.io/h0tbird
 #------------------------------------------------------------------------------
 
 .PHONY: toolbox
 toolbox: IMG := ${REGISTRY}/meshlab/toolbox:latest
-toolbox:
+toolbox: ## Build toolbox image.
 	@echo "Building toolbox"
 	docker buildx build --progress=plain -t ${IMG} \
 		--platform linux/amd64,linux/arm64 \
@@ -39,7 +49,7 @@ toolbox:
 
 .PHONY: istio-binaries
 istio-binaries: DOCKER_HOST := unix:///var/run/docker.sock
-istio-binaries:
+istio-binaries: ## Build Istio binaries.
 	@echo "Building Istio binaries"
 	cd /workspaces/istio \
 	&& make build-linux
@@ -51,7 +61,7 @@ istio-binaries:
 
 .PHONY: istio-images
 istio-images: DOCKER_HOST := unix:///var/run/docker.sock
-istio-images:
+istio-images: ## Build Istio images.
 	@echo "Building Istio images"
 	rm ~/.docker/config.json || true \
 	&& echo ${GITHUB_TOKEN} | docker login ghcr.io -u ${GITHUB_USER} --password-stdin 2>/dev/null \
@@ -70,7 +80,7 @@ istio-images:
 .PHONY: istio-charts
 istio-charts: CHARTS := base gateway istio-cni istio-control/istio-discovery ztunnel
 istio-charts: URL := https://h0tbird.github.io/forked-istio
-istio-charts:
+istio-charts: ## Build Istio charts.
 	@echo "Building Istio charts"
 	cd /workspaces/istio \
 	&& for CHART in ${CHARTS}; do \
@@ -103,7 +113,7 @@ istio-charts:
 #------------------------------------------------------------------------------
 
 .PHONY: istio-labels
-istio-labels:
+istio-labels: ## Add labels to Istio images.
 	@for target in ${ISTIO_TARGETS}; do \
 		echo "Adding labels to $${target}"; \
 		crane mutate ${ISTIO_HUB}/$${target}:${ISTIO_TAG} \

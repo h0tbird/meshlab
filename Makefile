@@ -75,7 +75,7 @@ istio-charts:
 	&& for CHART in ${CHARTS}; do \
 		find manifests/charts/$${CHART} -type f -exec sed -i 's| hub:.*| hub: ${HUB}|g' {} \;; \
 		find manifests/charts/$${CHART} -type f -exec sed -i 's| tag:.*| tag: ${VERSION}|g' {} \;; \
-		find manifests/charts/$${CHART} -type f -exec sed -i 's| variant:.*| variant: "debug"|g' {} \;; \
+		find manifests/charts/$${CHART} -type f -exec sed -i 's| variant:.*| variant: "distroless"|g' {} \;; \
 		helm package manifests/charts/$${CHART} --app-version ${VERSION} --version ${VERSION} --destination /tmp/charts; \
 	done \
 	&& git restore manifests/charts \

@@ -121,6 +121,11 @@ RUN VERSION="v0.20.7" && ARCH=$(archmap 'arm64' 'i386') && \
     curl -fsSL https://github.com/google/go-containerregistry/releases/download/${VERSION}/go-containerregistry_Linux_${ARCH}.tar.gz | \
     tar -xzC /usr/local/bin crane && echo "source <(crane completion zsh) && compdef _crane crane" >> /etc/zsh/zshrc
 
+# Install grafanactl (https://github.com/grafana/grafanactl/releases)
+RUN VERSION="v0.1.8" && ARCH=$(archmap 'arm64' 'x86_64') && \
+    curl -fsSL https://github.com/grafana/grafanactl/releases/download/${VERSION}/grafanactl_Linux_${ARCH}.tar.gz | \
+    tar -xzC /usr/local/bin grafanactl && echo "source <(grafanactl completion zsh) && compdef _grafanactl grafanactl" >> /etc/zsh/zshrc
+
 # Install kiali-prepare-remote-cluster.sh (https://github.com/kiali/kiali)
 RUN curl -sLo /usr/local/bin/kiali-prepare-remote-cluster.sh \
     https://raw.githubusercontent.com/kiali/kiali/master/hack/istio/multicluster/kiali-prepare-remote-cluster.sh && \

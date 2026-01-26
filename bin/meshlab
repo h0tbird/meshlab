@@ -655,6 +655,67 @@ istio-endpoint-discovery() {
 }; SECTIONS+=( istio-endpoint-discovery )
 
 #------------------------------------------------------------------------------
+# [i] Grafana repository resource
+#------------------------------------------------------------------------------
+
+grafana-git-sync() {
+  blue "───[ Grafana git sync ]─────────────────────────────────────────────────"
+
+  # Skip if GITHUB_TOKEN is not set
+  [[ -z "${GITHUB_TOKEN:-}" ]] && {
+    echo "GITHUB_TOKEN not set, skipping Grafana repository configuration"
+    return 0
+  }
+
+  # Create ephemeral directory
+  local REPO_DIR
+  REPO_DIR=$(mktemp -d)
+  trap 'rm -rf ${REPO_DIR}' RETURN
+
+  # Create the Repository resource YAML
+  cat > "${REPO_DIR}/repository.yaml" <<- EOF
+	apiVersion: provisioning.grafana.app/v0alpha1
+	kind: Repository
+	metadata:
+	  name: meshlab-dashboards
+	spec:
+	  title: MeshLab Dashboards
+	  type: github
+	  github:
+	    url: https://github.com/h0tbird/meshlab
+	    branch: master
+	    path: grafana/
+	    generateDashboardPreviews: true
+	  sync:
+	    enabled: true
+	    intervalSeconds: 60
+	    target: folder
+	  workflows:
+	    - write
+	    - branch
+	secure:
+	  token:
+	    create: ${GITHUB_TOKEN}
+	EOF
+
+  # Configure grafanactl
+  mkdir -p ~/.config/grafanactl
+  cat > ~/.config/grafanactl/config.yaml <<- EOF
+	contexts:
+	  default:
+	    grafana:
+	      server: http://$(getExtIP "${MNGR}" monitoring grafana)
+	      org-id: 1
+	      user: admin
+	      password: ${PWD}
+	current-context: default
+	EOF
+
+  # Push the repository resource using grafanactl
+  grafanactl resources push --path "${REPO_DIR}"
+}; SECTIONS+=( grafana-git-sync )
+
+#------------------------------------------------------------------------------
 # [i] External kiali multi-cluster setup
 #------------------------------------------------------------------------------
 

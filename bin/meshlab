@@ -683,7 +683,7 @@ grafana-git-sync() {
 	  type: github
 	  github:
 	    url: https://github.com/h0tbird/meshlab
-	    branch: grafana-git-sync
+	    branch: master
 	    path: grafana/
 	    generateDashboardPreviews: true
 	  sync:

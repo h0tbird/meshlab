@@ -667,13 +667,13 @@ grafana-git-sync() {
     return 0
   }
 
-  # Create ephemeral directory with the Repository resource
+  # Create ephemeral directory
   local REPO_DIR
   REPO_DIR=$(mktemp -d)
   trap 'rm -rf ${REPO_DIR}' RETURN
 
   # Create the Repository resource YAML
-  cat > "${REPO_DIR}/repository.yaml" <<-EOF
+  cat > "${REPO_DIR}/repository.yaml" <<- EOF
 	apiVersion: provisioning.grafana.app/v0alpha1
 	kind: Repository
 	metadata:

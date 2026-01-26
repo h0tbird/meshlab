@@ -101,7 +101,7 @@
 	},
 	"hostRequirements": {
 		"cpus": 8,
-		"memory": "16gb"
+		"memory": "15gb"
 	},
 	"postCreateCommand": {
 		// Host's ../istio is mounted read-write, so clone istio repo if not already present.

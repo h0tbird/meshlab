@@ -683,7 +683,7 @@ grafana-git-sync() {
 	  type: github
 	  github:
 	    url: https://github.com/h0tbird/meshlab
-	    branch: main
+	    branch: grafana-git-sync
 	    path: grafana/
 	    generateDashboardPreviews: true
 	  sync:
@@ -698,11 +698,20 @@ grafana-git-sync() {
 	    create: ${GITHUB_TOKEN}
 	EOF
 
-  # Push the repository resource using grafanactl with env-based auth
-  GRAFANA_SERVER="http://$(getExtIP "${MNGR}" monitoring grafana)" \
-  GRAFANA_ORG_ID="1" \
-  GRAFANA_USER="admin" \
-  GRAFANA_PASSWORD="${PWD}" \
+  # Configure grafanactl
+  mkdir -p ~/.config/grafanactl
+  cat > ~/.config/grafanactl/config.yaml <<- EOF
+	contexts:
+	  default:
+	    grafana:
+	      server: http://$(getExtIP "${MNGR}" monitoring grafana)
+	      org-id: 1
+	      user: admin
+	      password: ${PWD}
+	current-context: default
+	EOF
+
+  # Push the repository resource using grafanactl
   grafanactl resources push --path "${REPO_DIR}"
 }; SECTIONS+=( grafana-git-sync )
 

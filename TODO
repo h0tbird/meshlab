@@ -1,4 +1,3 @@
-- Experiment with Tiltfile watching a single binary per cluster to prevent race conditions.
 - Configure ambient mesh across multiple clusters with multi-network topology.
 - Stream MeshLab events to Grafana for visualization.
 - meshlab completion.

@@ -31,9 +31,11 @@ RUN chsh -s /usr/bin/zsh root && \
     sed -i '/^ZSH_THEME/c\ZSH_THEME="robbyrussell"' /root/.zshrc && \
     sed -i '/^ZSH_THEME/c\ZSH_THEME="robbyrussell"' /home/vscode/.zshrc
 
-# Define Docker aliases
-RUN echo 'alias dind="docker -H unix:///var/run/docker.sock"' >> /etc/zsh/zshrc && \
-    echo 'alias dood="docker -H unix:///var/run/docker-host.sock"' >> /etc/zsh/zshrc
+# Define Docker functions (functions work better with completion than aliases)
+RUN echo 'dind() { docker -H unix:///var/run/docker.sock "$@" }' >> /etc/zsh/zshrc && \
+    echo 'dood() { docker -H unix:///var/run/docker-host.sock "$@" }' >> /etc/zsh/zshrc && \
+    echo "source <(docker completion zsh)" >> /etc/zsh/zshrc && \
+    echo "compdef _docker dind dood" >> /etc/zsh/zshrc
 
 # Install Go (https://go.dev/dl/)
 RUN VERSION="1.25.6" && ARCH=$(archmap 'arm64' 'amd64') && \

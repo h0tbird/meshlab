@@ -1,8 +1,0 @@
-[Unit]
-Description=chinaran/go-httpbin
-
-[Service]
-ExecStart=/bin/bash -c "HOSTNAME=$$(hostname) go-httpbin"
-
-[Install]
-WantedBy=multi-user.target

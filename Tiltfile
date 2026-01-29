@@ -209,7 +209,7 @@ spec:
           capabilities:
             drop:
             - ALL
-          readOnlyRootFilesystem: true
+          readOnlyRootFilesystem: false
           runAsNonRoot: true
         volumeMounts:
         - mountPath: /var/run/secrets/tokens

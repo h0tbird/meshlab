@@ -1,0 +1,154 @@
+#!/bin/bash
+#
+# Generates 50 namespaces with 50 services each and applies them to a cluster.
+# For each service: Service, ServiceAccount, VirtualService, AuthorizationPolicy
+#
+
+set -euo pipefail
+
+usage() {
+  echo "Usage: $0 --context <kube-context> [--namespaces <n>] [--services <n>] [--delete]"
+  echo ""
+  echo "Options:"
+  echo "  --context     Kubernetes context to apply resources to (required)"
+  echo "  --namespaces  Number of namespaces to create (default: 50)"
+  echo "  --services    Number of services per namespace (default: 50)"
+  echo "  --delete      Delete resources instead of applying"
+  exit 1
+}
+
+CONTEXT=""
+NUM_NAMESPACES=50
+NUM_SERVICES=50
+DELETE=false
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --context)
+      CONTEXT="$2"
+      shift 2
+      ;;
+    --namespaces)
+      NUM_NAMESPACES="$2"
+      shift 2
+      ;;
+    --services)
+      NUM_SERVICES="$2"
+      shift 2
+      ;;
+    --delete)
+      DELETE=true
+      shift
+      ;;
+    *)
+      usage
+      ;;
+  esac
+done
+
+if [[ -z "${CONTEXT}" ]]; then
+  echo "Error: --context is required"
+  usage
+fi
+
+generate_manifests() {
+  local NS_NAME=$1
+
+  cat <<EOF
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${NS_NAME}
+  labels:
+    istio.io/rev: stable
+EOF
+
+  for svc in $(seq 1 "${NUM_SERVICES}"); do
+    SVC_NAME="service-${svc}"
+
+    cat <<EOF
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ${SVC_NAME}
+  namespace: ${NS_NAME}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${SVC_NAME}
+  namespace: ${NS_NAME}
+  labels:
+    app: ${SVC_NAME}
+spec:
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+    - name: grpc
+      port: 9090
+      targetPort: 9090
+  selector:
+    app: ${SVC_NAME}
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: ${SVC_NAME}
+  namespace: ${NS_NAME}
+spec:
+  hosts:
+    - ${SVC_NAME}
+  http:
+    - match:
+        - uri:
+            prefix: /
+      route:
+        - destination:
+            host: ${SVC_NAME}
+            port:
+              number: 80
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: ${SVC_NAME}
+  namespace: ${NS_NAME}
+spec:
+  selector:
+    matchLabels:
+      app: ${SVC_NAME}
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              - "cluster.local/ns/${NS_NAME}/sa/${SVC_NAME}"
+      to:
+        - operation:
+            ports:
+              - "8080"
+              - "9090"
+EOF
+  done
+}
+
+ACTION="apply"
+if [[ "${DELETE}" == "true" ]]; then
+  ACTION="delete"
+fi
+
+echo "${ACTION^}ing ${NUM_NAMESPACES} namespaces with ${NUM_SERVICES} services each to context: ${CONTEXT}"
+echo "Total resources: $((NUM_NAMESPACES * (1 + NUM_SERVICES * 4)))"
+echo ""
+
+for ns in $(seq 1 "${NUM_NAMESPACES}"); do
+  NS_NAME="namespace-${ns}"
+  echo "${ACTION^}ing ${NS_NAME}..."
+  generate_manifests "${NS_NAME}" | kubectl --context "${CONTEXT}" "${ACTION}" -f -
+done
+
+echo ""
+echo "Done!"

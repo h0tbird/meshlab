@@ -71,12 +71,12 @@ RUN VERSION="v3.2.6" && ARCH=$(archmap 'arm64' 'amd64') && \
     chmod +x /usr/local/bin/argocd && echo "source <(argocd completion zsh)" >> /etc/zsh/zshrc
 
 # Install argo (https://github.com/argoproj/argo-workflows/releases)
-RUN VERSION="v3.7.8" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="v3.7.9" && ARCH=$(archmap 'arm64' 'amd64') && \
     wget -qO- https://github.com/argoproj/argo-workflows/releases/download/${VERSION}/argo-linux-${ARCH}.gz | gunzip -c > /usr/local/bin/argo && \
     chmod +x /usr/local/bin/argo && echo "source <(argo completion zsh)" >> /etc/zsh/zshrc
 
 # Install cilium-cli (https://github.com/cilium/cilium-cli/releases)
-RUN VERSION="v0.18.9" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="v0.19.0" && ARCH=$(archmap 'arm64' 'amd64') && \
     wget -qO- https://github.com/cilium/cilium-cli/releases/download/${VERSION}/cilium-linux-${ARCH}.tar.gz | tar -xz -C /usr/local/bin/ && \
     chmod +x /usr/local/bin/cilium && echo "source <(cilium completion zsh)" >> /etc/zsh/zshrc
 
@@ -114,7 +114,7 @@ RUN VERSION="1.4.6" && ARCH=$(archmap 'aarch64' 'x86_64') && \
     tar -xjC /usr/local/bin --strip-components 3 -f - ./btop/bin/btop
 
 # Install tilt (https://github.com/tilt-dev/tilt/releases)
-RUN VERSION="0.36.1" && ARCH=$(archmap 'arm64' 'x86_64') && \
+RUN VERSION="0.36.3" && ARCH=$(archmap 'arm64' 'x86_64') && \
     curl -fsSL https://github.com/tilt-dev/tilt/releases/download/v${VERSION}/tilt.${VERSION}.linux.${ARCH}.tar.gz | \
     tar -xzC /usr/local/bin tilt && echo "source <(tilt completion zsh)" >> /etc/zsh/zshrc
 

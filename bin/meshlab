@@ -20,16 +20,16 @@ source ./lib/common.sh
 KINDCCM_VERSION='0.10.0'                      # https://github.com/kubernetes-sigs/cloud-provider-kind/releases
 CILIUM_CHART_VERSION='1.18.6'                 # https://artifacthub.io/packages/helm/cilium/cilium
 K8S_GATEWAY_CHART_VERSION='3.4.1'             # https://github.com/k8s-gateway/k8s_gateway/blob/master/charts/k8s-gateway/Chart.yaml
-ARGOCD_CHART_VERSION='9.3.4'                  # https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd
-ARGOWF_CHART_VERSION='0.47.1'                 # https://artifacthub.io/packages/helm/argo/argo-workflows
-PROMETHEUS_CHART_VERSION='28.6.0'             # https://artifacthub.io/packages/helm/prometheus-community/prometheus
-GRAFANA_CHART_VERSION='10.5.12'               # https://artifacthub.io/packages/helm/grafana/grafana
+ARGOCD_CHART_VERSION='9.3.7'                  # https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd
+ARGOWF_CHART_VERSION='0.47.2'                 # https://artifacthub.io/packages/helm/argo/argo-workflows
+PROMETHEUS_CHART_VERSION='28.6.1'             # https://artifacthub.io/packages/helm/prometheus-community/prometheus
+GRAFANA_CHART_VERSION='10.5.15'               # https://artifacthub.io/packages/helm/grafana/grafana
 OTEL_COLLECTOR_CHART_VERSION='0.144.0'        # https://artifacthub.io/packages/helm/opentelemetry-helm/opentelemetry-collector
 VAULT_CHART_VERSION='0.32.0'                  # https://artifacthub.io/packages/helm/hashicorp/vault
 CERT_MANAGER_CHART_VERSION='v1.19.2'          # https://artifacthub.io/packages/helm/cert-manager/cert-manager
 KUBERNETES_REPLICATOR_CHART_VERSION='2.12.2'  # https://artifacthub.io/packages/helm/kubernetes-replicator/kubernetes-replicator
 ISTIO_CHART_VERSION='1.28.3-patch.1-dev'      # https://artifacthub.io/packages/helm/istio-official/base
-KIALI_CHART_VERSION='2.20.0'                  # https://artifacthub.io/packages/helm/kiali/kiali-operator
+KIALI_CHART_VERSION='2.21.0'                  # https://artifacthub.io/packages/helm/kiali/kiali-operator
 
 #------------------------------------------------------------------------------
 # [i] Cleanup

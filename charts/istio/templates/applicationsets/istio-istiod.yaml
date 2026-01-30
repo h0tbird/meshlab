@@ -24,7 +24,7 @@ spec:
         helm:
           releaseName: istio-istiod
           valuesObject:
-            profile: ambient
+          # profile: ambient
             revision: {{ .Values.chartVersion | replace "." "-" }}
             revisionTags: [ "stable", "canary" ]
             pilot:

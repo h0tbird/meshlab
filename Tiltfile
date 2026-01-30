@@ -153,8 +153,8 @@ spec:
           value: "true"
         - name: ISTIOD_CUSTOM_HOST
           value: istiod.{cluster_name}
-        - name: PILOT_ENABLE_AMBIENT
-          value: "true"
+      # - name: PILOT_ENABLE_AMBIENT
+      #   value: "true"
         - name: PILOT_ENABLE_WORKLOAD_ENTRY_AUTOREGISTRATION
           value: "true"
         - name: PILOT_ENABLE_WORKLOAD_ENTRY_HEALTHCHECKS

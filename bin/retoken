@@ -8,6 +8,7 @@
 SRC_CLUSTER="pasta-1"
 DST_CLUSTER="pasta-2"
 ISTIOD_DEBUG_PORT="9090"
+HEAP_PROFILE=${HEAP_PROFILE:-false}
 
 #------------------------------------------------------------------------------
 # Implementation 1: Patch the existing secret (default)
@@ -55,15 +56,17 @@ if ! declare -f "${RETOKEN}" > /dev/null; then
 fi
 
 # Take the initial heap profile
-echo "Taking initial heap profile sample 0"
-curl -s "http://localhost:${ISTIOD_DEBUG_PORT}/debug/pprof/heap?gc=1" > heap.sample-0.pb.gz
+if $HEAP_PROFILE; then
+  echo "Taking initial heap profile sample 0"
+  curl -s "http://localhost:${ISTIOD_DEBUG_PORT}/debug/pprof/heap?gc=1" > heap.sample-0.pb.gz
+fi
 
 # Run retoken and take heap profile sample every 10 retokenings
 sample=1
 for i in {1..200}; do
   ${RETOKEN}
   sleep 5
-  if (( i % 10 == 0 )); then
+  if (( i % 10 == 0 )) && $HEAP_PROFILE; then
     echo "Taking heap profile sample ${sample}"
     curl -s "http://localhost:${ISTIOD_DEBUG_PORT}/debug/pprof/heap?gc=1" > heap.sample-"${sample}".pb.gz
     ((sample++))

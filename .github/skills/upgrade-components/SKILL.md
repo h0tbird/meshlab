@@ -104,10 +104,14 @@ RUN VERSION="v0.32.0" && ARCH=$(archmap 'arm64' 'amd64') && \
 
 ## Important Considerations
 
-- **Prefer stable releases** over pre-release/alpha/beta versions
+- **Prefer stable releases** over pre-release/alpha/beta/RC versions for all components
+- **Stay on current stable series**: When the latest version of a component is a pre-release (RC/alpha/beta), stay on the current stable major.minor series and check for the latest patch version in that series (e.g., if latest Cilium is 1.19.0-rc.1, check for the latest 1.18.x stable release)
 - **Note major version upgrades** that may introduce breaking changes
-- **Version consistency**: istioctl version in Dockerfile should match ISTIO_CHART_VERSION in bin/meshlab
-- **Dependencies**: Kiali version should be compatible with Istio version
+- **CLI and chart version alignment**: CLI tools should match their corresponding Helm chart major.minor versions:
+  - `istioctl` version should match `ISTIO_CHART_VERSION`
+  - `cilium` CLI version should match `CILIUM_CHART_VERSION` (e.g., cilium-cli v0.18.x for Cilium 1.18.x)
+  - `argocd` CLI version should be compatible with `ARGOCD_CHART_VERSION`
+- **Dependencies**: Some components have compatibility requirements (e.g., Kiali version should be compatible with Istio version)
 
 ## Output Format
 

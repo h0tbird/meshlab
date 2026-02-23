@@ -18,7 +18,7 @@ spec:
     spec:
       project: istio
       source:
-        repoURL: https://h0tbird.github.io/forked-istio
+        repoURL: https://istio-release.storage.googleapis.com/charts
         targetRevision: {{ .Values.chartVersion }}
         chart: istiod
         helm:
@@ -28,7 +28,7 @@ spec:
             revision: {{ .Values.chartVersion | replace "." "-" }}
             revisionTags: [ "stable", "canary" ]
             pilot:
-              image: ghcr.io/h0tbird/pilot:1.28.3-patch.1-dev-debug
+            # image: ghcr.io/h0tbird/pilot:1.28.3-patch.1-dev-debug
               autoscaleEnabled: false
               env:
                 AUTO_RELOAD_PLUGIN_CERTS: true

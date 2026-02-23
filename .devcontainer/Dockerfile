@@ -38,7 +38,7 @@ RUN echo 'dind() { docker -H unix:///var/run/docker.sock "$@" }' >> /etc/zsh/zsh
     echo "compdef _docker dind dood" >> /etc/zsh/zshrc
 
 # Install Go (https://go.dev/dl/)
-RUN VERSION="1.25.6" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="1.26.0" && ARCH=$(archmap 'arm64' 'amd64') && \
     curl -fsSL https://go.dev/dl/go${VERSION}.linux-${ARCH}.tar.gz | tar -xzC /usr/local && \
     echo 'export PATH=$PATH:/usr/local/go/bin' >> /etc/zsh/zshenv && \
     echo 'export PATH=$PATH:$HOME/go/bin' >> /etc/zsh/zshenv
@@ -49,39 +49,39 @@ RUN VERSION="v0.31.0" && ARCH=$(archmap 'arm64' 'amd64') && \
     chmod +x /usr/local/bin/kind && echo "source <(kind completion zsh)" >> /etc/zsh/zshrc
 
 # Install kubectl (https://cdn.dl.k8s.io/release/stable.txt)
-RUN VERSION="v1.35.0" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="v1.35.1" && ARCH=$(archmap 'arm64' 'amd64') && \
     wget https://dl.k8s.io/release/${VERSION}/bin/linux/${ARCH}/kubectl -O /usr/local/bin/kubectl && \
     chmod +x /usr/local/bin/kubectl && ln -s /usr/local/bin/kubectl /usr/local/bin/k && \
     echo "source <(kubectl completion zsh)" >> /etc/zsh/zshrc
 
 # Install helm (https://github.com/helm/helm/releases)
-RUN VERSION="v4.1.0" && \
+RUN VERSION="v4.1.1" && \
     curl -fsSLo /tmp/get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 && \
     chmod 700 /tmp/get_helm.sh && /tmp/get_helm.sh --version ${VERSION} && rm -f /tmp/get_helm.sh && \
     echo "source <(helm completion zsh)" >> /etc/zsh/zshrc
 
 # Install yq (https://github.com/mikefarah/yq/releases)
-RUN VERSION="v4.50.1" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="v4.52.4" && ARCH=$(archmap 'arm64' 'amd64') && \
     wget https://github.com/mikefarah/yq/releases/download/${VERSION}/yq_linux_${ARCH} -O /usr/local/bin/yq && \
     chmod +x /usr/local/bin/yq && echo "source <(yq completion zsh)" >> /etc/zsh/zshrc
 
 # Install argocd (https://github.com/argoproj/argo-cd/releases)
-RUN VERSION="v3.2.6" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="v3.3.2" && ARCH=$(archmap 'arm64' 'amd64') && \
     wget https://github.com/argoproj/argo-cd/releases/download/${VERSION}/argocd-linux-${ARCH} -qO /usr/local/bin/argocd && \
     chmod +x /usr/local/bin/argocd && echo "source <(argocd completion zsh)" >> /etc/zsh/zshrc
 
 # Install argo (https://github.com/argoproj/argo-workflows/releases)
-RUN VERSION="v3.7.9" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="v3.7.10" && ARCH=$(archmap 'arm64' 'amd64') && \
     wget -qO- https://github.com/argoproj/argo-workflows/releases/download/${VERSION}/argo-linux-${ARCH}.gz | gunzip -c > /usr/local/bin/argo && \
     chmod +x /usr/local/bin/argo && echo "source <(argo completion zsh)" >> /etc/zsh/zshrc
 
 # Install cilium-cli (https://github.com/cilium/cilium-cli/releases)
-RUN VERSION="v0.19.0" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="v0.19.1" && ARCH=$(archmap 'arm64' 'amd64') && \
     wget -qO- https://github.com/cilium/cilium-cli/releases/download/${VERSION}/cilium-linux-${ARCH}.tar.gz | tar -xz -C /usr/local/bin/ && \
     chmod +x /usr/local/bin/cilium && echo "source <(cilium completion zsh)" >> /etc/zsh/zshrc
 
 # Install istioctl (https://github.com/istio/istio/releases)
-RUN VERSION="1.28.3" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="1.29.0" && ARCH=$(archmap 'arm64' 'amd64') && \
     curl -fsSLo /tmp/istio.tar.gz https://github.com/istio/istio/releases/download/${VERSION}/istio-${VERSION}-linux-${ARCH}.tar.gz && \
     tar -xC /usr/local/bin --strip-components 2 -f /tmp/istio.tar.gz istio-${VERSION}/bin/istioctl && rm -f /tmp/istio.tar.gz && \
     echo "source <(istioctl completion zsh)" >> /etc/zsh/zshrc
@@ -93,7 +93,7 @@ RUN VERSION="0.29.0" && ARCH=$(archmap 'arm64' 'amd64') && \
     echo "source <(step completion zsh)" >> /etc/zsh/zshrc
 
 # Install gh (https://github.com/cli/cli/releases)
-RUN VERSION="2.86.0" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="2.87.2" && ARCH=$(archmap 'arm64' 'amd64') && \
     curl -fsSLO https://github.com/cli/cli/releases/download/v${VERSION}/gh_${VERSION}_linux_${ARCH}.deb && \
     dpkg -i gh_${VERSION}_linux_${ARCH}.deb && rm -f gh_${VERSION}_linux_${ARCH}.deb && \
     echo "source <(gh completion -s zsh)" >> /etc/zsh/zshrc
@@ -119,12 +119,12 @@ RUN VERSION="0.36.3" && ARCH=$(archmap 'arm64' 'x86_64') && \
     tar -xzC /usr/local/bin tilt && echo "source <(tilt completion zsh)" >> /etc/zsh/zshrc
 
 # Install crane (https://github.com/google/go-containerregistry/releases)
-RUN VERSION="v0.20.7" && ARCH=$(archmap 'arm64' 'i386') && \
+RUN VERSION="v0.21.0" && ARCH=$(archmap 'arm64' 'i386') && \
     curl -fsSL https://github.com/google/go-containerregistry/releases/download/${VERSION}/go-containerregistry_Linux_${ARCH}.tar.gz | \
     tar -xzC /usr/local/bin crane && echo "source <(crane completion zsh)" >> /etc/zsh/zshrc
 
 # Install grafanactl (https://github.com/grafana/grafanactl/releases)
-RUN VERSION="v0.1.8" && ARCH=$(archmap 'arm64' 'x86_64') && \
+RUN VERSION="v0.1.9" && ARCH=$(archmap 'arm64' 'x86_64') && \
     curl -fsSL https://github.com/grafana/grafanactl/releases/download/${VERSION}/grafanactl_Linux_${ARCH}.tar.gz | \
     tar -xzC /usr/local/bin grafanactl && echo "source <(grafanactl completion zsh)" >> /etc/zsh/zshrc
 

@@ -209,10 +209,11 @@ helm-repositories() {
 
 install-cilium() {
   blue "───[ Cilium CNI ]───────────────────────────────────────────────────────"
+  ensure-ips # Ensure cluster IPs are initialized
 
   # Install the Cilium CNI
   for CLUSTER in $(list clusters all "${WLCNT}"); do (
-    cilium install --context "kind-${CLUSTER}" \
+    cilium install --context "kind-${CLUSTER}" --wait \
       --version "v${CILIUM_CHART_VERSION}" \
       --values ./charts/cilium/values.yaml \
       --values ./charts/cilium/values/"${CLUSTER}".yaml \

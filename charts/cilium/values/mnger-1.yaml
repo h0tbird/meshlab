@@ -2,5 +2,3 @@
 ipam:
   operator:
     clusterPoolIPv4PodCIDRList: "10.41.0.0/16"
-clustermesh:
-  useAPIServer: false

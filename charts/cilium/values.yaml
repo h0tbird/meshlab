@@ -9,16 +9,3 @@ socketLB:
   hostNamespaceOnly: true
 kubeProxyReplacement: true
 k8sServicePort: 6443
-clustermesh:
-  useAPIServer: true
-  apiserver:
-    service:
-      type: LoadBalancer
-    tls:
-      auto:
-        enabled: true
-        method: cert-manager
-        certManagerIssuerRef:
-          name: meshlab-ca-issuer
-          kind: ClusterIssuer
-          group: cert-manager.io

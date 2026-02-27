@@ -225,11 +225,7 @@ install-cilium() {
 #------------------------------------------------------------------------------
 
 install-clustermesh() {
-
   blue "───[ ClusterMesh ]──────────────────────────────────────────────────────"
-
-  # With --service-type LoadBalancer, cilium needs connectivity to the external IPs
-  # Works if it runns on the linux VM, but not on OSX without a route and a TCP proxy.
 
   for CELL in $(list cells wkld "${WLCNT}"); do (
 

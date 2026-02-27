@@ -246,7 +246,7 @@ install-clustermesh() {
 
     # Shared certificate authority
     kubectl --context "kind-${CLUSTERS[0]}" -n kube-system get secret cilium-ca -o yaml |
-    kubectl --context "kind-${CLUSTERS[1]}" -n kube-system replace --force -f -
+    kubectl --context "kind-${CLUSTERS[1]}" -n kube-system replace --force -f -; echo
 
     # Enable ClusterMesh
     cilium clustermesh enable --context "kind-${CLUSTERS[0]}" --service-type LoadBalancer &
@@ -254,8 +254,8 @@ install-clustermesh() {
     wait
 
     # Wait for ClusterMesh API server and TLS certs to be ready
-    cilium clustermesh status --context "kind-${CLUSTERS[0]}" --wait &
-    cilium clustermesh status --context "kind-${CLUSTERS[1]}" --wait &
+    cilium clustermesh status --context "kind-${CLUSTERS[0]}" --wait 2>&1 | grep -v 'Trying\|Waiting\|^$' &
+    cilium clustermesh status --context "kind-${CLUSTERS[1]}" --wait 2>&1 | grep -v 'Trying\|Waiting\|^$' &
     wait
 
     # Connect
@@ -386,7 +386,8 @@ register-argocd-clusters() {
         --kubeconfig ~/.kube/config.in-cluster \
         --name "${CLUSTER}" \
         --label name="${CLUSTER}" \
-        --label cell="${CELL}"
+        --label cell="${CELL}" \
+        --logformat text
     done; done
   }
 }; SECTIONS+=( register-argocd-clusters )
@@ -398,7 +399,6 @@ register-argocd-clusters() {
 install-applicationsets() {
   blue "───[ ApplicationSets ]──────────────────────────────────────────────────"
 
-  helm template ./charts/cilium --set "chartVersion=${CILIUM_CHART_VERSION}" | k0 apply -f -
   helm template ./charts/prometheus --set "chartVersion=${PROMETHEUS_CHART_VERSION}" | k0 apply -f -
   helm template ./charts/grafana --set "chartVersion=${GRAFANA_CHART_VERSION}" | k0 apply -f -
   helm template ./charts/otel-collector --set "chartVersion=${OTEL_COLLECTOR_CHART_VERSION}" | k0 apply -f -

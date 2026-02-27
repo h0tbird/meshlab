@@ -211,6 +211,10 @@ install-cilium() {
   blue "───[ Cilium CNI ]───────────────────────────────────────────────────────"
   ensure-ips # Ensure cluster IPs are initialized
 
+  # Return early if already running
+  kubectl --context "kind-${CLUSTER}" -n kube-system \
+    get deploy cilium-operator 2>/dev/null && exit 0
+
   # Install the Cilium CNI
   for CLUSTER in $(list clusters all "${WLCNT}"); do (
     cilium install --context "kind-${CLUSTER}" --wait \
@@ -233,10 +237,10 @@ install-clustermesh() {
     # Get the clusters of the cell
     IFS=" " read -r -a CLUSTERS <<< "${CELLS[${CELL}]}"
 
-    # # Return early if already running
-    # kubectl --context "kind-${CLUSTERS[0]}" -n kube-system get deploy clustermesh-apiserver 2>/dev/null &&
-    # kubectl --context "kind-${CLUSTERS[1]}" -n kube-system get deploy clustermesh-apiserver 2>/dev/null &&
-    # exit 0
+    # Return early if already running
+    kubectl --context "kind-${CLUSTERS[0]}" -n kube-system get deploy clustermesh-apiserver 2>/dev/null &&
+    kubectl --context "kind-${CLUSTERS[1]}" -n kube-system get deploy clustermesh-apiserver 2>/dev/null &&
+    exit 0
 
     # Shared certificate authority
     kubectl --context "kind-${CLUSTERS[0]}" -n kube-system get secret cilium-ca -o yaml |

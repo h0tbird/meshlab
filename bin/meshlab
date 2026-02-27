@@ -249,12 +249,14 @@ install-clustermesh() {
     kubectl --context "kind-${CLUSTERS[1]}" -n kube-system replace --force -f -
 
     # Enable ClusterMesh
-    cilium clustermesh enable --context "kind-${CLUSTERS[0]}" --service-type LoadBalancer
-    cilium clustermesh enable --context "kind-${CLUSTERS[1]}" --service-type LoadBalancer
+    cilium clustermesh enable --context "kind-${CLUSTERS[0]}" --service-type LoadBalancer &
+    cilium clustermesh enable --context "kind-${CLUSTERS[1]}" --service-type LoadBalancer &
+    wait
 
     # Wait for ClusterMesh API server and TLS certs to be ready
-    cilium clustermesh status --context "kind-${CLUSTERS[0]}" --wait
-    cilium clustermesh status --context "kind-${CLUSTERS[1]}" --wait
+    cilium clustermesh status --context "kind-${CLUSTERS[0]}" --wait &
+    cilium clustermesh status --context "kind-${CLUSTERS[1]}" --wait &
+    wait
 
     # Connect
     cilium clustermesh connect --context "kind-${CLUSTERS[0]}" --destination-context "kind-${CLUSTERS[1]}"

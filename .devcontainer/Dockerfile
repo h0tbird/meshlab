@@ -49,7 +49,7 @@ RUN VERSION="v0.31.0" && ARCH=$(archmap 'arm64' 'amd64') && \
     chmod +x /usr/local/bin/kind && echo "source <(kind completion zsh)" >> /etc/zsh/zshrc
 
 # Install kubectl (https://cdn.dl.k8s.io/release/stable.txt)
-RUN VERSION="v1.35.1" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="v1.35.2" && ARCH=$(archmap 'arm64' 'amd64') && \
     wget https://dl.k8s.io/release/${VERSION}/bin/linux/${ARCH}/kubectl -O /usr/local/bin/kubectl && \
     chmod +x /usr/local/bin/kubectl && ln -s /usr/local/bin/kubectl /usr/local/bin/k && \
     echo "source <(kubectl completion zsh)" >> /etc/zsh/zshrc
@@ -76,7 +76,7 @@ RUN VERSION="v3.7.10" && ARCH=$(archmap 'arm64' 'amd64') && \
     chmod +x /usr/local/bin/argo && echo "source <(argo completion zsh)" >> /etc/zsh/zshrc
 
 # Install cilium-cli (https://github.com/cilium/cilium-cli/releases)
-RUN VERSION="v0.19.1" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="v0.19.2" && ARCH=$(archmap 'arm64' 'amd64') && \
     wget -qO- https://github.com/cilium/cilium-cli/releases/download/${VERSION}/cilium-linux-${ARCH}.tar.gz | tar -xz -C /usr/local/bin/ && \
     chmod +x /usr/local/bin/cilium && echo "source <(cilium completion zsh)" >> /etc/zsh/zshrc
 
@@ -93,7 +93,7 @@ RUN VERSION="0.29.0" && ARCH=$(archmap 'arm64' 'amd64') && \
     echo "source <(step completion zsh)" >> /etc/zsh/zshrc
 
 # Install gh (https://github.com/cli/cli/releases)
-RUN VERSION="2.87.2" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="2.87.3" && ARCH=$(archmap 'arm64' 'amd64') && \
     curl -fsSLO https://github.com/cli/cli/releases/download/v${VERSION}/gh_${VERSION}_linux_${ARCH}.deb && \
     dpkg -i gh_${VERSION}_linux_${ARCH}.deb && rm -f gh_${VERSION}_linux_${ARCH}.deb && \
     echo "source <(gh completion -s zsh)" >> /etc/zsh/zshrc
@@ -119,7 +119,7 @@ RUN VERSION="0.36.3" && ARCH=$(archmap 'arm64' 'x86_64') && \
     tar -xzC /usr/local/bin tilt && echo "source <(tilt completion zsh)" >> /etc/zsh/zshrc
 
 # Install crane (https://github.com/google/go-containerregistry/releases)
-RUN VERSION="v0.21.0" && ARCH=$(archmap 'arm64' 'i386') && \
+RUN VERSION="v0.21.1" && ARCH=$(archmap 'arm64' 'i386') && \
     curl -fsSL https://github.com/google/go-containerregistry/releases/download/${VERSION}/go-containerregistry_Linux_${ARCH}.tar.gz | \
     tar -xzC /usr/local/bin crane && echo "source <(crane completion zsh)" >> /etc/zsh/zshrc
 

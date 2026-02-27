@@ -211,12 +211,14 @@ install-cilium() {
   blue "───[ Cilium CNI ]───────────────────────────────────────────────────────"
   ensure-ips # Ensure cluster IPs are initialized
 
-  # Return early if already running
-  kubectl --context "kind-${CLUSTER}" -n kube-system \
-    get deploy cilium-operator 2>/dev/null && exit 0
-
   # Install the Cilium CNI
   for CLUSTER in $(list clusters all "${WLCNT}"); do (
+
+    # Return early if already running
+    kubectl --context "kind-${CLUSTER}" -n kube-system \
+      get deploy cilium-operator 2>/dev/null && exit 0
+
+    # Install
     cilium install --context "kind-${CLUSTER}" --wait \
       --version "v${CILIUM_CHART_VERSION}" \
       --values ./charts/cilium/values.yaml \

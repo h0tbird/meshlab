@@ -20,13 +20,13 @@ source ./lib/common.sh
 KINDCCM_VERSION='0.10.0'                      # https://github.com/kubernetes-sigs/cloud-provider-kind/releases
 CILIUM_CHART_VERSION='1.19.1'                 # https://artifacthub.io/packages/helm/cilium/cilium
 K8S_GATEWAY_CHART_VERSION='3.4.1'             # https://github.com/k8s-gateway/k8s_gateway/blob/master/charts/k8s-gateway/Chart.yaml
-ARGOCD_CHART_VERSION='9.4.4'                  # https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd
+ARGOCD_CHART_VERSION='9.4.5'                  # https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd
 ARGOWF_CHART_VERSION='0.47.4'                 # https://artifacthub.io/packages/helm/argo/argo-workflows
-PROMETHEUS_CHART_VERSION='28.9.1'             # https://artifacthub.io/packages/helm/prometheus-community/prometheus
+PROMETHEUS_CHART_VERSION='28.12.0'            # https://artifacthub.io/packages/helm/prometheus-community/prometheus
 GRAFANA_CHART_VERSION='10.5.15'               # https://artifacthub.io/packages/helm/grafana/grafana
-OTEL_COLLECTOR_CHART_VERSION='0.145.0'        # https://artifacthub.io/packages/helm/opentelemetry-helm/opentelemetry-collector
+OTEL_COLLECTOR_CHART_VERSION='0.146.1'        # https://artifacthub.io/packages/helm/opentelemetry-helm/opentelemetry-collector
 VAULT_CHART_VERSION='0.32.0'                  # https://artifacthub.io/packages/helm/hashicorp/vault
-CERT_MANAGER_CHART_VERSION='v1.19.3'          # https://artifacthub.io/packages/helm/cert-manager/cert-manager
+CERT_MANAGER_CHART_VERSION='v1.19.4'          # https://artifacthub.io/packages/helm/cert-manager/cert-manager
 KUBERNETES_REPLICATOR_CHART_VERSION='2.12.3'  # https://artifacthub.io/packages/helm/kubernetes-replicator/kubernetes-replicator
 ISTIO_CHART_VERSION='1.29.0'                  # https://artifacthub.io/packages/helm/istio-official/base
 KIALI_CHART_VERSION='2.22.0'                  # https://artifacthub.io/packages/helm/kiali/kiali-operator
@@ -209,6 +209,7 @@ helm-repositories() {
 
 install-cilium() {
   blue "───[ Cilium CNI ]───────────────────────────────────────────────────────"
+  ensure-ips # Ensure cluster IPs are initialized
 
   # Install the Cilium CNI
   for CLUSTER in $(list clusters all "${WLCNT}"); do (
@@ -218,23 +219,11 @@ install-cilium() {
       get deploy cilium-operator 2>/dev/null && exit 0
 
     # Install
-    retry helm --kube-context "kind-${CLUSTER}" \
-      upgrade -i cilium cilium/cilium \
-      --version "${CILIUM_CHART_VERSION}" \
-      --namespace kube-system \
+    cilium install --context "kind-${CLUSTER}" --wait \
+      --version "v${CILIUM_CHART_VERSION}" \
       --values ./charts/cilium/values.yaml \
       --values ./charts/cilium/values/"${CLUSTER}".yaml \
-      --set k8sServiceHost="${IP[${CLUSTER}]}" |
-    grep 'LAST DEPLOYED'
-  ) & done; wait
-
-  echo
-
-  # Wait for all the nodes to be ready
-  for CLUSTER in $(list clusters all "${WLCNT}"); do (
-    kubectl --context "kind-${CLUSTER}" \
-      wait --for=condition=Ready nodes \
-      --all --timeout=180s
+      --set k8sServiceHost="${IP[${CLUSTER}]}"
   ) & done; wait
 }; SECTIONS+=( install-cilium )
 
@@ -244,9 +233,6 @@ install-cilium() {
 
 install-clustermesh() {
   blue "───[ ClusterMesh ]──────────────────────────────────────────────────────"
-
-  # With --service-type LoadBalancer, cilium needs connectivity to the external IPs
-  # Works if it runns on the linux VM, but not on OSX without a route and a TCP proxy.
 
   for CELL in $(list cells wkld "${WLCNT}"); do (
 
@@ -263,12 +249,14 @@ install-clustermesh() {
     kubectl --context "kind-${CLUSTERS[1]}" -n kube-system replace --force -f -
 
     # Enable ClusterMesh
-    cilium clustermesh enable --context "kind-${CLUSTERS[0]}" --service-type LoadBalancer
-    cilium clustermesh enable --context "kind-${CLUSTERS[1]}" --service-type LoadBalancer
+    cilium clustermesh enable --context "kind-${CLUSTERS[0]}" --service-type LoadBalancer &
+    cilium clustermesh enable --context "kind-${CLUSTERS[1]}" --service-type LoadBalancer &
+    wait
 
     # Wait for ClusterMesh API server and TLS certs to be ready
-    cilium clustermesh status --context "kind-${CLUSTERS[0]}" --wait
-    cilium clustermesh status --context "kind-${CLUSTERS[1]}" --wait
+    cilium clustermesh status --context "kind-${CLUSTERS[0]}" --wait &
+    cilium clustermesh status --context "kind-${CLUSTERS[1]}" --wait &
+    wait
 
     # Connect
     cilium clustermesh connect --context "kind-${CLUSTERS[0]}" --destination-context "kind-${CLUSTERS[1]}"

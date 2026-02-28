@@ -9,3 +9,5 @@ socketLB:
   hostNamespaceOnly: true
 kubeProxyReplacement: true
 k8sServicePort: 6443
+ipam:
+  mode: cluster-pool

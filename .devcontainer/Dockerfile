@@ -49,13 +49,13 @@ RUN VERSION="v0.31.0" && ARCH=$(archmap 'arm64' 'amd64') && \
     chmod +x /usr/local/bin/kind && echo "source <(kind completion zsh)" >> /etc/zsh/zshrc
 
 # Install kubectl (https://cdn.dl.k8s.io/release/stable.txt)
-RUN VERSION="v1.35.2" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="v1.35.3" && ARCH=$(archmap 'arm64' 'amd64') && \
     wget https://dl.k8s.io/release/${VERSION}/bin/linux/${ARCH}/kubectl -O /usr/local/bin/kubectl && \
     chmod +x /usr/local/bin/kubectl && ln -s /usr/local/bin/kubectl /usr/local/bin/k && \
     echo "source <(kubectl completion zsh)" >> /etc/zsh/zshrc
 
 # Install helm (https://github.com/helm/helm/releases)
-RUN VERSION="v4.1.1" && \
+RUN VERSION="v4.1.3" && \
     curl -fsSLo /tmp/get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 && \
     chmod 700 /tmp/get_helm.sh && /tmp/get_helm.sh --version ${VERSION} && rm -f /tmp/get_helm.sh && \
     echo "source <(helm completion zsh)" >> /etc/zsh/zshrc
@@ -66,12 +66,12 @@ RUN VERSION="v4.52.4" && ARCH=$(archmap 'arm64' 'amd64') && \
     chmod +x /usr/local/bin/yq && echo "source <(yq completion zsh)" >> /etc/zsh/zshrc
 
 # Install argocd (https://github.com/argoproj/argo-cd/releases)
-RUN VERSION="v3.3.3" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="v3.3.4" && ARCH=$(archmap 'arm64' 'amd64') && \
     wget https://github.com/argoproj/argo-cd/releases/download/${VERSION}/argocd-linux-${ARCH} -qO /usr/local/bin/argocd && \
     chmod +x /usr/local/bin/argocd && echo "source <(argocd completion zsh)" >> /etc/zsh/zshrc
 
 # Install argo (https://github.com/argoproj/argo-workflows/releases)
-RUN VERSION="v3.7.10" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="v4.0.3" && ARCH=$(archmap 'arm64' 'amd64') && \
     wget -qO- https://github.com/argoproj/argo-workflows/releases/download/${VERSION}/argo-linux-${ARCH}.gz | gunzip -c > /usr/local/bin/argo && \
     chmod +x /usr/local/bin/argo && echo "source <(argo completion zsh)" >> /etc/zsh/zshrc
 
@@ -87,13 +87,13 @@ RUN VERSION="1.29.1" && ARCH=$(archmap 'arm64' 'amd64') && \
     echo "source <(istioctl completion zsh)" >> /etc/zsh/zshrc
 
 # Install step (https://github.com/smallstep/cli/releases)
-RUN VERSION="0.29.0" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="0.30.2" && ARCH=$(archmap 'arm64' 'amd64') && \
     wget -q https://dl.smallstep.com/gh-release/cli/gh-release-header/v${VERSION}/step-cli_${VERSION}-1_${ARCH}.deb && \
     dpkg -i step-cli_${VERSION}-1_${ARCH}.deb && rm -f step-cli_${VERSION}-1_${ARCH}.deb && \
     echo "source <(step completion zsh)" >> /etc/zsh/zshrc
 
 # Install gh (https://github.com/cli/cli/releases)
-RUN VERSION="2.88.0" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="2.88.1" && ARCH=$(archmap 'arm64' 'amd64') && \
     curl -fsSLO https://github.com/cli/cli/releases/download/v${VERSION}/gh_${VERSION}_linux_${ARCH}.deb && \
     dpkg -i gh_${VERSION}_linux_${ARCH}.deb && rm -f gh_${VERSION}_linux_${ARCH}.deb && \
     echo "source <(gh completion -s zsh)" >> /etc/zsh/zshrc
@@ -119,7 +119,7 @@ RUN VERSION="0.37.0" && ARCH=$(archmap 'arm64' 'x86_64') && \
     tar -xzC /usr/local/bin tilt && echo "source <(tilt completion zsh)" >> /etc/zsh/zshrc
 
 # Install crane (https://github.com/google/go-containerregistry/releases)
-RUN VERSION="v0.21.2" && ARCH=$(archmap 'arm64' 'i386') && \
+RUN VERSION="v0.21.3" && ARCH=$(archmap 'arm64' 'i386') && \
     curl -fsSL https://github.com/google/go-containerregistry/releases/download/${VERSION}/go-containerregistry_Linux_${ARCH}.tar.gz | \
     tar -xzC /usr/local/bin crane && echo "source <(crane completion zsh)" >> /etc/zsh/zshrc
 

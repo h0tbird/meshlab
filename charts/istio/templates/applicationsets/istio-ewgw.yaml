@@ -19,7 +19,7 @@ spec:
       project: istio
       source:
         repoURL: https://github.com/h0tbird/meshlab.git
-        targetRevision: HEAD
+        targetRevision: multi-cluster-network
         path: charts/ewgw
         helm:
           releaseName: istio-ewgw

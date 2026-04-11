@@ -38,7 +38,7 @@ RUN echo 'dind() { docker -H unix:///var/run/docker.sock "$@" }' >> /etc/zsh/zsh
     echo "compdef _docker dind dood" >> /etc/zsh/zshrc
 
 # Install Go (https://go.dev/dl/)
-RUN VERSION="1.26.1" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="1.26.2" && ARCH=$(archmap 'arm64' 'amd64') && \
     curl -fsSL https://go.dev/dl/go${VERSION}.linux-${ARCH}.tar.gz | tar -xzC /usr/local && \
     echo 'export PATH=$PATH:/usr/local/go/bin' >> /etc/zsh/zshenv && \
     echo 'export PATH=$PATH:$HOME/go/bin' >> /etc/zsh/zshenv
@@ -55,23 +55,23 @@ RUN VERSION="v1.35.3" && ARCH=$(archmap 'arm64' 'amd64') && \
     echo "source <(kubectl completion zsh)" >> /etc/zsh/zshrc
 
 # Install helm (https://github.com/helm/helm/releases)
-RUN VERSION="v4.1.3" && \
+RUN VERSION="v4.1.4" && \
     curl -fsSLo /tmp/get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 && \
     chmod 700 /tmp/get_helm.sh && /tmp/get_helm.sh --version ${VERSION} && rm -f /tmp/get_helm.sh && \
     echo "source <(helm completion zsh)" >> /etc/zsh/zshrc
 
 # Install yq (https://github.com/mikefarah/yq/releases)
-RUN VERSION="v4.52.4" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="v4.52.5" && ARCH=$(archmap 'arm64' 'amd64') && \
     wget https://github.com/mikefarah/yq/releases/download/${VERSION}/yq_linux_${ARCH} -O /usr/local/bin/yq && \
     chmod +x /usr/local/bin/yq && echo "source <(yq completion zsh)" >> /etc/zsh/zshrc
 
 # Install argocd (https://github.com/argoproj/argo-cd/releases)
-RUN VERSION="v3.3.4" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="v3.3.6" && ARCH=$(archmap 'arm64' 'amd64') && \
     wget https://github.com/argoproj/argo-cd/releases/download/${VERSION}/argocd-linux-${ARCH} -qO /usr/local/bin/argocd && \
     chmod +x /usr/local/bin/argocd && echo "source <(argocd completion zsh)" >> /etc/zsh/zshrc
 
 # Install argo (https://github.com/argoproj/argo-workflows/releases)
-RUN VERSION="v4.0.3" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="v4.0.4" && ARCH=$(archmap 'arm64' 'amd64') && \
     wget -qO- https://github.com/argoproj/argo-workflows/releases/download/${VERSION}/argo-linux-${ARCH}.gz | gunzip -c > /usr/local/bin/argo && \
     chmod +x /usr/local/bin/argo && echo "source <(argo completion zsh)" >> /etc/zsh/zshrc
 
@@ -93,7 +93,7 @@ RUN VERSION="0.30.2" && ARCH=$(archmap 'arm64' 'amd64') && \
     echo "source <(step completion zsh)" >> /etc/zsh/zshrc
 
 # Install gh (https://github.com/cli/cli/releases)
-RUN VERSION="2.88.1" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="2.89.0" && ARCH=$(archmap 'arm64' 'amd64') && \
     curl -fsSLO https://github.com/cli/cli/releases/download/v${VERSION}/gh_${VERSION}_linux_${ARCH}.deb && \
     dpkg -i gh_${VERSION}_linux_${ARCH}.deb && rm -f gh_${VERSION}_linux_${ARCH}.deb && \
     echo "source <(gh completion -s zsh)" >> /etc/zsh/zshrc
@@ -114,12 +114,12 @@ RUN VERSION="1.4.6" && ARCH=$(archmap 'aarch64' 'x86_64') && \
     tar -xjC /usr/local/bin --strip-components 3 -f - ./btop/bin/btop
 
 # Install tilt (https://github.com/tilt-dev/tilt/releases)
-RUN VERSION="0.37.0" && ARCH=$(archmap 'arm64' 'x86_64') && \
+RUN VERSION="0.37.1" && ARCH=$(archmap 'arm64' 'x86_64') && \
     curl -fsSL https://github.com/tilt-dev/tilt/releases/download/v${VERSION}/tilt.${VERSION}.linux.${ARCH}.tar.gz | \
     tar -xzC /usr/local/bin tilt && echo "source <(tilt completion zsh)" >> /etc/zsh/zshrc
 
 # Install crane (https://github.com/google/go-containerregistry/releases)
-RUN VERSION="v0.21.3" && ARCH=$(archmap 'arm64' 'i386') && \
+RUN VERSION="v0.21.5" && ARCH=$(archmap 'arm64' 'i386') && \
     curl -fsSL https://github.com/google/go-containerregistry/releases/download/${VERSION}/go-containerregistry_Linux_${ARCH}.tar.gz | \
     tar -xzC /usr/local/bin crane && echo "source <(crane completion zsh)" >> /etc/zsh/zshrc
 

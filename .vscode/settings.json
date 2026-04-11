@@ -1,3 +1,4 @@
 {
-    "chat.useAgentSkills": true
+    "chat.useAgentSkills": true,
+    "workbench.browser.enableChatTools": true
 }

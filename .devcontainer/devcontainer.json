@@ -87,7 +87,8 @@
 	"customizations": {
 		"vscode": {
 			"settings": {
-				"remote.autoForwardPorts":false
+				"remote.autoForwardPorts":false,
+				"window.openFilesInNewWindow": "off"
 			},
 			"extensions": [
 				"github.copilot",

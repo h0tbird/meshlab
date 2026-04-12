@@ -8,6 +8,7 @@
 2. Make sure the **Dev Containers** extension is installed.
 3. Run: `Dev Containers: Reopen in Container`
 4. Run: `File: Open Workspace from File...`
+5. Select: `meshlab.code-workspace`
 
 </p>
 </details>

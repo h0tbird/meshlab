@@ -6,11 +6,9 @@
 
 1. Open the repository in **VS Code**.
 2. Make sure the **Dev Containers** extension is installed.
-3. When prompted, click **“Reopen in Container”**.
-   - If the prompt doesn’t appear, open the Command Palette and run:
-     ```console
-     Dev Containers: Reopen in Container
-     ```
+3. Run: `Dev Containers: Reopen in Container`
+4. Run: `File: Open Workspace from File...`
+
 </p>
 </details>
 

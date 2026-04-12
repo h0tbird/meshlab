@@ -14,6 +14,7 @@
 		"type=bind,source=/run/host-services/ssh-auth.sock,target=/ssh-agent",
 		"type=bind,source=${localEnv:HOME}/.kube/config,target=/root/.kube/config",
 		"type=bind,source=${localWorkspaceFolder}/../istio,target=/workspaces/istio",
+		"type=bind,source=${localWorkspaceFolder}/../k-swarm,target=/workspaces/k-swarm",
 		"type=bind,source=/var/run/docker.sock,target=/var/run/docker-host.sock"
 
 	],
@@ -86,7 +87,8 @@
 	"customizations": {
 		"vscode": {
 			"settings": {
-				"remote.autoForwardPorts":false
+				"remote.autoForwardPorts":false,
+				"window.openFilesInNewWindow": "off"
 			},
 			"extensions": [
 				"github.copilot",

@@ -1,0 +1,8 @@
+{
+	"folders": [
+		{ "name": "meshlab", "path": "." },
+		{ "name": "istio", "path": "../istio" },
+		{ "name": "k-swarm", "path": "../k-swarm" }
+	],
+	"settings": {}
+}

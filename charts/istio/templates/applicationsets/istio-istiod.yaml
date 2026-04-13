@@ -26,7 +26,7 @@ spec:
           valuesObject:
             profile: ambient
             revision: {{ .Values.chartVersion | replace "." "-" }}
-            revisionTags: [ "stable", "canary" ]
+            revisionTags: [ "stable", "canary", "default" ]
             pilot:
             # image: ghcr.io/h0tbird/pilot:1.28.3-patch.1-dev-debug
               autoscaleEnabled: false

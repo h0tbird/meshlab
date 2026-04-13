@@ -42,7 +42,7 @@ spec:
             # tag: 1.28.3-patch.1-dev
               variant: "debug"
               meshID: {{`'{{metadata.labels.cell}}'`}}
-              network: {{`'{{metadata.labels.cell}}'`}}
+              network: {{`'{{name}}'`}}
               logAsJson: true
               defaultPodDisruptionBudget:
                 enabled: false

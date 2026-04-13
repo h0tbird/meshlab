@@ -39,4 +39,3 @@ Always use the **VS Code built-in browser tools** (`open_browser_page`, `screens
    - Kiali uses token-based auth and shows a login page with a `Log In` button.
    - No credentials are needed. Simply click the `Log In` button to proceed.
    - After login, the Overview page loads automatically showing clusters, Istio configs, control planes, data planes, and application health.
-5. Use `screenshot_page` to show the user the current state of the UI.

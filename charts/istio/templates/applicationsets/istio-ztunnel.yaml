@@ -25,6 +25,8 @@ spec:
           releaseName: istio-ztunnel
           valuesObject:
             revision: {{ .Values.chartVersion | replace "." "-" }}
+            global:
+              network: {{`'{{name}}'`}}
             multiCluster:
               clusterName: {{`'{{name}}'`}}
       destination:

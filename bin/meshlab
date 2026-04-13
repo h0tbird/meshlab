@@ -784,8 +784,28 @@ tilt-up() {
 deploy-workloads() {
   blue "───[ Deploy workloads ]─────────────────────────────────────────────────"
 
-  swarmctl --context 'pasta-*|pizza-*' i --yes --istio-revision stable --image-tag main
-  swarmctl --context 'pasta-*|pizza-*' w 1:2 --yes --istio-revision stable --image-tag main
+#   swarmctl --context 'pasta-*|pizza-*' i --yes --istio-revision stable --image-tag main
+#   swarmctl --context 'pasta-*|pizza-*' w 1:2 --yes --istio-revision stable --image-tag main
+
+  for CLUSTER in $(list clusters wkld "${WLCNT}"); do
+    kubectl --context "kind-${CLUSTER}" create ns sample \
+    --dry-run=client -o yaml | kubectl --context "kind-${CLUSTER}" apply -f -
+    kubectl --context "kind-${CLUSTER}" label ns sample istio.io/dataplane-mode=ambient --overwrite
+    kubectl --context "kind-${CLUSTER}" -n sample apply -l service=helloworld \
+    -f ../istio/samples/helloworld/helloworld.yaml
+    kubectl --context "kind-${CLUSTER}" -n sample apply -f ../istio/samples/curl/curl.yaml
+  done
+
+  # helloworld-v1
+  kubectl --context "kind-pasta-1" -n sample apply -l version=v1 \
+  -f ../istio/samples/helloworld/helloworld.yaml
+  kubectl --context "kind-pasta-1" -n sample label svc helloworld istio.io/global=true --overwrite
+
+  # helloworld-v2
+  kubectl --context "kind-pasta-2" -n sample apply -l version=v2 \
+  -f ../istio/samples/helloworld/helloworld.yaml
+  kubectl --context "kind-pasta-2" -n sample label svc helloworld istio.io/global=true --overwrite
+
 }; SECTIONS+=( deploy-workloads )
 
 #------------------------------------------------------------------------------

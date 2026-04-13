@@ -24,6 +24,10 @@ The VS Code setting `workbench.browser.enableChatTools` must be `true`.
 | Tilt pasta-1 | http://127.0.0.1:9091 | - |
 | Tilt pasta-2 | http://127.0.0.1:9092 | - |
 
+## Important
+
+Always use the **VS Code built-in browser tools** (`open_browser_page`, `screenshot_page`, `click_element`, `type_in_page`) to interact with the embedded Simple Browser tab. Do **NOT** use `mcp_chromedevtool_*` tools — those control an external Chrome instance, not the embedded tab.
+
 ## Procedure
 
 1. Use the `open_browser_page` tool with the service URL from the table above.

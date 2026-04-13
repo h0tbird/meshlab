@@ -24,7 +24,7 @@ spec:
         helm:
           releaseName: istio-ewgw
           valuesObject:
-            network: {{`'{{metadata.labels.cell}}'`}}
+            network: {{`'{{name}}'`}}
       destination:
         server: {{`'{{server}}'`}}
         namespace: istio-system

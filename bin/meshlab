@@ -218,7 +218,7 @@ install-cilium() {
     kubectl --context "kind-${CLUSTER}" -n kube-system \
       get deploy cilium-operator 2>/dev/null && exit 0
 
-    # Install
+    # Install (also installs Gateway API CRDs)
     cilium install --context "kind-${CLUSTER}" --wait \
       --version "v${CILIUM_CHART_VERSION}" \
       --values ./charts/cilium/values.yaml \
@@ -391,24 +391,6 @@ register-argocd-clusters() {
     done; done
   }
 }; SECTIONS+=( register-argocd-clusters )
-
-#------------------------------------------------------------------------------
-# [i] Install Gateway API CRDs
-#------------------------------------------------------------------------------
-
-install-gateway-api-crds() {
-  blue "───[ Gateway API CRDs ]─────────────────────────────────────────────────"
-
-  for CLUSTER in $(list clusters wkld "${WLCNT}"); do (
-    if kubectl --context "kind-${CLUSTER}" get crd gateways.gateway.networking.k8s.io &> /dev/null; then
-      echo "${CLUSTER}: already installed"
-    else
-      kubectl --context "kind-${CLUSTER}" apply --server-side -f \
-        https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.0/experimental-install.yaml
-      echo "${CLUSTER}: installed"
-    fi
-  ) & done; wait
-}; SECTIONS+=( install-gateway-api-crds )
 
 #------------------------------------------------------------------------------
 # [i] Install all the ApplicationSets

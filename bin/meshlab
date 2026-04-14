@@ -399,11 +399,15 @@ register-argocd-clusters() {
 install-gateway-api-crds() {
   blue "───[ Gateway API CRDs ]─────────────────────────────────────────────────"
 
-  for CLUSTER in $(list clusters wkld "${WLCNT}"); do
-    kubectl --context "kind-${CLUSTER}" get crd gateways.gateway.networking.k8s.io &> /dev/null || \
-    kubectl --context "kind-${CLUSTER}" apply --server-side -f \
-      https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.0/experimental-install.yaml &
-  done; wait
+  for CLUSTER in $(list clusters wkld "${WLCNT}"); do (
+    if kubectl --context "kind-${CLUSTER}" get crd gateways.gateway.networking.k8s.io &> /dev/null; then
+      echo "${CLUSTER}: already installed"
+    else
+      kubectl --context "kind-${CLUSTER}" apply --server-side -f \
+        https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.0/experimental-install.yaml
+      echo "${CLUSTER}: installed"
+    fi
+  ) & done; wait
 }; SECTIONS+=( install-gateway-api-crds )
 
 #------------------------------------------------------------------------------

@@ -799,7 +799,7 @@ case "${1:-}" in
   create) WLCNT="${2:-1}" ;;
   delete) cleanup; exit 0 ;;
   watch) watch --color 'ml short'; exit 0 ;;
-  run)  WLCNT="${3:-1}"; "${2:?Usage: $0 run <section> [count]}"; exit 0 ;;
+  run)  WLCNT="${3:-1}"; timed "${2:?Usage: $0 run <section> [count]}"; exit 0 ;;
   list) printf '%s\n' "${SECTIONS[@]}"; exit 0 ;;
   *)    echo "Usage: $(basename "$0") <create|delete|watch|list|run SECTION [count]>"; exit 1 ;;
 esac
@@ -808,4 +808,4 @@ esac
 # [i] Run all sections in order
 #------------------------------------------------------------------------------
 
-for section in "${SECTIONS[@]}"; do "$section"; done
+for section in "${SECTIONS[@]}"; do timed "${section}"; done

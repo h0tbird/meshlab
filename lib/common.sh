@@ -83,10 +83,16 @@ function publish {
 }
 
 #------------------------------------------------------------------------------
+# Wait for all background jobs, fail if any failed
+#------------------------------------------------------------------------------
+
+function join { for pid in $(jobs -p); do wait "${pid}"; done; }
+
+#------------------------------------------------------------------------------
 # Retry til success
 #------------------------------------------------------------------------------
 
-function retry() { until "$@"; do sleep 2; done; }
+function retry { until "$@"; do sleep 2; done; }
 
 #------------------------------------------------------------------------------
 # Manager kubectl and helm helpers
@@ -108,7 +114,7 @@ function h0 {
 
 declare -gA IP; IP_INIT=false
 
-function ensure-ips() {
+function ensure-ips {
   [[ "${IP_INIT}" == true ]] && return 0
   for CLUSTER in $(list clusters all "${WLCNT}"); do
     IP[${CLUSTER}]=$(docker inspect "${CLUSTER}-control-plane" |

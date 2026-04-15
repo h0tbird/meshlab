@@ -126,7 +126,7 @@ create-clusters() {
     kind get clusters 2>/dev/null | grep -q "${CLUSTER}" || {
       kind create cluster --name "${CLUSTER}" --config "./tmp/kind-${CELL}.yaml" -q
     }
-  ) & done; done; wait
+  ) & done; done; join
 
   # Get and display all the IPs
   ensure-ips
@@ -169,7 +169,7 @@ add-registries-to-containerd() {
 			  capabilities = ["pull", "resolve"]
 			EOF
     '
-  ) & done; wait
+  ) & done; join
 }; SECTIONS+=( add-registries-to-containerd )
 
 #------------------------------------------------------------------------------
@@ -224,7 +224,7 @@ install-cilium() {
       --values ./charts/cilium/values.yaml \
       --values ./charts/cilium/values/"${CLUSTER}".yaml \
       --set k8sServiceHost="${IP[${CLUSTER}]}"
-  ) & done; wait
+  ) & done; join
 }; SECTIONS+=( install-cilium )
 
 #------------------------------------------------------------------------------
@@ -251,16 +251,16 @@ install-clustermesh() {
     # Enable ClusterMesh
     cilium clustermesh enable --context "kind-${CLUSTERS[0]}" --service-type LoadBalancer &
     cilium clustermesh enable --context "kind-${CLUSTERS[1]}" --service-type LoadBalancer &
-    wait
+    join
 
     # Wait for ClusterMesh API server and TLS certs to be ready
     cilium clustermesh status --context "kind-${CLUSTERS[0]}" --wait 2>&1 | grep -v 'Trying\|Waiting\|^$' &
     cilium clustermesh status --context "kind-${CLUSTERS[1]}" --wait 2>&1 | grep -v 'Trying\|Waiting\|^$' &
-    wait
+    join
 
     # Connect
     cilium clustermesh connect --context "kind-${CLUSTERS[0]}" --destination-context "kind-${CLUSTERS[1]}"
-  ) & done; wait
+  ) & done; join
 }; SECTIONS+=( install-clustermesh )
 
 #------------------------------------------------------------------------------
@@ -277,7 +277,7 @@ install-k8s-gateway() {
       --namespace kube-system \
       --set "domain=${DOMAIN}" |
     grep 'LAST DEPLOYED'
-  ) & done; wait
+  ) & done; join
 }; SECTIONS+=( install-k8s-gateway )
 
 #------------------------------------------------------------------------------
@@ -328,7 +328,7 @@ setup-coredns() {
     # Restart otherwise it takes a while to pick up the new config
     kubectl --context "kind-${CLUSTER}" -n kube-system rollout restart deployment coredns
 
-  ) & done; done; wait
+  ) & done; done; join
 }; SECTIONS+=( setup-coredns )
 
 #------------------------------------------------------------------------------
@@ -458,7 +458,7 @@ bootstrap-dag() {
   for CLUSTER in $(list clusters all "${WLCNT}"); do (
     kubectl --context "kind-${CLUSTER}" create ns monitoring \
     --dry-run=client -o yaml | kubectl --context "kind-${CLUSTER}" apply -f -
-  ) & done; wait
+  ) & done; join
 
   # Create the bootstrap workflow
   argo --context "kind-${MNGR}" list -n argocd | grep -q bootstrap || \
@@ -646,7 +646,7 @@ istio-endpoint-discovery() {
     istioctl --kubeconfig ~/.kube/config.in-cluster create-remote-secret \
       --context "kind-${CLUSTERS[1]}" --name="${CLUSTERS[1]}" | \
       kubectl --context "kind-${CLUSTERS[0]}" apply -f -
-  ) & done; wait
+  ) & done; join
 }; SECTIONS+=( istio-endpoint-discovery )
 
 #------------------------------------------------------------------------------

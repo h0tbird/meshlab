@@ -19,7 +19,8 @@ RUN printf '#!/bin/sh\ncase "$(arch)" in aarch64) echo "$1";; x86_64) echo "$2";
 RUN apt update && \
     apt install -y --no-install-recommends \
     curl jq iputils-ping dnsutils neovim socat \
-    netcat-openbsd apache2-utils shellcheck && \
+    netcat-openbsd apache2-utils shellcheck \
+    python3 ripgrep && \
     apt autoremove -y && apt clean -y && \
     rm -rf /var/lib/apt/lists/* && \
     chmod -x /etc/update-motd.d/*
@@ -127,6 +128,11 @@ RUN VERSION="v0.21.5" && ARCH=$(archmap 'arm64' 'i386') && \
 RUN VERSION="v0.1.9" && ARCH=$(archmap 'arm64' 'x86_64') && \
     curl -fsSL https://github.com/grafana/grafanactl/releases/download/${VERSION}/grafanactl_Linux_${ARCH}.tar.gz | \
     tar -xzC /usr/local/bin grafanactl && echo "source <(grafanactl completion zsh)" >> /etc/zsh/zshrc
+
+# Install bat (https://github.com/sharkdp/bat/releases)
+RUN VERSION="0.26.1" && ARCH=$(archmap 'aarch64' 'x86_64') && \
+    curl -fsSL https://github.com/sharkdp/bat/releases/download/v${VERSION}/bat-v${VERSION}-${ARCH}-unknown-linux-musl.tar.gz | \
+    tar -xzC /usr/local/bin --strip-components 1 -f - bat-v${VERSION}-${ARCH}-unknown-linux-musl/bat
 
 # Install kiali-prepare-remote-cluster.sh (https://github.com/kiali/kiali)
 RUN curl -sLo /usr/local/bin/kiali-prepare-remote-cluster.sh \

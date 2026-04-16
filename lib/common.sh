@@ -20,6 +20,11 @@ PWD='meshlab123'
 # Runnable sections (in order)
 export SECTIONS=()
 
+# Colors
+CYAN='\e[1;36m'
+DIM='\e[2m'
+RST='\e[0m'
+
 #------------------------------------------------------------------------------
 # List cells and clusters
 #------------------------------------------------------------------------------
@@ -57,7 +62,15 @@ function clusterCIDR {
 #------------------------------------------------------------------------------
 
 function blue {
-  echo -e "\n\e[1;36m$1\e[0m\n"
+  echo -e "\n${CYAN}$1${RST}\n"
+}
+
+#------------------------------------------------------------------------------
+# Prints the given string in grey (dim)
+#------------------------------------------------------------------------------
+
+function grey {
+  echo -e "${DIM}$1${RST}"
 }
 
 #------------------------------------------------------------------------------
@@ -83,10 +96,25 @@ function publish {
 }
 
 #------------------------------------------------------------------------------
+# Wait for all background jobs, fail if any failed
+#------------------------------------------------------------------------------
+
+function join { for pid in $(jobs -p); do wait "${pid}"; done; }
+
+#------------------------------------------------------------------------------
+# Run a command and print its elapsed time
+#------------------------------------------------------------------------------
+
+function timed {
+  local t=${SECONDS}; "$@"
+  grey "  └── done in $((SECONDS - t))s"
+}
+
+#------------------------------------------------------------------------------
 # Retry til success
 #------------------------------------------------------------------------------
 
-function retry() { until "$@"; do sleep 2; done; }
+function retry { until "$@"; do sleep 2; done; }
 
 #------------------------------------------------------------------------------
 # Manager kubectl and helm helpers
@@ -108,7 +136,7 @@ function h0 {
 
 declare -gA IP; IP_INIT=false
 
-function ensure-ips() {
+function ensure-ips {
   [[ "${IP_INIT}" == true ]] && return 0
   for CLUSTER in $(list clusters all "${WLCNT}"); do
     IP[${CLUSTER}]=$(docker inspect "${CLUSTER}-control-plane" |

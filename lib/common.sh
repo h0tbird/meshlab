@@ -6,6 +6,7 @@
 
 export MNGR="mnger-1"
 export DOMAIN="demo.lab"
+export PASS='meshlab123'
 
 # Define cells and clusters
 declare -A CELLS=(
@@ -13,9 +14,6 @@ declare -A CELLS=(
   [pasta]="pasta-1 pasta-2"
   [pizza]="pizza-1 pizza-2"
 )
-
-# One password to rule them all
-PWD='meshlab123'
 
 # Runnable sections (in order)
 export SECTIONS=()

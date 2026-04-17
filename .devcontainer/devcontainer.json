@@ -94,6 +94,7 @@
 				"github.copilot",
 				"github.copilot-chat",
 				"github.vscode-pull-request-github",
+				"golang.go",
 				"ms-azuretools.vscode-docker",
 				"timonwong.shellcheck",
 				"shardulm94.trailing-spaces",

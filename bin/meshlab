@@ -719,7 +719,7 @@ kiali-multicluster() {
   ensure-ips # Ensure cluster IPs are initialized
 
   for CLUSTER in $(list clusters wkld "${WLCNT}"); do
-    kiali-prepare-remote-cluster.sh \
+    retry kiali-prepare-remote-cluster.sh \
       --kiali-cluster-context "kind-${MNGR}" \
       --remote-cluster-context "kind-${CLUSTER}" \
       --view-only false \

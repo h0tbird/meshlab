@@ -110,12 +110,33 @@ function join {
 }
 
 #------------------------------------------------------------------------------
-# Run a command and print its elapsed time
+# Sum of RX+TX bytes across all non-loopback interfaces in this devcontainer
 #------------------------------------------------------------------------------
 
-function timed {
-  local t=${SECONDS}; "$@"
-  grey "  └── done in $((SECONDS - t))s"
+function net_bytes {
+  awk '/:/ && $1 !~ /^lo:/ { gsub(":", "", $1); rx += $2; tx += $10 }
+       END { printf "%.0f", rx + tx }' /proc/net/dev
+}
+
+#------------------------------------------------------------------------------
+# Format a byte count in human-readable IEC units (e.g. 1.2MiB)
+#------------------------------------------------------------------------------
+
+function human_bytes {
+  numfmt --to=iec-i --suffix=B --format='%.1f' "${1:-0}"
+}
+
+#------------------------------------------------------------------------------
+# Run a command and print its elapsed time and network traffic
+#------------------------------------------------------------------------------
+
+function measure {
+  local t=${SECONDS}
+  local n; n=$(net_bytes)
+  "$@"
+  local dt=$((SECONDS - t))
+  local dn=$(( $(net_bytes) - n ))
+  grey "  └── done in ${dt}s ($(human_bytes "${dn}"))"
 }
 
 #------------------------------------------------------------------------------

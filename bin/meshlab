@@ -343,7 +343,7 @@ setup-argocd() {
   argocd argo/argo-cd --version "${ARGOCD_CHART_VERSION}" \
   --set 'server.service.type=LoadBalancer' \
   --set 'server.extraArgs={--insecure=true}' \
-  --set configs.secret.argocdServerAdminPassword=$(htpasswd -nbBC 10 "" ${PWD} | tr -d ':\n') \
+  --set configs.secret.argocdServerAdminPassword="$(htpasswd -nbBC 10 "" "${PWD}" | tr -d ':\n')" \
   -f - <<- EOF | grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
 		configs:
 		  cm:

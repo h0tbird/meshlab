@@ -662,10 +662,10 @@ grafana-git-sync() {
     return 0
   }
 
-  # Create ephemeral directory
+  # Create ephemeral directory (cleaned up on exit, even on failure)
   local REPO_DIR
   REPO_DIR=$(mktemp -d)
-  trap 'rm -rf ${REPO_DIR}' RETURN
+  trap 'rm -rf "${REPO_DIR}"; trap - RETURN' RETURN
 
   # Create the Repository resource YAML
   cat > "${REPO_DIR}/repository.yaml" <<- EOF

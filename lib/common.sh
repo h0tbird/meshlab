@@ -76,8 +76,13 @@ function grey {
 #------------------------------------------------------------------------------
 
 function getExtIP {
-  kubectl --context="kind-${1}" -n "${2}" get svc "${3}" -o yaml | \
-  yq '.status.loadBalancer.ingress[0].ip'
+  local ip='null'
+  until [[ -n "${ip}" && "${ip}" != 'null' ]]; do
+    ip=$(kubectl --context="kind-${1}" -n "${2}" get svc "${3}" -o yaml 2>/dev/null | \
+      yq '.status.loadBalancer.ingress[0].ip')
+    [[ -n "${ip}" && "${ip}" != 'null' ]] || sleep 1
+  done
+  echo "${ip}"
 }
 
 #------------------------------------------------------------------------------

@@ -133,7 +133,7 @@ function h0 {
 # Cluster IPs (lazy initialization)
 #------------------------------------------------------------------------------
 
-declare -gA IP; IP_INIT=false
+declare -gxA IP; IP_INIT=false
 
 function ensure-ips {
   [[ "${IP_INIT}" == true ]] && return 0

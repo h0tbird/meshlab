@@ -211,7 +211,7 @@ helm-repositories() {
   helm repo add cilium https://helm.cilium.io/
   helm repo add argo https://argoproj.github.io/argo-helm
   helm repo add k8s_gateway https://k8s-gateway.github.io/k8s_gateway/
-  helm repo update
+  retry helm repo update
 }; SECTIONS+=( helm-repositories )
 
 #------------------------------------------------------------------------------

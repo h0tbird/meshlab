@@ -41,9 +41,20 @@ cleanup() {
   # shellcheck disable=SC2046
   docker kill $(docker ps -f "name=kindccm" -q) 2>/dev/null || true
   argocd context --delete "${MNGR}" 2>/dev/null || true
-  pkill socat 2>/dev/null || true
-  pkill tilt 2>/dev/null || true
-  kind delete clusters --all
+
+  # Only kill tilt instances we started (one per workload cluster)
+  for CLUSTER in $(list clusters wkld "${WLCNT:-99}"); do
+    pkill -f "tilt up --context kind-${CLUSTER}" 2>/dev/null || true
+  done
+
+  # Only kill socat tunnels we started from publish()
+  pkill -f 'socat TCP-LISTEN:[0-9]+,fork TCP:' 2>/dev/null || true
+
+  # Only delete clusters we created
+  for CLUSTER in $(list clusters all "${WLCNT:-99}"); do
+    kind delete cluster --name "${CLUSTER}" 2>/dev/null || true
+  done
+
   rm -rf ./tmp/*
 }
 

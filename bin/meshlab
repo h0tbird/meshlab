@@ -825,6 +825,6 @@ for section in "${SECTIONS[@]}"; do measure "${section}"; done
 # [i] Print total execution time and network traffic
 #------------------------------------------------------------------------------
 
-summary="$((SECONDS / 60))m $((SECONDS % 60))s, $(human_bytes "$(( $(net_bytes) - NET_START ))")"
+summary="$(human_time "${SECONDS}"), $(human_bytes "$(( $(net_bytes) - NET_START ))")"
 pad=$(printf '─%.0s' $(seq 1 $((57 - ${#summary}))))
 echo -e "\n${CYAN}───[ Done in ${RST}${DIM}${summary}${RST}${CYAN} ]${pad}${RST}\n"

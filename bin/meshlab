@@ -41,9 +41,20 @@ cleanup() {
   # shellcheck disable=SC2046
   docker kill $(docker ps -f "name=kindccm" -q) 2>/dev/null || true
   argocd context --delete "${MNGR}" 2>/dev/null || true
-  pkill socat 2>/dev/null || true
-  pkill tilt 2>/dev/null || true
-  kind delete clusters --all
+
+  # Only kill tilt instances we started (one per workload cluster)
+  for CLUSTER in $(list clusters wkld "${WLCNT:-99}"); do
+    pkill -f "tilt up --context kind-${CLUSTER}" 2>/dev/null || true
+  done
+
+  # Only kill socat tunnels we started from publish()
+  pkill -f 'socat TCP-LISTEN:[0-9]+,fork TCP:' 2>/dev/null || true
+
+  # Only delete clusters we created
+  for CLUSTER in $(list clusters all "${WLCNT:-99}"); do
+    kind delete cluster --name "${CLUSTER}" 2>/dev/null || true
+  done
+
   rm -rf ./tmp/*
 }
 
@@ -200,7 +211,7 @@ helm-repositories() {
   helm repo add cilium https://helm.cilium.io/
   helm repo add argo https://argoproj.github.io/argo-helm
   helm repo add k8s_gateway https://k8s-gateway.github.io/k8s_gateway/
-  helm repo update
+  retry helm repo update
 }; SECTIONS+=( helm-repositories )
 
 #------------------------------------------------------------------------------
@@ -343,7 +354,7 @@ setup-argocd() {
   argocd argo/argo-cd --version "${ARGOCD_CHART_VERSION}" \
   --set 'server.service.type=LoadBalancer' \
   --set 'server.extraArgs={--insecure=true}' \
-  --set configs.secret.argocdServerAdminPassword=$(htpasswd -nbBC 10 "" ${PWD} | tr -d ':\n') \
+  --set configs.secret.argocdServerAdminPassword="$(htpasswd -nbBC 10 "" "${PASS}" | tr -d ':\n')" \
   -f - <<- EOF | grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
 		configs:
 		  cm:
@@ -377,7 +388,7 @@ register-argocd-clusters() {
       --plaintext \
       --name "${MNGR}" \
       --username admin \
-      --password "${PWD}"
+      --password "${PASS}"
 
     # Add clusters with labels
     for CELL in $(list cells wkld "${WLCNT}"); do for CLUSTER in ${CELLS[${CELL}]}; do
@@ -450,7 +461,7 @@ bootstrap-dag() {
   # Create a secret with ArgoCD credentials
   k0 create secret generic argocd-credentials \
    --from-literal=username='admin' \
-   --from-literal=password="${PWD}" \
+   --from-literal=password="${PASS}" \
    --from-literal=token='' \
    --dry-run=client -o yaml | k0 -n argocd apply -f -
 
@@ -662,10 +673,10 @@ grafana-git-sync() {
     return 0
   }
 
-  # Create ephemeral directory
+  # Create ephemeral directory (cleaned up on exit, even on failure)
   local REPO_DIR
   REPO_DIR=$(mktemp -d)
-  trap 'rm -rf ${REPO_DIR}' RETURN
+  trap 'rm -rf "${REPO_DIR}"; trap - RETURN' RETURN
 
   # Create the Repository resource YAML
   cat > "${REPO_DIR}/repository.yaml" <<- EOF
@@ -702,7 +713,7 @@ grafana-git-sync() {
 	      server: http://$(getExtIP "${MNGR}" monitoring grafana)
 	      org-id: 1
 	      user: admin
-	      password: ${PWD}
+	      password: ${PASS}
 	current-context: default
 	EOF
 
@@ -719,7 +730,7 @@ kiali-multicluster() {
   ensure-ips # Ensure cluster IPs are initialized
 
   for CLUSTER in $(list clusters wkld "${WLCNT}"); do
-    kiali-prepare-remote-cluster.sh \
+    retry kiali-prepare-remote-cluster.sh \
       --kiali-cluster-context "kind-${MNGR}" \
       --remote-cluster-context "kind-${CLUSTER}" \
       --view-only false \

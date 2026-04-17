@@ -6,6 +6,7 @@
 
 export MNGR="mnger-1"
 export DOMAIN="demo.lab"
+export PASS='meshlab123'
 
 # Define cells and clusters
 declare -A CELLS=(
@@ -13,9 +14,6 @@ declare -A CELLS=(
   [pasta]="pasta-1 pasta-2"
   [pizza]="pizza-1 pizza-2"
 )
-
-# One password to rule them all
-PWD='meshlab123'
 
 # Runnable sections (in order)
 export SECTIONS=()
@@ -89,17 +87,22 @@ function getExtIP {
 function publish {
 
   # Get the external IP of the service
-  IP=$(getExtIP "${1}" "${2}" "${3}")
+  local ip
+  ip=$(getExtIP "${1}" "${2}" "${3}")
 
   # Setup socat for additional edge cases
-  nohup socat TCP-LISTEN:"${4}",fork TCP:"${IP}":80 &> /dev/null & disown
+  nohup socat TCP-LISTEN:"${4}",fork TCP:"${ip}":80 &> /dev/null & disown
 }
 
 #------------------------------------------------------------------------------
 # Wait for all background jobs, fail if any failed
 #------------------------------------------------------------------------------
 
-function join { for pid in $(jobs -p); do wait "${pid}"; done; }
+function join {
+  local pid status=0
+  for pid in $(jobs -p); do wait "${pid}" || status=$?; done
+  return "${status}"
+}
 
 #------------------------------------------------------------------------------
 # Run a command and print its elapsed time
@@ -134,7 +137,7 @@ function h0 {
 # Cluster IPs (lazy initialization)
 #------------------------------------------------------------------------------
 
-declare -gA IP; IP_INIT=false
+declare -gxA IP; IP_INIT=false
 
 function ensure-ips {
   [[ "${IP_INIT}" == true ]] && return 0

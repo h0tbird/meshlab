@@ -14,10 +14,15 @@ spec:
   entrypoint: argocd-sync-and-wait
   templates:
   - name: argocd-sync-and-wait
+    retryStrategy:
+      limit: "2"
+      backoff:
+        duration: "10s"
+        factor: "2"
     inputs:
       parameters:
       - name: argocd-version
-        value: v2.11.0
+        value: v3.3.7
       - name: application-name
         value: ""
       - name: revision
@@ -53,7 +58,7 @@ spec:
         - name: ARGOCD_SERVER
           value: {{`"{{inputs.parameters.argocd-server-address}}"`}}
       source: |
-        set -x
+        set -ex
 
         function selectors() {
           echo "$(for i in {{`{{inputs.parameters.selectors}}`}}; do echo -n " -l ${i}"; done)"
@@ -68,5 +73,10 @@ spec:
           yes | argocd login "${ARGOCD_SERVER}" --username="${ARGOCD_USERNAME}" --password="${ARGOCD_PASSWORD}"
         fi
 
-        argocd app sync {{`{{inputs.parameters.application-name}}`}} $(selectors)
+        for i in $(seq 1 3); do
+          argocd app sync {{`{{inputs.parameters.application-name}}`}} $(selectors) --retry-limit 3 && break
+          echo "Sync attempt ${i} failed, retrying in 10s..."
+          sleep 10
+        done
+
         argocd app wait {{`{{inputs.parameters.application-name}}`}} --health $(selectors)

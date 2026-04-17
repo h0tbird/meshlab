@@ -13,6 +13,9 @@ cd "$(dirname "$0")"/..
 # shellcheck source=../lib/common.sh
 source ./lib/common.sh
 
+# Network traffic baseline (devcontainer non-loopback interfaces)
+NET_START=$(net_bytes)
+
 #------------------------------------------------------------------------------
 # [i] Versions
 #------------------------------------------------------------------------------
@@ -298,11 +301,8 @@ install-k8s-gateway() {
 setup-coredns() {
   blue "───[ CoreDNS ]──────────────────────────────────────────────────────────"
 
-  # Get the external LoadBalancer IP
-  MNGR_EXDNS_IP='null'; until [[ "${MNGR_EXDNS_IP}" != 'null' ]]; do
-    MNGR_EXDNS_IP=$(k0 -n kube-system get svc exdns-k8s-gateway -o yaml |
-    yq '.status.loadBalancer.ingress[0].ip'); sleep 1
-  done
+  # Get the external LoadBalancer IP (blocks until ready)
+  MNGR_EXDNS_IP=$(getExtIP "${MNGR}" kube-system exdns-k8s-gateway)
 
   # Configure CoreDNS
   for CELL in $(list cells all "${WLCNT}"); do for CLUSTER in ${CELLS[${CELL}]}; do (
@@ -836,7 +836,7 @@ case "${1:-}" in
   create) WLCNT="${2:-1}" ;;
   delete) cleanup; exit 0 ;;
   watch) watch --color 'ml short'; exit 0 ;;
-  run)  WLCNT="${3:-1}"; timed "${2:?Usage: $0 run <section> [count]}"; exit 0 ;;
+  run)  WLCNT="${3:-1}"; measure "${2:?Usage: $0 run <section> [count]}"; exit 0 ;;
   list) printf '%s\n' "${SECTIONS[@]}"; exit 0 ;;
   *)    echo "Usage: $(basename "$0") <create|delete|watch|list|run SECTION [count]>"; exit 1 ;;
 esac
@@ -845,12 +845,12 @@ esac
 # [i] Run all sections in order
 #------------------------------------------------------------------------------
 
-for section in "${SECTIONS[@]}"; do timed "${section}"; done
+for section in "${SECTIONS[@]}"; do measure "${section}"; done
 
 #------------------------------------------------------------------------------
-# [i] Print total execution time
+# [i] Print total execution time and network traffic
 #------------------------------------------------------------------------------
 
-time="$((SECONDS / 60))m $((SECONDS % 60))s"
-pad=$(printf '─%.0s' $(seq 1 $((57 - ${#time}))))
-echo -e "\n${CYAN}───[ Done in ${RST}${DIM}${time}${RST}${CYAN} ]${pad}${RST}\n"
+summary="$(human_time "${SECONDS}"), $(human_bytes "$(( $(net_bytes) - NET_START ))")"
+pad=$(printf '─%.0s' $(seq 1 $((57 - ${#summary}))))
+echo -e "\n${CYAN}───[ Done in ${RST}${DIM}${summary}${RST}${CYAN} ]${pad}${RST}\n"

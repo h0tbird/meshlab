@@ -76,8 +76,13 @@ function grey {
 #------------------------------------------------------------------------------
 
 function getExtIP {
-  kubectl --context="kind-${1}" -n "${2}" get svc "${3}" -o yaml | \
-  yq '.status.loadBalancer.ingress[0].ip'
+  local ip='null'
+  until [[ -n "${ip}" && "${ip}" != 'null' ]]; do
+    ip=$(kubectl --context="kind-${1}" -n "${2}" get svc "${3}" -o yaml 2>/dev/null | \
+      yq '.status.loadBalancer.ingress[0].ip')
+    [[ -n "${ip}" && "${ip}" != 'null' ]] || sleep 1
+  done
+  echo "${ip}"
 }
 
 #------------------------------------------------------------------------------
@@ -105,12 +110,41 @@ function join {
 }
 
 #------------------------------------------------------------------------------
-# Run a command and print its elapsed time
+# Sum of RX+TX bytes across all non-loopback interfaces in this devcontainer
 #------------------------------------------------------------------------------
 
-function timed {
-  local t=${SECONDS}; "$@"
-  grey "  └── done in $((SECONDS - t))s"
+function net_bytes {
+  awk '/:/ && $1 !~ /^lo:/ { gsub(":", "", $1); rx += $2; tx += $10 }
+       END { printf "%.0f", rx + tx }' /proc/net/dev
+}
+
+#------------------------------------------------------------------------------
+# Format a byte count in human-readable IEC units (e.g. 1.2MiB)
+#------------------------------------------------------------------------------
+
+function human_bytes {
+  numfmt --to=iec-i --suffix=B --format='%.1f' "${1:-0}"
+}
+
+#------------------------------------------------------------------------------
+# Format a duration in seconds as "<m>m <s>s" (e.g. 5m 12s)
+#------------------------------------------------------------------------------
+
+function human_time {
+  printf '%dm %ds' $(( ${1:-0} / 60 )) $(( ${1:-0} % 60 ))
+}
+
+#------------------------------------------------------------------------------
+# Run a command and print its elapsed time and network traffic
+#------------------------------------------------------------------------------
+
+function measure {
+  local t=${SECONDS}
+  local n; n=$(net_bytes)
+  "$@"
+  local dt=$((SECONDS - t))
+  local dn=$(( $(net_bytes) - n ))
+  grey "  └── done in ${dt}s ($(human_bytes "${dn}"))"
 }
 
 #------------------------------------------------------------------------------

@@ -98,7 +98,11 @@ function publish {
 # Wait for all background jobs, fail if any failed
 #------------------------------------------------------------------------------
 
-function join { for pid in $(jobs -p); do wait "${pid}"; done; }
+function join {
+  local pid status=0
+  for pid in $(jobs -p); do wait "${pid}" || status=$?; done
+  return "${status}"
+}
 
 #------------------------------------------------------------------------------
 # Run a command and print its elapsed time

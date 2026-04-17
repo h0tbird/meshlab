@@ -87,10 +87,11 @@ function getExtIP {
 function publish {
 
   # Get the external IP of the service
-  IP=$(getExtIP "${1}" "${2}" "${3}")
+  local ip
+  ip=$(getExtIP "${1}" "${2}" "${3}")
 
   # Setup socat for additional edge cases
-  nohup socat TCP-LISTEN:"${4}",fork TCP:"${IP}":80 &> /dev/null & disown
+  nohup socat TCP-LISTEN:"${4}",fork TCP:"${ip}":80 &> /dev/null & disown
 }
 
 #------------------------------------------------------------------------------

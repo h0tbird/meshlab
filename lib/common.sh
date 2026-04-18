@@ -148,10 +148,21 @@ function measure {
 }
 
 #------------------------------------------------------------------------------
-# Retry til success
+# Retry til success or max attempts reached
 #------------------------------------------------------------------------------
 
-function retry { until "$@"; do sleep 2; done; }
+function retry {
+  local max=3 attempt=1
+  until "$@"; do
+    if (( attempt >= max )); then
+      grey "  └── retry: giving up after ${max} attempts: $*"
+      return 1
+    fi
+    ((attempt++))
+    grey "  └── retry ${attempt}/${max} in 2s: $*"
+    sleep 2
+  done
+}
 
 #------------------------------------------------------------------------------
 # Manager kubectl and helm helpers

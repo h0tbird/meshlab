@@ -211,9 +211,9 @@ setup-kubeconfig() {
 helm-repositories() {
   blue "───[ Helm repos ]───────────────────────────────────────────────────────"
 
-  helm repo add cilium https://helm.cilium.io/
-  helm repo add argo https://argoproj.github.io/argo-helm
-  helm repo add k8s_gateway https://k8s-gateway.github.io/k8s_gateway/
+  retry helm repo add cilium https://helm.cilium.io/
+  retry helm repo add argo https://argoproj.github.io/argo-helm
+  retry helm repo add k8s_gateway https://k8s-gateway.github.io/k8s_gateway/
   retry helm repo update
 }; SECTIONS+=( helm-repositories )
 

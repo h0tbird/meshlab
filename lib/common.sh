@@ -40,6 +40,11 @@ function clusters {
   done
 }
 
+# Manager + workload clusters (the universe of kind clusters)
+function all_clusters {
+  echo "${MNGR} $(clusters)"
+}
+
 #------------------------------------------------------------------------------
 # Returns the CIDR for the given cluster
 #------------------------------------------------------------------------------
@@ -179,7 +184,7 @@ declare -gxA IP; IP_INIT=false
 
 function ensure-ips {
   [[ "${IP_INIT}" == true ]] && return 0
-  for CLUSTER in ${MNGR} $(clusters); do
+  for CLUSTER in $(all_clusters); do
     IP[${CLUSTER}]=$(docker inspect "${CLUSTER}-control-plane" |
       jq -r '.[].NetworkSettings.Networks.kind.IPAddress')
   done; IP_INIT=true

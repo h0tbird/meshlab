@@ -33,8 +33,7 @@ function list {
 
   for CELL in "${!CELLS[@]}"; do
 
-    [[ "${2}" == "wkld" && "${CELL}" == "mngr" ]] && continue
-    [[ "${CELL}" != "mngr" ]] && ((count++))
+    ((count++))
     [[ "${limit}" -gt 0 && "${count}" -gt "${limit}" ]] && break
 
     case $1 in

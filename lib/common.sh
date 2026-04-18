@@ -7,15 +7,13 @@
 export MNGR="mnger-1"
 export DOMAIN="demo.lab"
 export PASS='meshlab123'
+export SECTIONS=()
 
-# Define workload cells and their clusters (mngr is tracked separately via ${MNGR})
+# Define workload cells and their clusters
 declare -A CELLS=(
   [pasta]="pasta-1 pasta-2"
   [pizza]="pizza-1 pizza-2"
 )
-
-# Runnable sections (in order)
-export SECTIONS=()
 
 # Colors
 CYAN='\e[1;36m'
@@ -29,7 +27,7 @@ RST='\e[0m'
 function cells {
   local count=0
   for CELL in "${!CELLS[@]}"; do
-    ((++count > ${WLCNT:-99})) && break
+    ((++count > ${WLCNT:-1})) && break
     echo -n "${CELL} "
   done
 }
@@ -37,7 +35,7 @@ function cells {
 function clusters {
   local count=0
   for CELL in "${!CELLS[@]}"; do
-    ((++count > ${WLCNT:-99})) && break
+    ((++count > ${WLCNT:-1})) && break
     echo -n "${CELLS[${CELL}]} "
   done
 }

@@ -35,9 +35,9 @@ RST='\e[0m'
 # List the first ${WLCNT} workload cells
 function cells {
   local count=0
-  for CELL in "${!CELLS[@]}"; do
+  for cell in "${!CELLS[@]}"; do
     ((++count > ${WLCNT:-1})) && break
-    echo -n "${CELL} "
+    echo -n "${cell} "
   done
 }
 
@@ -49,9 +49,9 @@ function all_cells {
 # List the first ${WLCNT} workload clusters
 function clusters {
   local count=0
-  for CELL in "${!CELLS[@]}"; do
+  for cell in "${!CELLS[@]}"; do
     ((++count > ${WLCNT:-1})) && break
-    echo -n "${CELLS[${CELL}]} "
+    echo -n "${CELLS[${cell}]} "
   done
 }
 
@@ -199,8 +199,8 @@ declare -gxA IP; IP_INIT=false
 
 function ensure-ips {
   [[ "${IP_INIT}" == true ]] && return 0
-  for CLUSTER in $(all_clusters); do
-    IP[${CLUSTER}]=$(docker inspect "${CLUSTER}-control-plane" |
+  for cluster in $(all_clusters); do
+    IP[${cluster}]=$(docker inspect "${cluster}-control-plane" |
       jq -r '.[].NetworkSettings.Networks.kind.IPAddress')
   done; IP_INIT=true
 }

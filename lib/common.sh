@@ -45,6 +45,11 @@ function all_clusters {
   echo "${MNGR} $(clusters)"
 }
 
+# Clusters belonging to the given cell ("mngr" returns ${MNGR})
+function clusters_of {
+  echo "${CELLS[$1]:-${MNGR}}"
+}
+
 #------------------------------------------------------------------------------
 # Returns the CIDR for the given cluster
 #------------------------------------------------------------------------------

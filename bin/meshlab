@@ -136,7 +136,7 @@ create-clusters() {
   done
 
   # Create the clusters
-  for CELL in mngr $(cells); do for CLUSTER in ${CELLS[${CELL}]:-${MNGR}}; do (
+  for CELL in mngr $(cells); do for CLUSTER in $(clusters_of "${CELL}"); do (
     kind get clusters 2>/dev/null | grep -q "${CLUSTER}" || {
       kind create cluster --name "${CLUSTER}" --config "./tmp/kind-${CELL}.yaml" -q
     }
@@ -305,7 +305,7 @@ setup-coredns() {
   MNGR_EXDNS_IP=$(getExtIP "${MNGR}" kube-system exdns-k8s-gateway)
 
   # Configure CoreDNS
-  for CELL in mngr $(cells); do for CLUSTER in ${CELLS[${CELL}]:-${MNGR}}; do (
+  for CELL in mngr $(cells); do for CLUSTER in $(clusters_of "${CELL}"); do (
 
     kubectl --context "kind-${CLUSTER}" -n kube-system create cm coredns \
     --dry-run=client -o yaml --from-literal=Corefile="
@@ -391,7 +391,7 @@ register-argocd-clusters() {
       --password "${PASS}"
 
     # Add clusters with labels
-    for CELL in $(cells); do for CLUSTER in ${CELLS[${CELL}]}; do
+    for CELL in $(cells); do for CLUSTER in $(clusters_of "${CELL}"); do
       argocd cluster list | grep -q "${CLUSTER}" || \
       argocd cluster add -y "kind-${CLUSTER}" \
         --kubeconfig ~/.kube/config.in-cluster \

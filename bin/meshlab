@@ -120,7 +120,7 @@ create-clusters() {
   [ -d ./tmp ] || mkdir -p ./tmp
 
   # Configure kind
-  for CELL in mngr $(cells); do
+  for CELL in $(all_cells); do
     cat <<- EOF > "./tmp/kind-${CELL}.yaml"
 		kind: Cluster
 		apiVersion: kind.x-k8s.io/v1alpha4
@@ -136,11 +136,11 @@ create-clusters() {
   done
 
   # Create the clusters
-  for CELL in mngr $(cells); do for CLUSTER in $(clusters_of "${CELL}"); do (
+  for CLUSTER in $(all_clusters); do (
     kind get clusters 2>/dev/null | grep -q "${CLUSTER}" || {
-      kind create cluster --name "${CLUSTER}" --config "./tmp/kind-${CELL}.yaml" -q
+      kind create cluster --name "${CLUSTER}" --config "./tmp/kind-${CELL_OF[${CLUSTER}]}.yaml" -q
     }
-  ) & done; done; join
+  ) & done; join
 
   # Get and display all the IPs
   ensure-ips
@@ -305,7 +305,8 @@ setup-coredns() {
   MNGR_EXDNS_IP=$(getExtIP "${MNGR}" kube-system exdns-k8s-gateway)
 
   # Configure CoreDNS
-  for CELL in mngr $(cells); do for CLUSTER in $(clusters_of "${CELL}"); do (
+  for CLUSTER in $(all_clusters); do (
+    CELL=${CELL_OF[${CLUSTER}]}
 
     kubectl --context "kind-${CLUSTER}" -n kube-system create cm coredns \
     --dry-run=client -o yaml --from-literal=Corefile="
@@ -339,7 +340,7 @@ setup-coredns() {
     # Restart otherwise it takes a while to pick up the new config
     kubectl --context "kind-${CLUSTER}" -n kube-system rollout restart deployment coredns
 
-  ) & done; done; join
+  ) & done; join
 }; SECTIONS+=( setup-coredns )
 
 #------------------------------------------------------------------------------
@@ -391,7 +392,8 @@ register-argocd-clusters() {
       --password "${PASS}"
 
     # Add clusters with labels
-    for CELL in $(cells); do for CLUSTER in $(clusters_of "${CELL}"); do
+    for CLUSTER in $(clusters); do
+      CELL=${CELL_OF[${CLUSTER}]}
       argocd cluster list | grep -q "${CLUSTER}" || \
       argocd cluster add -y "kind-${CLUSTER}" \
         --kubeconfig ~/.kube/config.in-cluster \
@@ -399,7 +401,7 @@ register-argocd-clusters() {
         --label name="${CLUSTER}" \
         --label cell="${CELL}" \
         --logformat text
-    done; done
+    done
   }
 }; SECTIONS+=( register-argocd-clusters )
 

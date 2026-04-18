@@ -15,6 +15,16 @@ declare -A CELLS=(
   [pizza]="pizza-1 pizza-2"
 )
 
+# Manager + workload cells (cell -> space-separated clusters)
+declare -A ALL_CELLS=( [mngr]="${MNGR}" )
+for _c in "${!CELLS[@]}"; do ALL_CELLS[${_c}]="${CELLS[${_c}]}"; done; unset _c
+
+# Reverse map (cluster -> cell), covers manager + all workload clusters
+declare -A CELL_OF
+for _c in "${!ALL_CELLS[@]}"; do
+  for _x in ${ALL_CELLS[${_c}]}; do CELL_OF[${_x}]=${_c}; done
+done; unset _c _x
+
 # Colors
 CYAN='\e[1;36m'
 DIM='\e[2m'
@@ -40,14 +50,14 @@ function clusters {
   done
 }
 
+# Manager + first ${WLCNT} workload cells
+function all_cells {
+  echo "mngr $(cells)"
+}
+
 # Manager + workload clusters (the universe of kind clusters)
 function all_clusters {
   echo "${MNGR} $(clusters)"
-}
-
-# Clusters belonging to the given cell ("mngr" returns ${MNGR})
-function clusters_of {
-  echo "${CELLS[$1]:-${MNGR}}"
 }
 
 #------------------------------------------------------------------------------

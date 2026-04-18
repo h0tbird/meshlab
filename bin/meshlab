@@ -46,16 +46,16 @@ cleanup() {
   argocd context --delete "${MNGR}" 2>/dev/null || true
 
   # Only kill tilt instances we started (one per workload cluster)
-  for CLUSTER in $(list clusters wkld "${WLCNT:-99}"); do
-    pkill -f "tilt up --context kind-${CLUSTER}" 2>/dev/null || true
+  for cluster in $(clusters); do
+    pkill -f "tilt up --context kind-${cluster}" 2>/dev/null || true
   done
 
   # Only kill socat tunnels we started from publish()
   pkill -f 'socat TCP-LISTEN:[0-9]+,fork TCP:' 2>/dev/null || true
 
   # Only delete clusters we created
-  for CLUSTER in $(list clusters all "${WLCNT:-99}"); do
-    kind delete cluster --name "${CLUSTER}" 2>/dev/null || true
+  for cluster in $(all_clusters); do
+    kind delete cluster --name "${cluster}" 2>/dev/null || true
   done
 
   rm -rf ./tmp/*
@@ -120,8 +120,8 @@ create-clusters() {
   [ -d ./tmp ] || mkdir -p ./tmp
 
   # Configure kind
-  for CELL in $(list cells all "${WLCNT}"); do
-    cat <<- EOF > "./tmp/kind-${CELL}.yaml"
+  for cell in $(all_cells); do
+    cat <<- EOF > "./tmp/kind-${cell}.yaml"
 		kind: Cluster
 		apiVersion: kind.x-k8s.io/v1alpha4
 		networking:
@@ -131,21 +131,21 @@ create-clusters() {
 		  - |-
 		    kind: ClusterConfiguration
 		    networking:
-		      dnsDomain: "${CELL}.local"
+		      dnsDomain: "${cell}.local"
 		EOF
   done
 
   # Create the clusters
-  for CELL in $(list cells all "${WLCNT}"); do for CLUSTER in ${CELLS[${CELL}]}; do (
-    kind get clusters 2>/dev/null | grep -q "${CLUSTER}" || {
-      kind create cluster --name "${CLUSTER}" --config "./tmp/kind-${CELL}.yaml" -q
+  for cluster in $(all_clusters); do (
+    kind get clusters 2>/dev/null | grep -q "${cluster}" || {
+      kind create cluster --name "${cluster}" --config "./tmp/kind-${CELL_OF[${cluster}]}.yaml" -q
     }
-  ) & done; done; join
+  ) & done; join
 
   # Get and display all the IPs
   ensure-ips
-  for CLUSTER in $(list clusters all "${WLCNT}"); do
-    echo "${CLUSTER} = ${IP[${CLUSTER}]}"
+  for cluster in $(all_clusters); do
+    echo "${cluster} = ${IP[${cluster}]}"
   done
 }; SECTIONS+=( create-clusters )
 
@@ -162,8 +162,8 @@ add-registries-to-containerd() {
   echo "ghcr.io   --> http://registry-ghcr.io:5000"
 
   # Configure containerd in all clusters
-  for CLUSTER in $(list clusters all "${WLCNT}"); do (
-    docker exec -i "${CLUSTER}-control-plane" bash -c '
+  for cluster in $(all_clusters); do (
+    docker exec -i "${cluster}-control-plane" bash -c '
       mkdir -p /etc/containerd/certs.d/docker.io
       cat <<- EOF > /etc/containerd/certs.d/docker.io/hosts.toml
 			server = "https://registry-1.docker.io"
@@ -196,11 +196,11 @@ setup-kubeconfig() {
 
   # Setup an in-cluster reachable API server config
   cp -f ~/.kube/config ~/.kube/config.in-cluster
-  for CLUSTER in $(list clusters all "${WLCNT}"); do
-    echo "Server: https://${IP[${CLUSTER}]}:6443"
+  for cluster in $(all_clusters); do
+    echo "Server: https://${IP[${cluster}]}:6443"
     kubectl --kubeconfig ~/.kube/config.in-cluster \
-    config set-cluster "kind-${CLUSTER}" \
-    --server="https://${IP[${CLUSTER}]}:6443"
+    config set-cluster "kind-${cluster}" \
+    --server="https://${IP[${cluster}]}:6443"
   done
 }; SECTIONS+=( setup-kubeconfig )
 
@@ -226,18 +226,18 @@ install-cilium() {
   ensure-ips # Ensure cluster IPs are initialized
 
   # Install the Cilium CNI
-  for CLUSTER in $(list clusters all "${WLCNT}"); do (
+  for cluster in $(all_clusters); do (
 
     # Return early if already running
-    kubectl --context "kind-${CLUSTER}" -n kube-system \
+    kubectl --context "kind-${cluster}" -n kube-system \
       get deploy cilium-operator 2>/dev/null && exit 0
 
     # Install
-    cilium install --context "kind-${CLUSTER}" --wait \
+    cilium install --context "kind-${cluster}" --wait \
       --version "v${CILIUM_CHART_VERSION}" \
       --values ./charts/cilium/values.yaml \
-      --values ./charts/cilium/values/"${CLUSTER}".yaml \
-      --set k8sServiceHost="${IP[${CLUSTER}]}"
+      --values ./charts/cilium/values/"${cluster}".yaml \
+      --set k8sServiceHost="${IP[${cluster}]}"
   ) & done; join
 }; SECTIONS+=( install-cilium )
 
@@ -248,10 +248,10 @@ install-cilium() {
 install-clustermesh() {
   blue "───[ ClusterMesh ]──────────────────────────────────────────────────────"
 
-  for CELL in $(list cells wkld "${WLCNT}"); do (
+  for cell in $(cells); do (
 
     # Get the clusters of the cell
-    IFS=" " read -r -a CLUSTERS <<< "${CELLS[${CELL}]}"
+    IFS=" " read -r -a CLUSTERS <<< "${CELLS[${cell}]}"
 
     # Return early if already running
     kubectl --context "kind-${CLUSTERS[0]}" -n kube-system get deploy clustermesh-apiserver 2>/dev/null &&
@@ -284,8 +284,8 @@ install-clustermesh() {
 install-k8s-gateway() {
   blue "───[ k8s_gateway ]──────────────────────────────────────────────────────"
 
-  for CLUSTER in $(list clusters all "${WLCNT}"); do (
-    retry helm --kube-context "kind-${CLUSTER}" \
+  for cluster in $(all_clusters); do (
+    retry helm --kube-context "kind-${cluster}" \
       upgrade -i exdns k8s_gateway/k8s-gateway \
       --version "${K8S_GATEWAY_CHART_VERSION}" \
       --namespace kube-system \
@@ -305,9 +305,10 @@ setup-coredns() {
   MNGR_EXDNS_IP=$(getExtIP "${MNGR}" kube-system exdns-k8s-gateway)
 
   # Configure CoreDNS
-  for CELL in $(list cells all "${WLCNT}"); do for CLUSTER in ${CELLS[${CELL}]}; do (
+  for cluster in $(all_clusters); do (
+    cell=${CELL_OF[${cluster}]}
 
-    kubectl --context "kind-${CLUSTER}" -n kube-system create cm coredns \
+    kubectl --context "kind-${cluster}" -n kube-system create cm coredns \
     --dry-run=client -o yaml --from-literal=Corefile="
     .:53 {
       errors
@@ -315,7 +316,7 @@ setup-coredns() {
          lameduck 5s
       }
       ready
-      kubernetes ${CELL}.local in-addr.arpa ip6.arpa {
+      kubernetes ${cell}.local in-addr.arpa ip6.arpa {
          pods insecure
          fallthrough in-addr.arpa ip6.arpa
          ttl 30
@@ -325,8 +326,8 @@ setup-coredns() {
          max_concurrent 1000
       }
       cache 30 {
-         disable success ${CELL}.local
-         disable denial ${CELL}.local
+         disable success ${cell}.local
+         disable denial ${cell}.local
       }
       loop
       reload
@@ -334,12 +335,12 @@ setup-coredns() {
     }
     ${DOMAIN}:53 {
       forward . ${MNGR_EXDNS_IP}
-    }" | kubectl --context "kind-${CLUSTER}" -n kube-system apply -f - 2>/dev/null
+    }" | kubectl --context "kind-${cluster}" -n kube-system apply -f - 2>/dev/null
 
     # Restart otherwise it takes a while to pick up the new config
-    kubectl --context "kind-${CLUSTER}" -n kube-system rollout restart deployment coredns
+    kubectl --context "kind-${cluster}" -n kube-system rollout restart deployment coredns
 
-  ) & done; done; join
+  ) & done; join
 }; SECTIONS+=( setup-coredns )
 
 #------------------------------------------------------------------------------
@@ -391,15 +392,16 @@ register-argocd-clusters() {
       --password "${PASS}"
 
     # Add clusters with labels
-    for CELL in $(list cells wkld "${WLCNT}"); do for CLUSTER in ${CELLS[${CELL}]}; do
-      argocd cluster list | grep -q "${CLUSTER}" || \
-      argocd cluster add -y "kind-${CLUSTER}" \
+    for cluster in $(clusters); do
+      cell=${CELL_OF[${cluster}]}
+      argocd cluster list | grep -q "${cluster}" || \
+      argocd cluster add -y "kind-${cluster}" \
         --kubeconfig ~/.kube/config.in-cluster \
-        --name "${CLUSTER}" \
-        --label name="${CLUSTER}" \
-        --label cell="${CELL}" \
+        --name "${cluster}" \
+        --label name="${cluster}" \
+        --label cell="${cell}" \
         --logformat text
-    done; done
+    done
   }
 }; SECTIONS+=( register-argocd-clusters )
 
@@ -466,9 +468,9 @@ bootstrap-dag() {
    --dry-run=client -o yaml | k0 -n argocd apply -f -
 
   # Create the monitoring namespace on all clusters
-  for CLUSTER in $(list clusters all "${WLCNT}"); do (
-    kubectl --context "kind-${CLUSTER}" create ns monitoring \
-    --dry-run=client -o yaml | kubectl --context "kind-${CLUSTER}" apply -f -
+  for cluster in $(all_clusters); do (
+    kubectl --context "kind-${cluster}" create ns monitoring \
+    --dry-run=client -o yaml | kubectl --context "kind-${cluster}" apply -f -
   ) & done; join
 
   # Create the bootstrap workflow
@@ -649,8 +651,8 @@ bootstrap-dag() {
 istio-endpoint-discovery() {
   blue "───[ Istio remote secrets ]─────────────────────────────────────────────"
 
-  for CELL in $(list cells wkld "${WLCNT}"); do (
-    IFS=" " read -r -a CLUSTERS <<< "${CELLS[${CELL}]}"
+  for cell in $(cells); do (
+    IFS=" " read -r -a CLUSTERS <<< "${CELLS[${cell}]}"
     istioctl --kubeconfig ~/.kube/config.in-cluster create-remote-secret \
       --context "kind-${CLUSTERS[0]}" --name="${CLUSTERS[0]}" | \
       kubectl --context "kind-${CLUSTERS[1]}" apply -f -
@@ -729,16 +731,16 @@ kiali-multicluster() {
   blue "───[ External kiali multi-cluster setup ]───────────────────────────────"
   ensure-ips # Ensure cluster IPs are initialized
 
-  for CLUSTER in $(list clusters wkld "${WLCNT}"); do
+  for cluster in $(clusters); do
     retry kiali-prepare-remote-cluster.sh \
       --kiali-cluster-context "kind-${MNGR}" \
-      --remote-cluster-context "kind-${CLUSTER}" \
+      --remote-cluster-context "kind-${cluster}" \
       --view-only false \
       --process-kiali-secret true \
       --process-remote-resources true \
       --kiali-cluster-namespace monitoring \
-      --remote-cluster-name "${CLUSTER}" \
-      --remote-cluster-url "https://${IP[${CLUSTER}]}:6443" |
+      --remote-cluster-name "${cluster}" \
+      --remote-cluster-url "https://${IP[${cluster}]}:6443" |
       grep -v '^INFO:'
   done
 
@@ -762,13 +764,13 @@ tilt-up() {
   export TILT_DISABLE_ANALYTICS=1
 
   # Start tilt for each workload cluster
-  PORT=9091; for CLUSTER in $(list clusters wkld "${WLCNT}"); do
-    if pgrep -f "tilt up --context kind-${CLUSTER}" &>/dev/null; then
-      echo "tilt ${CLUSTER} on port ${PORT} (running)"
+  PORT=9091; for cluster in $(clusters); do
+    if pgrep -f "tilt up --context kind-${cluster}" &>/dev/null; then
+      echo "tilt ${cluster} on port ${PORT} (running)"
     else
-      setsid tilt up --context "kind-${CLUSTER}" --port "${PORT}" \
-      &> "./tmp/tilt-${CLUSTER}.log" &
-      echo "tilt ${CLUSTER} on port ${PORT} (started)"
+      setsid tilt up --context "kind-${cluster}" --port "${PORT}" \
+      &> "./tmp/tilt-${cluster}.log" &
+      echo "tilt ${cluster} on port ${PORT} (started)"
     fi
     ((PORT++))
   done
@@ -807,10 +809,10 @@ publish-ports() {
 #------------------------------------------------------------------------------
 
 case "${1:-}" in
-  create) WLCNT="${2:-1}" ;;
+  create) export WLCNT="${2:-1}" ;;
   delete) cleanup; exit 0 ;;
   watch) watch --color 'ml short'; exit 0 ;;
-  run)  WLCNT="${3:-1}"; measure "${2:?Usage: $0 run <section> [count]}"; exit 0 ;;
+  run)  export WLCNT="${3:-1}"; measure "${2:?Usage: $0 run <section> [count]}"; exit 0 ;;
   list) printf '%s\n' "${SECTIONS[@]}"; exit 0 ;;
   *)    echo "Usage: $(basename "$0") <create|delete|watch|list|run SECTION [count]>"; exit 1 ;;
 esac

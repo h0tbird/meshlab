@@ -32,6 +32,7 @@ RST='\e[0m'
 # List the first ${WLCNT} workload cells (or their clusters)
 #------------------------------------------------------------------------------
 
+# List the first ${WLCNT} workload cells
 function cells {
   local count=0
   for CELL in "${!CELLS[@]}"; do
@@ -40,6 +41,12 @@ function cells {
   done
 }
 
+# Manager cell + workload cells above
+function all_cells {
+  echo "mngr $(cells)"
+}
+
+# List the first ${WLCNT} workload clusters
 function clusters {
   local count=0
   for CELL in "${!CELLS[@]}"; do
@@ -48,12 +55,7 @@ function clusters {
   done
 }
 
-# Manager + first ${WLCNT} workload cells
-function all_cells {
-  echo "mngr $(cells)"
-}
-
-# Manager + workload clusters (the universe of kind clusters)
+# Manager cluster + workload clusters above
 function all_clusters {
   echo "${MNGR} $(clusters)"
 }

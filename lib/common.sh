@@ -7,16 +7,21 @@
 export MNGR="mnger-1"
 export DOMAIN="demo.lab"
 export PASS='meshlab123'
+export SECTIONS=()
 
-# Define cells and clusters
+# Define workload cells and their clusters
 declare -A CELLS=(
-  [mngr]=${MNGR}
   [pasta]="pasta-1 pasta-2"
   [pizza]="pizza-1 pizza-2"
 )
 
-# Runnable sections (in order)
-export SECTIONS=()
+# Reverse map (cluster -> cell), covers manager + all workload clusters
+# shellcheck disable=SC2034 # used by bin/meshlab
+declare -A CELL_OF=(
+  [${MNGR}]=mngr
+  [pasta-1]=pasta [pasta-2]=pasta
+  [pizza-1]=pizza [pizza-2]=pizza
+)
 
 # Colors
 CYAN='\e[1;36m'
@@ -24,27 +29,35 @@ DIM='\e[2m'
 RST='\e[0m'
 
 #------------------------------------------------------------------------------
-# List cells and clusters
+# List the first ${WLCNT} workload cells (or their clusters)
 #------------------------------------------------------------------------------
 
-function list {
-
+# List the first ${WLCNT} workload cells
+function cells {
   local count=0
-  local limit="${3:-0}"
-
-  for CELL in "${!CELLS[@]}"; do
-
-    [[ "${2}" == "wkld" && "${CELL}" == "mngr" ]] && continue
-    [[ "${CELL}" != "mngr" ]] && ((count++))
-    [[ "${limit}" -gt 0 && "${count}" -gt "${limit}" ]] && break
-
-    case $1 in
-      "cells")
-        echo -n "${CELL} " ;;
-      "clusters")
-        echo -n "${CELLS[${CELL}]} " ;;
-    esac
+  for cell in "${!CELLS[@]}"; do
+    ((++count > ${WLCNT:-1})) && break
+    echo -n "${cell} "
   done
+}
+
+# Manager cell + workload cells above
+function all_cells {
+  echo "mngr $(cells)"
+}
+
+# List the first ${WLCNT} workload clusters
+function clusters {
+  local count=0
+  for cell in "${!CELLS[@]}"; do
+    ((++count > ${WLCNT:-1})) && break
+    echo -n "${CELLS[${cell}]} "
+  done
+}
+
+# Manager cluster + workload clusters above
+function all_clusters {
+  echo "${MNGR} $(clusters)"
 }
 
 #------------------------------------------------------------------------------
@@ -186,8 +199,8 @@ declare -gxA IP; IP_INIT=false
 
 function ensure-ips {
   [[ "${IP_INIT}" == true ]] && return 0
-  for CLUSTER in $(list clusters all "${WLCNT}"); do
-    IP[${CLUSTER}]=$(docker inspect "${CLUSTER}-control-plane" |
+  for cluster in $(all_clusters); do
+    IP[${cluster}]=$(docker inspect "${cluster}-control-plane" |
       jq -r '.[].NetworkSettings.Networks.kind.IPAddress')
   done; IP_INIT=true
 }

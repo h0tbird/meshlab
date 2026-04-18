@@ -8,9 +8,8 @@ export MNGR="mnger-1"
 export DOMAIN="demo.lab"
 export PASS='meshlab123'
 
-# Define cells and clusters
+# Define workload cells and their clusters (mngr is tracked separately via ${MNGR})
 declare -A CELLS=(
-  [mngr]=${MNGR}
   [pasta]="pasta-1 pasta-2"
   [pizza]="pizza-1 pizza-2"
 )
@@ -186,7 +185,7 @@ declare -gxA IP; IP_INIT=false
 
 function ensure-ips {
   [[ "${IP_INIT}" == true ]] && return 0
-  for CLUSTER in $(list clusters all "${WLCNT}"); do
+  for CLUSTER in ${MNGR} $(list clusters wkld "${WLCNT}"); do
     IP[${CLUSTER}]=$(docker inspect "${CLUSTER}-control-plane" |
       jq -r '.[].NetworkSettings.Networks.kind.IPAddress')
   done; IP_INIT=true

@@ -15,15 +15,13 @@ declare -A CELLS=(
   [pizza]="pizza-1 pizza-2"
 )
 
-# Manager + workload cells (cell -> space-separated clusters)
-declare -A ALL_CELLS=( [mngr]="${MNGR}" )
-for _c in "${!CELLS[@]}"; do ALL_CELLS[${_c}]="${CELLS[${_c}]}"; done; unset _c
-
 # Reverse map (cluster -> cell), covers manager + all workload clusters
-declare -A CELL_OF
-for _c in "${!ALL_CELLS[@]}"; do
-  for _x in ${ALL_CELLS[${_c}]}; do CELL_OF[${_x}]=${_c}; done
-done; unset _c _x
+# shellcheck disable=SC2034 # used by bin/meshlab
+declare -A CELL_OF=(
+  [${MNGR}]=mngr
+  [pasta-1]=pasta [pasta-2]=pasta
+  [pizza-1]=pizza [pizza-2]=pizza
+)
 
 # Colors
 CYAN='\e[1;36m'

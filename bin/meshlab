@@ -798,16 +798,49 @@ deploy-workloads() {
   -f ../istio/samples/helloworld/helloworld.yaml
   kubectl --context "kind-pasta-1" -n sample label svc helloworld istio.io/global=true --overwrite
 
-  # while sleep 1; do kubectl exec --context kind-pasta-1 -n sample -c curl deployments/curl \
-  # -- curl -sS helloworld.sample:5000/hello; done
-
   # helloworld-v2
   kubectl --context "kind-pasta-2" -n sample apply -l version=v2 \
   -f ../istio/samples/helloworld/helloworld.yaml
   kubectl --context "kind-pasta-2" -n sample label svc helloworld istio.io/global=true --overwrite
 
-  # while sleep 1; do kubectl exec --context kind-pasta-2 -n sample -c curl deployments/curl \
+  # Deploy waypoint proxy and configure locality failover on every workload cluster.
+  for CLUSTER in $(list clusters wkld "${WLCNT}"); do (
+    istioctl --context "kind-${CLUSTER}" waypoint apply \
+      --name waypoint --for service -n sample --wait
+
+    kubectl --context "kind-${CLUSTER}" -n sample \
+      label svc helloworld istio.io/use-waypoint=waypoint --overwrite
+
+    kubectl --context "kind-${CLUSTER}" -n sample \
+      label svc waypoint istio.io/global=true --overwrite
+
+    kubectl --context "kind-${CLUSTER}" -n sample apply -f - <<- EOF
+		apiVersion: networking.istio.io/v1
+		kind: DestinationRule
+		metadata:
+		  name: helloworld
+		spec:
+		  host: helloworld.sample.svc.cluster.local
+		  trafficPolicy:
+		    outlierDetection:
+		      consecutive5xxErrors: 1
+		      interval: 1s
+		      baseEjectionTime: 1m
+		    loadBalancer:
+		      simple: ROUND_ROBIN
+		      localityLbSetting:
+		        enabled: true
+		        failoverPriority:
+		          - topology.istio.io/cluster
+		EOF
+  ) & done; join
+
+  # Verify locality failover (traffic should stay local: v1 on pasta-1, v2 on pasta-2):
+  # while sleep 1; do kubectl exec --context kind-pasta-1 -n sample -c curl deployments/curl \
   # -- curl -sS helloworld.sample:5000/hello; done
+  #
+  # Simulate outage to trigger failover to pasta-2:
+  # kubectl --context kind-pasta-1 -n sample scale --replicas=0 deployment/helloworld-v1
 
 }; SECTIONS+=( deploy-workloads )
 

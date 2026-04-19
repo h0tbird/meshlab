@@ -385,10 +385,11 @@ register-argocd-clusters() {
   argocd context "${MNGR}" 2> /dev/null || {
 
     # Get the external LoadBalancer IP
-    ARGOCD_IP=$(getExtIP "${MNGR}" argocd argocd-server)
+    local argocd_ip
+    argocd_ip=$(getExtIP "${MNGR}" argocd argocd-server)
 
     # Login to ArgoCD
-    argocd login "${ARGOCD_IP}" \
+    argocd login "${argocd_ip}" \
       --plaintext \
       --name "${MNGR}" \
       --username admin \
@@ -396,6 +397,7 @@ register-argocd-clusters() {
 
     # Add clusters with labels
     for cluster in $(clusters); do
+      local cell
       cell=${CELL_OF[${cluster}]}
       argocd cluster list | grep -q "${cluster}" || \
       argocd cluster add -y "kind-${cluster}" \

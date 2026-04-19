@@ -303,10 +303,12 @@ setup-coredns() {
   blue "───[ CoreDNS ]──────────────────────────────────────────────────────────"
 
   # Get the external LoadBalancer IP (blocks until ready)
-  MNGR_EXDNS_IP=$(getExtIP "${MNGR}" kube-system exdns-k8s-gateway)
+  local mngr_exdns_ip
+  mngr_exdns_ip=$(getExtIP "${MNGR}" kube-system exdns-k8s-gateway)
 
   # Configure CoreDNS
   for cluster in $(all_clusters); do (
+    local cell
     cell=${CELL_OF[${cluster}]}
 
     kubectl --context "kind-${cluster}" -n kube-system create cm coredns \
@@ -335,7 +337,7 @@ setup-coredns() {
       loadbalance
     }
     ${DOMAIN}:53 {
-      forward . ${MNGR_EXDNS_IP}
+      forward . ${mngr_exdns_ip}
     }" | kubectl --context "kind-${cluster}" -n kube-system apply -f - 2>/dev/null
 
     # Restart otherwise it takes a while to pick up the new config

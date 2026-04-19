@@ -682,12 +682,12 @@ grafana-git-sync() {
   }
 
   # Create ephemeral directory (cleaned up on exit, even on failure)
-  local REPO_DIR
-  REPO_DIR=$(mktemp -d)
-  trap 'rm -rf "${REPO_DIR}"; trap - RETURN' RETURN
+  local repo_dir
+  repo_dir=$(mktemp -d)
+  trap 'rm -rf "${repo_dir}"; trap - RETURN' RETURN
 
   # Create the Repository resource YAML
-  cat > "${REPO_DIR}/repository.yaml" <<- EOF
+  cat > "${repo_dir}/repository.yaml" <<- EOF
 	apiVersion: provisioning.grafana.app/v0alpha1
 	kind: Repository
 	metadata:
@@ -726,7 +726,7 @@ grafana-git-sync() {
 	EOF
 
   # Push the repository resource using grafanactl
-  grafanactl resources push --path "${REPO_DIR}"
+  grafanactl resources push --path "${repo_dir}"
 }; SECTIONS+=( grafana-git-sync )
 
 #------------------------------------------------------------------------------

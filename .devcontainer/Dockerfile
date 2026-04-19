@@ -16,8 +16,10 @@ ENV PATH=/workspaces/meshlab/bin:${PATH}
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # Shared curl flags for all downloads: fail loud on HTTP errors,
-# follow redirects, and retry on transient/HTTP failures.
-ENV CURL="curl -fsSL --retry 5 --retry-all-errors --retry-delay 2 --connect-timeout 10"
+# follow redirects, and retry on transient/HTTP failures. Uses curl's
+# built-in exponential backoff (no --retry-delay) capped by --retry-max-time
+# so transient CDN incidents (e.g. GitHub 5xx) don't fail the build too fast.
+ENV CURL="curl -fsSL --retry 8 --retry-all-errors --retry-max-time 120 --connect-timeout 10"
 
 # Architecture helper: archmap <arm64_value> <amd64_value>
 # Exits non-zero on unsupported architectures so broken downloads fail loudly.

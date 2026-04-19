@@ -70,7 +70,7 @@ RUN VERSION="v1.35.3" && ARCH=$(archmap 'arm64' 'amd64') && \
 # Install helm (https://github.com/helm/helm/releases)
 # Pin the installer script to the same tag we install for reproducibility.
 RUN VERSION="v4.1.4" && \
-    $CURL -o /tmp/get_helm.sh https://raw.githubusercontent.com/helm/helm/${VERSION}/scripts/get-helm-3 && \
+    $CURL -o /tmp/get_helm.sh https://raw.githubusercontent.com/helm/helm/${VERSION}/scripts/get-helm-4 && \
     chmod 700 /tmp/get_helm.sh && /tmp/get_helm.sh --version ${VERSION} && rm -f /tmp/get_helm.sh && \
     echo "source <(helm completion zsh)" >> /etc/zsh/zshrc
 

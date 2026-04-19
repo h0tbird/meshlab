@@ -251,29 +251,30 @@ install-clustermesh() {
   for cell in $(cells); do (
 
     # Get the clusters of the cell
-    IFS=" " read -r -a CLUSTERS <<< "${CELLS[${cell}]}"
+    local clusters_arr
+    IFS=" " read -r -a clusters_arr <<< "${CELLS[${cell}]}"
 
     # Return early if already running
-    kubectl --context "kind-${CLUSTERS[0]}" -n kube-system get deploy clustermesh-apiserver 2>/dev/null &&
-    kubectl --context "kind-${CLUSTERS[1]}" -n kube-system get deploy clustermesh-apiserver 2>/dev/null &&
+    kubectl --context "kind-${clusters_arr[0]}" -n kube-system get deploy clustermesh-apiserver 2>/dev/null &&
+    kubectl --context "kind-${clusters_arr[1]}" -n kube-system get deploy clustermesh-apiserver 2>/dev/null &&
     exit 0
 
     # Shared certificate authority
-    kubectl --context "kind-${CLUSTERS[0]}" -n kube-system get secret cilium-ca -o yaml |
-    kubectl --context "kind-${CLUSTERS[1]}" -n kube-system replace --force -f -; echo
+    kubectl --context "kind-${clusters_arr[0]}" -n kube-system get secret cilium-ca -o yaml |
+    kubectl --context "kind-${clusters_arr[1]}" -n kube-system replace --force -f -; echo
 
     # Enable ClusterMesh
-    cilium clustermesh enable --context "kind-${CLUSTERS[0]}" --service-type LoadBalancer &
-    cilium clustermesh enable --context "kind-${CLUSTERS[1]}" --service-type LoadBalancer &
+    cilium clustermesh enable --context "kind-${clusters_arr[0]}" --service-type LoadBalancer &
+    cilium clustermesh enable --context "kind-${clusters_arr[1]}" --service-type LoadBalancer &
     join
 
     # Wait for ClusterMesh API server and TLS certs to be ready
-    cilium clustermesh status --context "kind-${CLUSTERS[0]}" --wait 2>&1 | grep -v 'Trying\|Waiting\|^$' &
-    cilium clustermesh status --context "kind-${CLUSTERS[1]}" --wait 2>&1 | grep -v 'Trying\|Waiting\|^$' &
+    cilium clustermesh status --context "kind-${clusters_arr[0]}" --wait 2>&1 | grep -v 'Trying\|Waiting\|^$' &
+    cilium clustermesh status --context "kind-${clusters_arr[1]}" --wait 2>&1 | grep -v 'Trying\|Waiting\|^$' &
     join
 
     # Connect
-    cilium clustermesh connect --context "kind-${CLUSTERS[0]}" --destination-context "kind-${CLUSTERS[1]}"
+    cilium clustermesh connect --context "kind-${clusters_arr[0]}" --destination-context "kind-${clusters_arr[1]}"
   ) & done; join
 }; SECTIONS+=( install-clustermesh )
 
@@ -302,10 +303,12 @@ setup-coredns() {
   blue "───[ CoreDNS ]──────────────────────────────────────────────────────────"
 
   # Get the external LoadBalancer IP (blocks until ready)
-  MNGR_EXDNS_IP=$(getExtIP "${MNGR}" kube-system exdns-k8s-gateway)
+  local mngr_exdns_ip
+  mngr_exdns_ip=$(getExtIP "${MNGR}" kube-system exdns-k8s-gateway)
 
   # Configure CoreDNS
   for cluster in $(all_clusters); do (
+    local cell
     cell=${CELL_OF[${cluster}]}
 
     kubectl --context "kind-${cluster}" -n kube-system create cm coredns \
@@ -334,7 +337,7 @@ setup-coredns() {
       loadbalance
     }
     ${DOMAIN}:53 {
-      forward . ${MNGR_EXDNS_IP}
+      forward . ${mngr_exdns_ip}
     }" | kubectl --context "kind-${cluster}" -n kube-system apply -f - 2>/dev/null
 
     # Restart otherwise it takes a while to pick up the new config
@@ -382,10 +385,11 @@ register-argocd-clusters() {
   argocd context "${MNGR}" 2> /dev/null || {
 
     # Get the external LoadBalancer IP
-    ARGOCD_IP=$(getExtIP "${MNGR}" argocd argocd-server)
+    local argocd_ip
+    argocd_ip=$(getExtIP "${MNGR}" argocd argocd-server)
 
     # Login to ArgoCD
-    argocd login "${ARGOCD_IP}" \
+    argocd login "${argocd_ip}" \
       --plaintext \
       --name "${MNGR}" \
       --username admin \
@@ -393,6 +397,7 @@ register-argocd-clusters() {
 
     # Add clusters with labels
     for cluster in $(clusters); do
+      local cell
       cell=${CELL_OF[${cluster}]}
       argocd cluster list | grep -q "${cluster}" || \
       argocd cluster add -y "kind-${cluster}" \
@@ -652,13 +657,14 @@ istio-endpoint-discovery() {
   blue "───[ Istio remote secrets ]─────────────────────────────────────────────"
 
   for cell in $(cells); do (
-    IFS=" " read -r -a CLUSTERS <<< "${CELLS[${cell}]}"
+    local clusters_arr
+    IFS=" " read -r -a clusters_arr <<< "${CELLS[${cell}]}"
     istioctl --kubeconfig ~/.kube/config.in-cluster create-remote-secret \
-      --context "kind-${CLUSTERS[0]}" --name="${CLUSTERS[0]}" | \
-      kubectl --context "kind-${CLUSTERS[1]}" apply -f -
+      --context "kind-${clusters_arr[0]}" --name="${clusters_arr[0]}" | \
+      kubectl --context "kind-${clusters_arr[1]}" apply -f -
     istioctl --kubeconfig ~/.kube/config.in-cluster create-remote-secret \
-      --context "kind-${CLUSTERS[1]}" --name="${CLUSTERS[1]}" | \
-      kubectl --context "kind-${CLUSTERS[0]}" apply -f -
+      --context "kind-${clusters_arr[1]}" --name="${clusters_arr[1]}" | \
+      kubectl --context "kind-${clusters_arr[0]}" apply -f -
   ) & done; join
 }; SECTIONS+=( istio-endpoint-discovery )
 
@@ -676,12 +682,12 @@ grafana-git-sync() {
   }
 
   # Create ephemeral directory (cleaned up on exit, even on failure)
-  local REPO_DIR
-  REPO_DIR=$(mktemp -d)
-  trap 'rm -rf "${REPO_DIR}"; trap - RETURN' RETURN
+  local repo_dir
+  repo_dir=$(mktemp -d)
+  trap 'rm -rf "${repo_dir}"; trap - RETURN' RETURN
 
   # Create the Repository resource YAML
-  cat > "${REPO_DIR}/repository.yaml" <<- EOF
+  cat > "${repo_dir}/repository.yaml" <<- EOF
 	apiVersion: provisioning.grafana.app/v0alpha1
 	kind: Repository
 	metadata:
@@ -720,7 +726,7 @@ grafana-git-sync() {
 	EOF
 
   # Push the repository resource using grafanactl
-  grafanactl resources push --path "${REPO_DIR}"
+  grafanactl resources push --path "${repo_dir}"
 }; SECTIONS+=( grafana-git-sync )
 
 #------------------------------------------------------------------------------
@@ -756,23 +762,23 @@ tilt-up() {
 
   # Git clone tilt extensions if not already done, otherwise update.
   # This prevents parallel tilt instances from cloning simultaneously.
-  TILT_EXT_DIR="/root/.local/share/tilt-dev/tilt_modules/github.com/tilt-dev/tilt-extensions"
-  if [ -d "${TILT_EXT_DIR}" ]; then git -C "${TILT_EXT_DIR}" pull --ff-only
-  else git clone https://github.com/tilt-dev/tilt-extensions "${TILT_EXT_DIR}"; fi
+  local tilt_ext_dir="/root/.local/share/tilt-dev/tilt_modules/github.com/tilt-dev/tilt-extensions"
+  if [ -d "${tilt_ext_dir}" ]; then git -C "${tilt_ext_dir}" pull --ff-only
+  else git clone https://github.com/tilt-dev/tilt-extensions "${tilt_ext_dir}"; fi
 
   # Opt out of analytics
   export TILT_DISABLE_ANALYTICS=1
 
   # Start tilt for each workload cluster
-  PORT=9091; for cluster in $(clusters); do
+  local port=9091; for cluster in $(clusters); do
     if pgrep -f "tilt up --context kind-${cluster}" &>/dev/null; then
-      echo "tilt ${cluster} on port ${PORT} (running)"
+      echo "tilt ${cluster} on port ${port} (running)"
     else
-      setsid tilt up --context "kind-${cluster}" --port "${PORT}" \
+      setsid tilt up --context "kind-${cluster}" --port "${port}" \
       &> "./tmp/tilt-${cluster}.log" &
-      echo "tilt ${cluster} on port ${PORT} (started)"
+      echo "tilt ${cluster} on port ${port} (started)"
     fi
-    ((PORT++))
+    ((port++))
   done
 }; SECTIONS+=( tilt-up )
 

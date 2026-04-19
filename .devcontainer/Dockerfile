@@ -39,7 +39,7 @@ RUN echo 'dind() { docker -H unix:///var/run/docker.sock "$@" }' >> /etc/zsh/zsh
     echo "compdef _docker dind dood" >> /etc/zsh/zshrc
 
 # Enable zsh completion for the meshlab CLI (bin/meshlab)
-RUN echo "source /workspaces/meshlab/bin/completions/_meshlab.zsh" >> /etc/zsh/zshrc
+RUN echo "source <(meshlab completion zsh)" >> /etc/zsh/zshrc
 
 # Install Go (https://go.dev/dl/)
 RUN VERSION="1.26.2" && ARCH=$(archmap 'arm64' 'amd64') && \

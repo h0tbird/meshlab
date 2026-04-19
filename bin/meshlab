@@ -137,7 +137,7 @@ create-clusters() {
 
   # Create the clusters
   for cluster in $(all_clusters); do (
-    kind --kubeconfig ~/.kube/config.host get clusters 2>/dev/null | grep -q "${cluster}" || {
+    kind get clusters 2>/dev/null | grep -qx "${cluster}" || {
       kind --kubeconfig ~/.kube/config.host create cluster --name "${cluster}" --config "./tmp/kind-${CELL_OF[${cluster}]}.yaml" -q
     }
   ) & done; join
@@ -248,7 +248,7 @@ install-cilium() {
       get deploy cilium-operator 2>/dev/null && exit 0
 
     # Install (also installs Gateway API CRDs)
-    cilium install --context "kind-${cluster}" --wait \
+    retry cilium install --context "kind-${cluster}" --wait \
       --version "v${CILIUM_CHART_VERSION}" \
       --values ./charts/cilium/values.yaml \
       --values ./charts/cilium/values/"${cluster}".yaml \
@@ -811,7 +811,7 @@ deploy-workloads() {
   # swarmctl --context 'pasta-*|pizza-*' i --yes --istio-revision stable --image-tag main
   # swarmctl --context 'pasta-*|pizza-*' w 1:2 --yes --istio-revision stable --image-tag main
 
-  for CLUSTER in $(list clusters wkld "${WLCNT}"); do
+  for CLUSTER in $(clusters); do
     kubectl --context "kind-${CLUSTER}" create ns sample \
     --dry-run=client -o yaml | kubectl --context "kind-${CLUSTER}" apply -f -
     kubectl --context "kind-${CLUSTER}" label ns sample istio.io/dataplane-mode=ambient --overwrite
@@ -831,7 +831,7 @@ deploy-workloads() {
   kubectl --context "kind-pasta-2" -n sample label svc helloworld istio.io/global=true --overwrite
 
   # Deploy waypoint proxy and configure locality failover on every workload cluster.
-  for CLUSTER in $(list clusters wkld "${WLCNT}"); do (
+  for CLUSTER in $(clusters); do (
     istioctl --context "kind-${CLUSTER}" waypoint apply \
       --name waypoint --for service -n sample --wait
 

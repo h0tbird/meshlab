@@ -55,7 +55,7 @@ cleanup() {
 
   # Only delete clusters we created
   for cluster in $(all_clusters); do
-    kind delete cluster --name "${cluster}" 2>/dev/null || true
+    kind --kubeconfig ~/.kube/config.host delete cluster --name "${cluster}" 2>/dev/null || true
   done
 
   rm -rf ./tmp/*
@@ -137,8 +137,8 @@ create-clusters() {
 
   # Create the clusters
   for cluster in $(all_clusters); do (
-    kind get clusters 2>/dev/null | grep -q "${cluster}" || {
-      kind create cluster --name "${cluster}" --config "./tmp/kind-${CELL_OF[${cluster}]}.yaml" -q
+    kind --kubeconfig ~/.kube/config.host get clusters 2>/dev/null | grep -q "${cluster}" || {
+      kind --kubeconfig ~/.kube/config.host create cluster --name "${cluster}" --config "./tmp/kind-${CELL_OF[${cluster}]}.yaml" -q
     }
   ) & done; join
 
@@ -192,6 +192,21 @@ add-registries-to-containerd() {
 
 setup-kubeconfig() {
   blue "───[ KUBECONFIG ]───────────────────────────────────────────────────────"
+
+  # Regenerate the in-container kubeconfig as a kind-* only snapshot of the
+  # host kubeconfig (bind-mounted RW at ~/.kube/config.host). All kind
+  # invocations in this script use --kubeconfig=~/.kube/config.host, so
+  # clusters created/deleted here remain visible on the host. Inside the
+  # devcontainer, kubectl/helm/istioctl/etc. only ever see kind-* contexts.
+  yq '
+    del(.contexts[] | select(.name | test("^kind-") | not)) |
+    del(.clusters[] | select(.name | test("^kind-") | not)) |
+    del(.users[]    | select(.name | test("^kind-") | not)) |
+    .current-context = (.contexts[0].name // "")
+  ' ~/.kube/config.host > ~/.kube/config.tmp
+  mv ~/.kube/config.tmp ~/.kube/config
+  chmod 600 ~/.kube/config
+
   ensure_ips # Ensure cluster IPs are initialized
 
   # Setup an in-cluster reachable API server config
@@ -898,4 +913,5 @@ for section in "${SECTIONS[@]}"; do measure "${section}"; done
 
 summary="$(human_time "${SECONDS}"), $(human_bytes "$(( $(net_bytes) - NET_START ))")"
 pad=$(printf '─%.0s' $(seq 1 $((57 - ${#summary}))))
-echo -e "\n${CYAN}───[ Done in ${RST}${DIM}${summary}${RST}${CYAN} ]${pad}${RST}\n"
+printf '\n%b───[ Done in %b%s%b%b ]%s%b\n\n' \
+  "${CYAN}" "${RST}${DIM}" "${summary}" "${RST}" "${CYAN}" "${pad}" "${RST}"

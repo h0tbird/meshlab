@@ -1,6 +1,6 @@
 # See (https://mcr.microsoft.com/en-us/artifact/mar/devcontainers/base/about)
 # See (https://github.com/devcontainers/images/tree/main/src/base-ubuntu)
-FROM mcr.microsoft.com/devcontainers/base:ubuntu
+FROM mcr.microsoft.com/devcontainers/base:ubuntu-24.04
 
 # Labels
 LABEL "org.opencontainers.image.title"="Meshlab's devcontainer"
@@ -16,8 +16,10 @@ ENV PATH=/workspaces/meshlab/bin:${PATH}
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # Shared curl flags for all downloads: fail loud on HTTP errors,
-# follow redirects, and retry on transient/HTTP failures.
-ENV CURL="curl -fsSL --retry 5 --retry-all-errors --retry-delay 2 --connect-timeout 10"
+# follow redirects, and retry on transient/HTTP failures. Uses curl's
+# built-in exponential backoff (no --retry-delay) capped by --retry-max-time
+# so transient CDN incidents (e.g. GitHub 5xx) don't fail the build too fast.
+ENV CURL="curl -fsSL --retry 8 --retry-all-errors --retry-max-time 120 --connect-timeout 10"
 
 # Architecture helper: archmap <arm64_value> <amd64_value>
 # Exits non-zero on unsupported architectures so broken downloads fail loudly.
@@ -25,19 +27,26 @@ RUN printf '#!/bin/sh\ncase "$(arch)" in aarch64) echo "$1";; x86_64) echo "$2";
     chmod +x /usr/local/bin/archmap
 
 # Install base packages
-RUN apt update && \
-    apt install -y --no-install-recommends \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
     curl jq iputils-ping dnsutils neovim socat \
     netcat-openbsd apache2-utils shellcheck \
-    python3 ripgrep && \
-    apt autoremove -y && apt clean -y && \
+    python3 ripgrep locales && \
+    locale-gen en_US.UTF-8 && \
+    apt-get clean -y && \
     rm -rf /var/lib/apt/lists/* && \
     chmod -x /etc/update-motd.d/*
 
-# Set zsh as default shell
+# Set zsh as default shell.
+# DOCKER_API_VERSION is exported in /etc/zsh/zprofile (login shells only)
+# rather than zshenv (every shell), and only when the docker socket exists,
+# to avoid a curl on every interactive subshell startup.
 RUN chsh -s /usr/bin/zsh root && \
     chsh -s /usr/bin/zsh vscode && \
-    echo 'export DOCKER_API_VERSION=$(curl -s --unix-socket /var/run/docker.sock http://localhost/version | jq -r .ApiVersion)' >> /etc/zsh/zshenv && \
+    printf '%s\n' \
+      'if [ -S /var/run/docker.sock ]; then' \
+      '  export DOCKER_API_VERSION=$(curl -s --unix-socket /var/run/docker.sock http://localhost/version | jq -r .ApiVersion)' \
+      'fi' >> /etc/zsh/zprofile && \
     sed -i '/^ZSH_THEME/c\ZSH_THEME="robbyrussell"' /root/.zshrc && \
     sed -i '/^ZSH_THEME/c\ZSH_THEME="robbyrussell"' /home/vscode/.zshrc
 
@@ -69,7 +78,7 @@ RUN VERSION="v1.35.3" && ARCH=$(archmap 'arm64' 'amd64') && \
 
 # Install helm (https://github.com/helm/helm/releases)
 RUN VERSION="v4.1.4" && \
-    $CURL -o /tmp/get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 && \
+    $CURL -o /tmp/get_helm.sh https://raw.githubusercontent.com/helm/helm/${VERSION}/scripts/get-helm-4 && \
     chmod 700 /tmp/get_helm.sh && /tmp/get_helm.sh --version ${VERSION} && rm -f /tmp/get_helm.sh && \
     echo "source <(helm completion zsh)" >> /etc/zsh/zshrc
 
@@ -100,13 +109,13 @@ RUN VERSION="1.29.2" && ARCH=$(archmap 'arm64' 'amd64') && \
     echo "source <(istioctl completion zsh)" >> /etc/zsh/zshrc
 
 # Install step (https://github.com/smallstep/cli/releases)
-RUN VERSION="0.30.2" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="0.30.2" && ARCH=$(archmap 'arm64' 'amd64') && cd /tmp && \
     $CURL -O https://dl.smallstep.com/gh-release/cli/gh-release-header/v${VERSION}/step-cli_${VERSION}-1_${ARCH}.deb && \
     dpkg -i step-cli_${VERSION}-1_${ARCH}.deb && rm -f step-cli_${VERSION}-1_${ARCH}.deb && \
     echo "source <(step completion zsh)" >> /etc/zsh/zshrc
 
 # Install gh (https://github.com/cli/cli/releases)
-RUN VERSION="2.89.0" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="2.89.0" && ARCH=$(archmap 'arm64' 'amd64') && cd /tmp && \
     $CURL -O https://github.com/cli/cli/releases/download/v${VERSION}/gh_${VERSION}_linux_${ARCH}.deb && \
     dpkg -i gh_${VERSION}_linux_${ARCH}.deb && rm -f gh_${VERSION}_linux_${ARCH}.deb && \
     echo "source <(gh completion -s zsh)" >> /etc/zsh/zshrc

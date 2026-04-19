@@ -795,6 +795,7 @@ tilt-up() {
     else
       setsid tilt up --context "kind-${cluster}" --port "${port}" \
       &> "./tmp/tilt-${cluster}.log" &
+      disown
       echo "tilt ${cluster} on port ${port} (started)"
     fi
     ((port++))

@@ -11,12 +11,17 @@ LABEL "org.opencontainers.image.source"="https://github.com/h0tbird/meshlab/tree
 ENV LOCALE=en_US.UTF-8 LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 ENV PATH=/workspaces/meshlab/bin:${PATH}
 
+# Use bash with pipefail so failures in piped commands (curl | tar, etc.) are
+# surfaced instead of silently ignored.
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 # Shared curl flags for all downloads: fail loud on HTTP errors,
 # follow redirects, and retry on transient/HTTP failures.
 ENV CURL="curl -fsSL --retry 5 --retry-all-errors --retry-delay 2 --connect-timeout 10"
 
 # Architecture helper: archmap <arm64_value> <amd64_value>
-RUN printf '#!/bin/sh\ncase "$(arch)" in aarch64) echo "$1";; x86_64) echo "$2";; esac\n' > /usr/local/bin/archmap && \
+# Exits non-zero on unsupported architectures so broken downloads fail loudly.
+RUN printf '#!/bin/sh\ncase "$(arch)" in aarch64) echo "$1";; x86_64) echo "$2";; *) echo "archmap: unsupported arch $(arch)" >&2; exit 1;; esac\n' > /usr/local/bin/archmap && \
     chmod +x /usr/local/bin/archmap
 
 # Install base packages
@@ -127,7 +132,7 @@ RUN VERSION="0.37.1" && ARCH=$(archmap 'arm64' 'x86_64') && \
     tar -xzC /usr/local/bin tilt && echo "source <(tilt completion zsh)" >> /etc/zsh/zshrc
 
 # Install crane (https://github.com/google/go-containerregistry/releases)
-RUN VERSION="v0.21.5" && ARCH=$(archmap 'arm64' 'i386') && \
+RUN VERSION="v0.21.5" && ARCH=$(archmap 'arm64' 'x86_64') && \
     $CURL https://github.com/google/go-containerregistry/releases/download/${VERSION}/go-containerregistry_Linux_${ARCH}.tar.gz | \
     tar -xzC /usr/local/bin crane && echo "source <(crane completion zsh)" >> /etc/zsh/zshrc
 

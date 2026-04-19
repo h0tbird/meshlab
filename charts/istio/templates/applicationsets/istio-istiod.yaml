@@ -24,9 +24,9 @@ spec:
         helm:
           releaseName: istio-istiod
           valuesObject:
-          # profile: ambient
+            profile: ambient
             revision: {{ .Values.chartVersion | replace "." "-" }}
-            revisionTags: [ "stable", "canary" ]
+            revisionTags: [ "stable", "canary", "default" ]
             pilot:
             # image: ghcr.io/h0tbird/pilot:1.28.3-patch.1-dev-debug
               autoscaleEnabled: false
@@ -35,28 +35,25 @@ spec:
                 PILOT_ENABLE_WORKLOAD_ENTRY_AUTOREGISTRATION: true
                 PILOT_ENABLE_WORKLOAD_ENTRY_HEALTHCHECKS: true
                 ISTIOD_CUSTOM_HOST: {{`'istiod.{{name}}'`}}
-                ENABLE_NATIVE_SIDECARS: true
+                AMBIENT_ENABLE_MULTI_NETWORK: "true"
+                AMBIENT_ENABLE_BAGGAGE: "true"
             global:
             # hub: ghcr.io/h0tbird
             # tag: 1.28.3-patch.1-dev
               variant: "debug"
               meshID: {{`'{{metadata.labels.cell}}'`}}
-              network: {{`'{{metadata.labels.cell}}'`}}
+              network: {{`'{{name}}'`}}
               logAsJson: true
               defaultPodDisruptionBudget:
                 enabled: false
               multiCluster:
                 enabled: true
                 clusterName: {{`'{{name}}'`}}
-              proxy:
-                privileged: true
-                clusterDomain: {{`'{{metadata.labels.cell}}.local'`}}
             meshConfig:
               accessLogFile: /dev/stdout
               accessLogEncoding: JSON
               trustDomain: {{`'{{metadata.labels.cell}}.local'`}}
               defaultConfig:
-                holdApplicationUntilProxyStarts: true
                 proxyMetadata:
                   ISTIO_META_DNS_CAPTURE: "true"
                   ISTIO_META_DNS_AUTO_ALLOCATE: "true"

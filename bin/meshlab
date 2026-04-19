@@ -762,23 +762,23 @@ tilt-up() {
 
   # Git clone tilt extensions if not already done, otherwise update.
   # This prevents parallel tilt instances from cloning simultaneously.
-  TILT_EXT_DIR="/root/.local/share/tilt-dev/tilt_modules/github.com/tilt-dev/tilt-extensions"
-  if [ -d "${TILT_EXT_DIR}" ]; then git -C "${TILT_EXT_DIR}" pull --ff-only
-  else git clone https://github.com/tilt-dev/tilt-extensions "${TILT_EXT_DIR}"; fi
+  local tilt_ext_dir="/root/.local/share/tilt-dev/tilt_modules/github.com/tilt-dev/tilt-extensions"
+  if [ -d "${tilt_ext_dir}" ]; then git -C "${tilt_ext_dir}" pull --ff-only
+  else git clone https://github.com/tilt-dev/tilt-extensions "${tilt_ext_dir}"; fi
 
   # Opt out of analytics
   export TILT_DISABLE_ANALYTICS=1
 
   # Start tilt for each workload cluster
-  PORT=9091; for cluster in $(clusters); do
+  local port=9091; for cluster in $(clusters); do
     if pgrep -f "tilt up --context kind-${cluster}" &>/dev/null; then
-      echo "tilt ${cluster} on port ${PORT} (running)"
+      echo "tilt ${cluster} on port ${port} (running)"
     else
-      setsid tilt up --context "kind-${cluster}" --port "${PORT}" \
+      setsid tilt up --context "kind-${cluster}" --port "${port}" \
       &> "./tmp/tilt-${cluster}.log" &
-      echo "tilt ${cluster} on port ${PORT} (started)"
+      echo "tilt ${cluster} on port ${port} (started)"
     fi
-    ((PORT++))
+    ((port++))
   done
 }; SECTIONS+=( tilt-up )
 

@@ -109,8 +109,8 @@ RUN VERSION="v0.5.2" && ARCH=$(archmap 'aarch64' 'x86_64') && \
 
 # Install swarmctl (https://github.com/h0tbird/k-swarm/releases)
 RUN VERSION="0.3.7" && ARCH=$(archmap 'arm64' 'amd64') && \
-    wget -qO- https://github.com/h0tbird/k-swarm/releases/download/v${VERSION}/swarmctl_${VERSION}_linux_${ARCH}.tar.gz | tar -xz -C /usr/local/bin/ && \
-    chmod +x /usr/local/bin/swarmctl && echo "source <(swarmctl completion zsh)" >> /etc/zsh/zshrc
+    curl -fsSL --retry 5 --retry-all-errors https://github.com/h0tbird/k-swarm/releases/download/v${VERSION}/swarmctl_${VERSION}_linux_${ARCH}.tar.gz | \
+    tar -xzC /usr/local/bin swarmctl && echo "source <(swarmctl completion zsh)" >> /etc/zsh/zshrc
 
 # Install btop (https://github.com/aristocratos/btop/releases)
 RUN VERSION="1.4.6" && ARCH=$(archmap 'aarch64' 'x86_64') && \

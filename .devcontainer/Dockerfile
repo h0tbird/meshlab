@@ -1,6 +1,6 @@
 # See (https://mcr.microsoft.com/en-us/artifact/mar/devcontainers/base/about)
 # See (https://github.com/devcontainers/images/tree/main/src/base-ubuntu)
-FROM mcr.microsoft.com/devcontainers/base:ubuntu
+FROM mcr.microsoft.com/devcontainers/base:ubuntu-24.04
 
 # Labels
 LABEL "org.opencontainers.image.title"="Meshlab's devcontainer"
@@ -68,8 +68,9 @@ RUN VERSION="v1.35.3" && ARCH=$(archmap 'arm64' 'amd64') && \
     echo "source <(kubectl completion zsh)" >> /etc/zsh/zshrc
 
 # Install helm (https://github.com/helm/helm/releases)
+# Pin the installer script to the same tag we install for reproducibility.
 RUN VERSION="v4.1.4" && \
-    $CURL -o /tmp/get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 && \
+    $CURL -o /tmp/get_helm.sh https://raw.githubusercontent.com/helm/helm/${VERSION}/scripts/get-helm-3 && \
     chmod 700 /tmp/get_helm.sh && /tmp/get_helm.sh --version ${VERSION} && rm -f /tmp/get_helm.sh && \
     echo "source <(helm completion zsh)" >> /etc/zsh/zshrc
 
@@ -147,6 +148,8 @@ RUN VERSION="0.26.1" && ARCH=$(archmap 'aarch64' 'x86_64') && \
     tar -xzC /usr/local/bin --strip-components 1 -f - bat-v${VERSION}-${ARCH}-unknown-linux-musl/bat
 
 # Install kiali-prepare-remote-cluster.sh (https://github.com/kiali/kiali)
-RUN $CURL -o /usr/local/bin/kiali-prepare-remote-cluster.sh \
-    https://raw.githubusercontent.com/kiali/kiali/master/hack/istio/multicluster/kiali-prepare-remote-cluster.sh && \
+# Pin to a specific commit so image builds are reproducible.
+RUN KIALI_SHA="220965a679679a1fef32490899bc27897f8950bd" && \
+    $CURL -o /usr/local/bin/kiali-prepare-remote-cluster.sh \
+    https://raw.githubusercontent.com/kiali/kiali/${KIALI_SHA}/hack/istio/multicluster/kiali-prepare-remote-cluster.sh && \
     chmod +x /usr/local/bin/kiali-prepare-remote-cluster.sh

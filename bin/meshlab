@@ -830,6 +830,80 @@ publish-ports() {
 }; SECTIONS+=( publish-ports )
 
 #------------------------------------------------------------------------------
+# [i] Shell completion script (printed by `meshlab completion <shell>`)
+#------------------------------------------------------------------------------
+
+completion() {
+  case "${1:-}" in
+    zsh)
+      cat <<'EOF'
+#compdef meshlab
+#
+# Zsh completion for the `meshlab` CLI (bin/meshlab).
+#
+# Completes top-level subcommands and, for `meshlab run`, the list of
+# sections returned by `meshlab list` so completion never drifts from
+# the SECTIONS array defined in the script itself.
+
+_meshlab() {
+  local -a subcommands sections counts shells
+  local state
+
+  subcommands=(
+    'create:Create clusters and run all sections (optional WLCNT)'
+    'delete:Tear down clusters and clean up'
+    'watch:Watch cluster state via `ml short`'
+    'list:List all available sections'
+    'run:Run a single section (run <section> [count])'
+    'completion:Print shell completion script (completion <shell>)'
+  )
+
+  _arguments -C \
+    '1: :->cmd' \
+    '2: :->arg2' \
+    '3: :->arg3' \
+    && return
+
+  case $state in
+    cmd)
+      _describe -t commands 'meshlab subcommand' subcommands
+      ;;
+    arg2)
+      case ${words[2]} in
+        run)
+          sections=(${(f)"$(command meshlab list 2>/dev/null)"})
+          _describe -t sections 'section' sections
+          ;;
+        create)
+          counts=(1 2)
+          _describe -t counts 'workload count' counts
+          ;;
+        completion)
+          shells=(zsh)
+          _describe -t shells 'shell' shells
+          ;;
+      esac
+      ;;
+    arg3)
+      if [[ ${words[2]} == run ]]; then
+        counts=(1 2)
+        _describe -t counts 'workload count' counts
+      fi
+      ;;
+  esac
+}
+
+compdef _meshlab meshlab
+EOF
+      ;;
+    *)
+      echo "Usage: $(basename "$0") completion <zsh>" >&2
+      exit 1
+      ;;
+  esac
+}
+
+#------------------------------------------------------------------------------
 # [i] Validate the command line arguments
 #------------------------------------------------------------------------------
 
@@ -839,7 +913,8 @@ case "${1:-}" in
   watch) watch --color 'ml short'; exit 0 ;;
   run)  export WLCNT="${3:-1}"; measure "${2:?Usage: $0 run <section> [count]}"; exit 0 ;;
   list) printf '%s\n' "${SECTIONS[@]}"; exit 0 ;;
-  *)    echo "Usage: $(basename "$0") <create|delete|watch|list|run SECTION [count]>"; exit 1 ;;
+  completion) completion "${2:-}"; exit 0 ;;
+  *)    echo "Usage: $(basename "$0") <create|delete|watch|list|run SECTION [count]|completion <shell>>"; exit 1 ;;
 esac
 
 #------------------------------------------------------------------------------

@@ -39,7 +39,7 @@ RUN echo 'dind() { docker -H unix:///var/run/docker.sock "$@" }' >> /etc/zsh/zsh
     echo "compdef _docker dind dood" >> /etc/zsh/zshrc
 
 # Enable zsh completion for the meshlab CLI (bin/meshlab)
-RUN echo "source /workspaces/meshlab/bin/completions/_meshlab.zsh" >> /etc/zsh/zshrc
+RUN echo "source <(meshlab completion zsh)" >> /etc/zsh/zshrc
 
 # Install Go (https://go.dev/dl/)
 RUN VERSION="1.26.2" && ARCH=$(archmap 'arm64' 'amd64') && \
@@ -109,8 +109,8 @@ RUN VERSION="v0.5.2" && ARCH=$(archmap 'aarch64' 'x86_64') && \
 
 # Install swarmctl (https://github.com/h0tbird/k-swarm/releases)
 RUN VERSION="0.3.7" && ARCH=$(archmap 'arm64' 'amd64') && \
-    wget -qO- https://github.com/h0tbird/k-swarm/releases/download/v${VERSION}/swarmctl_${VERSION}_linux_${ARCH}.tar.gz | tar -xz -C /usr/local/bin/ && \
-    chmod +x /usr/local/bin/swarmctl && echo "source <(swarmctl completion zsh)" >> /etc/zsh/zshrc
+    curl -fsSL --retry 5 --retry-all-errors https://github.com/h0tbird/k-swarm/releases/download/v${VERSION}/swarmctl_${VERSION}_linux_${ARCH}.tar.gz | \
+    tar -xzC /usr/local/bin swarmctl && echo "source <(swarmctl completion zsh)" >> /etc/zsh/zshrc
 
 # Install btop (https://github.com/aristocratos/btop/releases)
 RUN VERSION="1.4.6" && ARCH=$(archmap 'aarch64' 'x86_64') && \

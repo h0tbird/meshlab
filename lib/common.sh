@@ -198,7 +198,7 @@ h0() {
 
 declare -gxA IP; IP_INIT=false
 
-ensure-ips() {
+ensure_ips() {
   [[ "${IP_INIT}" == true ]] && return 0
   for cluster in $(all_clusters); do
     IP[${cluster}]=$(docker inspect "${cluster}-control-plane" |

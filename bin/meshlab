@@ -839,4 +839,5 @@ for section in "${SECTIONS[@]}"; do measure "${section}"; done
 
 summary="$(human_time "${SECONDS}"), $(human_bytes "$(( $(net_bytes) - NET_START ))")"
 pad=$(printf '─%.0s' $(seq 1 $((57 - ${#summary}))))
-printf '\n%b───[ Done in %b%s%b%b ]%s%b\n\n' "${CYAN}" "${RST}${DIM}" "${summary}" "${RST}" "${CYAN}" "${pad}" "${RST}"
+printf '\n%b───[ Done in %b%s%b%b ]%s%b\n\n' \
+  "${CYAN}" "${RST}${DIM}" "${summary}" "${RST}" "${CYAN}" "${pad}" "${RST}"

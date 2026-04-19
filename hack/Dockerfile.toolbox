@@ -11,11 +11,11 @@ ARG VERSION=1.21.2
 
 WORKDIR /tmp/
 
-RUN apk --update add --virtual verify gpgme unzip \
+RUN apk --update add --virtual verify curl gpgme unzip \
  && PLATFORM=$(echo ${TARGETPLATFORM} | sed -e 's|/|_|g') \
- && wget https://releases.hashicorp.com/vault/${VERSION}/vault_${VERSION}_${PLATFORM}.zip \
- && wget https://releases.hashicorp.com/vault/${VERSION}/vault_${VERSION}_SHA256SUMS \
- && wget https://releases.hashicorp.com/vault/${VERSION}/vault_${VERSION}_SHA256SUMS.sig \
+ && curl -fsSL --retry 5 --retry-all-errors --retry-delay 2 --connect-timeout 10 -O https://releases.hashicorp.com/vault/${VERSION}/vault_${VERSION}_${PLATFORM}.zip \
+ && curl -fsSL --retry 5 --retry-all-errors --retry-delay 2 --connect-timeout 10 -O https://releases.hashicorp.com/vault/${VERSION}/vault_${VERSION}_SHA256SUMS \
+ && curl -fsSL --retry 5 --retry-all-errors --retry-delay 2 --connect-timeout 10 -O https://releases.hashicorp.com/vault/${VERSION}/vault_${VERSION}_SHA256SUMS.sig \
  && gpg --keyserver keyserver.ubuntu.com --recv-key 0x72D7468F \
  && gpg --verify /tmp/vault_${VERSION}_SHA256SUMS.sig \
  && cat vault_${VERSION}_SHA256SUMS | grep ${PLATFORM} | sha256sum -c \

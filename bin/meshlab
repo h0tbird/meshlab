@@ -657,13 +657,14 @@ istio-endpoint-discovery() {
   blue "───[ Istio remote secrets ]─────────────────────────────────────────────"
 
   for cell in $(cells); do (
-    IFS=" " read -r -a CLUSTERS <<< "${CELLS[${cell}]}"
+    local clusters_arr
+    IFS=" " read -r -a clusters_arr <<< "${CELLS[${cell}]}"
     istioctl --kubeconfig ~/.kube/config.in-cluster create-remote-secret \
-      --context "kind-${CLUSTERS[0]}" --name="${CLUSTERS[0]}" | \
-      kubectl --context "kind-${CLUSTERS[1]}" apply -f -
+      --context "kind-${clusters_arr[0]}" --name="${clusters_arr[0]}" | \
+      kubectl --context "kind-${clusters_arr[1]}" apply -f -
     istioctl --kubeconfig ~/.kube/config.in-cluster create-remote-secret \
-      --context "kind-${CLUSTERS[1]}" --name="${CLUSTERS[1]}" | \
-      kubectl --context "kind-${CLUSTERS[0]}" apply -f -
+      --context "kind-${clusters_arr[1]}" --name="${clusters_arr[1]}" | \
+      kubectl --context "kind-${clusters_arr[0]}" apply -f -
   ) & done; join
 }; SECTIONS+=( istio-endpoint-discovery )
 

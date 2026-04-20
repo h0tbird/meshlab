@@ -763,8 +763,10 @@ kiali-multicluster() {
   blue "───[ External kiali multi-cluster setup ]───────────────────────────────"
   ensure_ips # Ensure cluster IPs are initialized
 
+  local prepare_out=""
   for cluster in $(clusters); do
-    retry kiali-prepare-remote-cluster.sh \
+    local out
+    out=$(retry kiali-prepare-remote-cluster.sh \
       --kiali-cluster-context "kind-${MNGR}" \
       --remote-cluster-context "kind-${cluster}" \
       --view-only false \
@@ -773,10 +775,17 @@ kiali-multicluster() {
       --kiali-cluster-namespace monitoring \
       --remote-cluster-name "${cluster}" \
       --remote-cluster-url "https://${IP[${cluster}]}:6443" |
-      grep -v '^INFO:'
+      grep -v '^INFO:')
+    echo "${out}"
+    prepare_out+="${out}"$'\n'
   done
 
-  k0 -n monitoring annotate kiali kiali kiali.io/reconcile="$(date +%s)" --overwrite
+  # Only force a kiali reconcile when a remote-cluster secret was actually
+  # created. A blanket date-based annotation would trigger an unnecessary
+  # reconcile on every run.
+  if grep -qE ' created$' <<< "${prepare_out}"; then
+    k0 -n monitoring annotate kiali kiali kiali.io/reconcile="$(date +%s)" --overwrite
+  fi
 }; SECTIONS+=( kiali-multicluster )
 
 #------------------------------------------------------------------------------

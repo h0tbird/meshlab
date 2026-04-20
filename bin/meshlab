@@ -161,23 +161,28 @@ add-registries-to-containerd() {
   echo "quay.io   --> http://registry-quay.io:5000"
   echo "ghcr.io   --> http://registry-ghcr.io:5000"
 
-  # Configure containerd in all clusters
+  # Configure containerd in all clusters. Skip nodes that already have all
+  # three hosts.toml files in place; otherwise (re)write them.
   for cluster in $(all_clusters); do (
     docker exec -i "${cluster}-control-plane" bash -c '
-      mkdir -p /etc/containerd/certs.d/docker.io
-      cat <<- EOF > /etc/containerd/certs.d/docker.io/hosts.toml
+      d=/etc/containerd/certs.d
+      if [[ -f "$d/docker.io/hosts.toml" && -f "$d/quay.io/hosts.toml" && -f "$d/ghcr.io/hosts.toml" ]]; then
+        exit 0
+      fi
+      mkdir -p "$d/docker.io"
+      cat <<- EOF > "$d/docker.io/hosts.toml"
 			server = "https://registry-1.docker.io"
 			[host."http://registry-docker.io:5000"]
 			  capabilities = ["pull", "resolve"]
 			EOF
-      mkdir -p /etc/containerd/certs.d/quay.io
-      cat <<- EOF > /etc/containerd/certs.d/quay.io/hosts.toml
+      mkdir -p "$d/quay.io"
+      cat <<- EOF > "$d/quay.io/hosts.toml"
 			server = "https://quay.io"
 			[host."http://registry-quay.io:5000"]
 			  capabilities = ["pull", "resolve"]
 			EOF
-      mkdir -p /etc/containerd/certs.d/ghcr.io
-      cat <<- EOF > /etc/containerd/certs.d/ghcr.io/hosts.toml
+      mkdir -p "$d/ghcr.io"
+      cat <<- EOF > "$d/ghcr.io/hosts.toml"
 			server = "https://ghcr.io"
 			[host."http://registry-ghcr.io:5000"]
 			  capabilities = ["pull", "resolve"]

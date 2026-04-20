@@ -372,19 +372,26 @@ setup-coredns() {
 setup-argocd() {
   blue "───[ ArgoCD ]───────────────────────────────────────────────────────────"
 
-  # Install ArgoCD
-  h0 upgrade --install -n argocd --create-namespace --wait --timeout 5m \
-  argocd argo/argo-cd --version "${ARGOCD_CHART_VERSION}" \
-  --set 'server.service.type=LoadBalancer' \
-  --set 'server.extraArgs={--insecure=true}' \
-  --set configs.secret.argocdServerAdminPassword="$(htpasswd -nbBC 10 "" "${PASS}" | tr -d ':\n')" \
-  -f - <<- EOF | grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
+  # Skip the helm install entirely if ArgoCD is already deployed: re-bcrypting
+  # the same password generates a new salt and helm upgrade always creates a
+  # new revision even on a no-op manifest, neither of which we want on a
+  # re-run.
+  if helm --kube-context "kind-${MNGR}" -n argocd status argocd >/dev/null 2>&1; then
+    echo "argocd helm release already deployed, skipping install"
+  else
+    h0 upgrade --install -n argocd --create-namespace --wait --timeout 5m \
+    argocd argo/argo-cd --version "${ARGOCD_CHART_VERSION}" \
+    --set 'server.service.type=LoadBalancer' \
+    --set 'server.extraArgs={--insecure=true}' \
+    --set configs.secret.argocdServerAdminPassword="$(htpasswd -nbBC 10 "" "${PASS}" | tr -d ':\n')" \
+    -f - <<- EOF | grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
 		configs:
 		  cm:
 		    resource.customizations.ignoreDifferences.admissionregistration.k8s.io_MutatingWebhookConfiguration: |
 		      jqPathExpressions:
 		      - '.webhooks[]?.clientConfig.caBundle'
 	EOF
+  fi
 
   # Set argocd.${DOMAIN} as ext DNS name
   k0 -n argocd annotate svc argocd-server coredns.io/hostname=argocd."${DOMAIN}"

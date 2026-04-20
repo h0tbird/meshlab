@@ -332,6 +332,12 @@ install-k8s-gateway() {
   blue "───[ k8s_gateway ]──────────────────────────────────────────────────────"
 
   for cluster in $(all_clusters); do (
+    # Skip the helm upgrade when exdns is already installed; helm upgrade
+    # always creates a new revision even on a no-op manifest.
+    if helm --kube-context "kind-${cluster}" -n kube-system status exdns >/dev/null 2>&1; then
+      echo "exdns helm release already deployed on kind-${cluster}, skipping"
+      exit 0
+    fi
     retry helm --kube-context "kind-${cluster}" \
       upgrade -i exdns k8s_gateway/k8s-gateway \
       --version "${K8S_GATEWAY_CHART_VERSION}" \

@@ -203,25 +203,51 @@ setup-kubeconfig() {
   # invocations in this script use --kubeconfig=~/.kube/config.host, so
   # clusters created/deleted here remain visible on the host. Inside the
   # devcontainer, kubectl/helm/istioctl/etc. only ever see kind-* contexts.
+  #
+  # Preserve an existing current-context if it still points at a kind-*
+  # context so re-running this section does not silently switch the user's
+  # active context. Only overwrite ~/.kube/config when the rendered content
+  # differs from what's already on disk.
+  local current=""
+  if [[ -f ~/.kube/config ]]; then
+    current=$(yq '.current-context // ""' ~/.kube/config)
+  fi
   yq '
     del(.contexts[] | select(.name | test("^kind-") | not)) |
     del(.clusters[] | select(.name | test("^kind-") | not)) |
     del(.users[]    | select(.name | test("^kind-") | not)) |
     .current-context = (.contexts[0].name // "")
   ' ~/.kube/config.host > ~/.kube/config.tmp
-  mv ~/.kube/config.tmp ~/.kube/config
-  chmod 600 ~/.kube/config
+  # If the previous current-context is a kind-* context that still exists in
+  # the rendered config, keep it.
+  if [[ "${current}" == kind-* ]] && \
+     yq -e ".contexts[] | select(.name == \"${current}\") | .name" \
+        ~/.kube/config.tmp >/dev/null 2>&1; then
+    yq -i ".current-context = \"${current}\"" ~/.kube/config.tmp
+  fi
+  if [[ -f ~/.kube/config ]] && cmp -s ~/.kube/config.tmp ~/.kube/config; then
+    rm -f ~/.kube/config.tmp
+  else
+    mv ~/.kube/config.tmp ~/.kube/config
+    chmod 600 ~/.kube/config
+  fi
 
   ensure_ips # Ensure cluster IPs are initialized
 
-  # Setup an in-cluster reachable API server config
-  cp -f ~/.kube/config ~/.kube/config.in-cluster
+  # Setup an in-cluster reachable API server config. Render to a tmp file
+  # and only replace ~/.kube/config.in-cluster when the content changed.
+  cp -f ~/.kube/config ~/.kube/config.in-cluster.tmp
   for cluster in $(all_clusters); do
     echo "Server: https://${IP[${cluster}]}:6443"
-    kubectl --kubeconfig ~/.kube/config.in-cluster \
+    kubectl --kubeconfig ~/.kube/config.in-cluster.tmp \
     config set-cluster "kind-${cluster}" \
     --server="https://${IP[${cluster}]}:6443"
   done
+  if [[ -f ~/.kube/config.in-cluster ]] && cmp -s ~/.kube/config.in-cluster.tmp ~/.kube/config.in-cluster; then
+    rm -f ~/.kube/config.in-cluster.tmp
+  else
+    mv ~/.kube/config.in-cluster.tmp ~/.kube/config.in-cluster
+  fi
 }; SECTIONS+=( setup-kubeconfig )
 
 #------------------------------------------------------------------------------

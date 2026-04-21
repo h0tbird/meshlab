@@ -161,28 +161,23 @@ add-registries-to-containerd() {
   echo "quay.io   --> http://registry-quay.io:5000"
   echo "ghcr.io   --> http://registry-ghcr.io:5000"
 
-  # Configure containerd in all clusters. Skip nodes that already have all
-  # three hosts.toml files in place; otherwise (re)write them.
+  # Configure containerd in all clusters
   for cluster in $(all_clusters); do (
     docker exec -i "${cluster}-control-plane" bash -c '
-      d=/etc/containerd/certs.d
-      if [[ -f "$d/docker.io/hosts.toml" && -f "$d/quay.io/hosts.toml" && -f "$d/ghcr.io/hosts.toml" ]]; then
-        exit 0
-      fi
-      mkdir -p "$d/docker.io"
-      cat <<- EOF > "$d/docker.io/hosts.toml"
+      mkdir -p /etc/containerd/certs.d/docker.io
+      cat <<- EOF > /etc/containerd/certs.d/docker.io/hosts.toml
 			server = "https://registry-1.docker.io"
 			[host."http://registry-docker.io:5000"]
 			  capabilities = ["pull", "resolve"]
 			EOF
-      mkdir -p "$d/quay.io"
-      cat <<- EOF > "$d/quay.io/hosts.toml"
+      mkdir -p /etc/containerd/certs.d/quay.io
+      cat <<- EOF > /etc/containerd/certs.d/quay.io/hosts.toml
 			server = "https://quay.io"
 			[host."http://registry-quay.io:5000"]
 			  capabilities = ["pull", "resolve"]
 			EOF
-      mkdir -p "$d/ghcr.io"
-      cat <<- EOF > "$d/ghcr.io/hosts.toml"
+      mkdir -p /etc/containerd/certs.d/ghcr.io
+      cat <<- EOF > /etc/containerd/certs.d/ghcr.io/hosts.toml
 			server = "https://ghcr.io"
 			[host."http://registry-ghcr.io:5000"]
 			  capabilities = ["pull", "resolve"]
@@ -203,51 +198,25 @@ setup-kubeconfig() {
   # invocations in this script use --kubeconfig=~/.kube/config.host, so
   # clusters created/deleted here remain visible on the host. Inside the
   # devcontainer, kubectl/helm/istioctl/etc. only ever see kind-* contexts.
-  #
-  # Preserve an existing current-context if it still points at a kind-*
-  # context so re-running this section does not silently switch the user's
-  # active context. Only overwrite ~/.kube/config when the rendered content
-  # differs from what's already on disk.
-  local current=""
-  if [[ -f ~/.kube/config ]]; then
-    current=$(yq '.current-context // ""' ~/.kube/config)
-  fi
   yq '
     del(.contexts[] | select(.name | test("^kind-") | not)) |
     del(.clusters[] | select(.name | test("^kind-") | not)) |
     del(.users[]    | select(.name | test("^kind-") | not)) |
     .current-context = (.contexts[0].name // "")
   ' ~/.kube/config.host > ~/.kube/config.tmp
-  # If the previous current-context is a kind-* context that still exists in
-  # the rendered config, keep it.
-  if [[ "${current}" == kind-* ]] && \
-     yq -e ".contexts[] | select(.name == \"${current}\") | .name" \
-        ~/.kube/config.tmp >/dev/null 2>&1; then
-    yq -i ".current-context = \"${current}\"" ~/.kube/config.tmp
-  fi
-  if [[ -f ~/.kube/config ]] && cmp -s ~/.kube/config.tmp ~/.kube/config; then
-    rm -f ~/.kube/config.tmp
-  else
-    mv ~/.kube/config.tmp ~/.kube/config
-    chmod 600 ~/.kube/config
-  fi
+  mv ~/.kube/config.tmp ~/.kube/config
+  chmod 600 ~/.kube/config
 
   ensure_ips # Ensure cluster IPs are initialized
 
-  # Setup an in-cluster reachable API server config. Render to a tmp file
-  # and only replace ~/.kube/config.in-cluster when the content changed.
-  cp -f ~/.kube/config ~/.kube/config.in-cluster.tmp
+  # Setup an in-cluster reachable API server config
+  cp -f ~/.kube/config ~/.kube/config.in-cluster
   for cluster in $(all_clusters); do
     echo "Server: https://${IP[${cluster}]}:6443"
-    kubectl --kubeconfig ~/.kube/config.in-cluster.tmp \
+    kubectl --kubeconfig ~/.kube/config.in-cluster \
     config set-cluster "kind-${cluster}" \
     --server="https://${IP[${cluster}]}:6443"
   done
-  if [[ -f ~/.kube/config.in-cluster ]] && cmp -s ~/.kube/config.in-cluster.tmp ~/.kube/config.in-cluster; then
-    rm -f ~/.kube/config.in-cluster.tmp
-  else
-    mv ~/.kube/config.in-cluster.tmp ~/.kube/config.in-cluster
-  fi
 }; SECTIONS+=( setup-kubeconfig )
 
 #------------------------------------------------------------------------------
@@ -332,12 +301,6 @@ install-k8s-gateway() {
   blue "───[ k8s_gateway ]──────────────────────────────────────────────────────"
 
   for cluster in $(all_clusters); do (
-    # Skip the helm upgrade when exdns is already installed; helm upgrade
-    # always creates a new revision even on a no-op manifest.
-    if helm --kube-context "kind-${cluster}" -n kube-system status exdns >/dev/null 2>&1; then
-      echo "exdns helm release already deployed on kind-${cluster}, skipping"
-      exit 0
-    fi
     retry helm --kube-context "kind-${cluster}" \
       upgrade -i exdns k8s_gateway/k8s-gateway \
       --version "${K8S_GATEWAY_CHART_VERSION}" \
@@ -363,8 +326,8 @@ setup-coredns() {
     local cell
     cell=${CELL_OF[${cluster}]}
 
-    local apply_out
-    apply_out=$(kubectl --context "kind-${cluster}" -n kube-system create cm coredns \
+    local output
+    output=$(kubectl --context "kind-${cluster}" -n kube-system create cm coredns \
     --dry-run=client -o yaml --from-literal=Corefile="
     .:53 {
       errors
@@ -392,10 +355,10 @@ setup-coredns() {
     ${DOMAIN}:53 {
       forward . ${mngr_exdns_ip}
     }" | kubectl --context "kind-${cluster}" -n kube-system apply -f - 2>/dev/null)
-    echo "${apply_out}"
+    echo "${output}"
 
     # Only restart if the ConfigMap actually changed; otherwise this is a no-op.
-    if [[ "${apply_out}" != *unchanged* ]]; then
+    if [[ "${output}" != *"unchanged"* ]]; then
       kubectl --context "kind-${cluster}" -n kube-system rollout restart deployment coredns
     fi
 
@@ -409,26 +372,24 @@ setup-coredns() {
 setup-argocd() {
   blue "───[ ArgoCD ]───────────────────────────────────────────────────────────"
 
-  # Skip the helm install entirely if ArgoCD is already deployed: re-bcrypting
-  # the same password generates a new salt and helm upgrade always creates a
-  # new revision even on a no-op manifest, neither of which we want on a
-  # re-run.
-  if helm --kube-context "kind-${MNGR}" -n argocd status argocd >/dev/null 2>&1; then
-    echo "argocd helm release already deployed, skipping install"
-  else
-    h0 upgrade --install -n argocd --create-namespace --wait --timeout 5m \
-    argocd argo/argo-cd --version "${ARGOCD_CHART_VERSION}" \
-    --set 'server.service.type=LoadBalancer' \
-    --set 'server.extraArgs={--insecure=true}' \
-    --set configs.secret.argocdServerAdminPassword="$(htpasswd -nbBC 10 "" "${PASS}" | tr -d ':\n')" \
-    -f - <<- EOF | grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
+  # Return early if already running
+  h0 -n argocd status argocd >/dev/null 2>&1 \
+  && echo "ArgoCD already installed, skipping" \
+  && return 0
+
+  # Install ArgoCD
+  h0 upgrade --install -n argocd --create-namespace --wait --timeout 5m \
+  argocd argo/argo-cd --version "${ARGOCD_CHART_VERSION}" \
+  --set 'server.service.type=LoadBalancer' \
+  --set 'server.extraArgs={--insecure=true}' \
+  --set configs.secret.argocdServerAdminPassword="$(htpasswd -nbBC 10 "" "${PASS}" | tr -d ':\n')" \
+  -f - <<- EOF | grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
 		configs:
 		  cm:
 		    resource.customizations.ignoreDifferences.admissionregistration.k8s.io_MutatingWebhookConfiguration: |
 		      jqPathExpressions:
 		      - '.webhooks[]?.clientConfig.caBundle'
 	EOF
-  fi
 
   # Set argocd.${DOMAIN} as ext DNS name
   k0 -n argocd annotate svc argocd-server coredns.io/hostname=argocd."${DOMAIN}"
@@ -479,16 +440,16 @@ register-argocd-clusters() {
 
 install-applicationsets() {
   blue "───[ ApplicationSets ]──────────────────────────────────────────────────"
-
-  helm template ./charts/cilium --set "chartVersion=${CILIUM_CHART_VERSION}" | k0 apply -f -
-  helm template ./charts/prometheus --set "chartVersion=${PROMETHEUS_CHART_VERSION}" | k0 apply -f -
-  helm template ./charts/grafana --set "chartVersion=${GRAFANA_CHART_VERSION}" | k0 apply -f -
-  helm template ./charts/otel-collector --set "chartVersion=${OTEL_COLLECTOR_CHART_VERSION}" | k0 apply -f -
-  helm template ./charts/vault --set "chartVersion=${VAULT_CHART_VERSION}" | k0 apply -f -
-  helm template ./charts/cert-manager --set "chartVersion=${CERT_MANAGER_CHART_VERSION}" | k0 apply -f -
-  helm template ./charts/kubernetes-replicator --set "chartVersion=${KUBERNETES_REPLICATOR_CHART_VERSION}" | k0 apply -f -
-  helm template ./charts/istio --set "chartVersion=${ISTIO_CHART_VERSION}" | k0 apply -f -
-  helm template ./charts/kiali --set "chartVersion=${KIALI_CHART_VERSION}" | k0 apply -f -
+  helm template ./charts/cilium --set "chartVersion=${CILIUM_CHART_VERSION}" | k0 apply -f - &
+  helm template ./charts/prometheus --set "chartVersion=${PROMETHEUS_CHART_VERSION}" | k0 apply -f - &
+  helm template ./charts/grafana --set "chartVersion=${GRAFANA_CHART_VERSION}" | k0 apply -f - &
+  helm template ./charts/otel-collector --set "chartVersion=${OTEL_COLLECTOR_CHART_VERSION}" | k0 apply -f - &
+  helm template ./charts/vault --set "chartVersion=${VAULT_CHART_VERSION}" | k0 apply -f - &
+  helm template ./charts/cert-manager --set "chartVersion=${CERT_MANAGER_CHART_VERSION}" | k0 apply -f - &
+  helm template ./charts/kubernetes-replicator --set "chartVersion=${KUBERNETES_REPLICATOR_CHART_VERSION}" | k0 apply -f - &
+  helm template ./charts/istio --set "chartVersion=${ISTIO_CHART_VERSION}" | k0 apply -f - &
+  helm template ./charts/kiali --set "chartVersion=${KIALI_CHART_VERSION}" | k0 apply -f - &
+  join
 }; SECTIONS+=( install-applicationsets )
 
 #------------------------------------------------------------------------------
@@ -498,23 +459,23 @@ install-applicationsets() {
 setup-argowf() {
   blue "───[ ArgoWF ]───────────────────────────────────────────────────────────"
 
-  # Skip the helm install if Argo Workflows is already deployed; helm upgrade
-  # always creates a new revision even on a no-op manifest.
-  if helm --kube-context "kind-${MNGR}" -n argowf status argo-workflows >/dev/null 2>&1; then
-    echo "argo-workflows helm release already deployed, skipping install"
-  else
-    h0 upgrade --install -n argowf --create-namespace --wait --timeout 5m \
-      argo-workflows argo/argo-workflows --version "${ARGOWF_CHART_VERSION}" \
-      --set 'server.serviceType=LoadBalancer' \
-      --set 'server.authModes={server}' \
-      --set 'server.servicePort=80' \
-      --set 'workflow.serviceAccount.create=true' \
-      --set 'workflow.serviceAccount.name=argo-workflow' \
-      --set 'workflow.rbac.create=true' \
-      --set 'controller.workflowNamespaces={argocd}' \
-      --set-json 'workflow.rbac.rules=[{"apiGroups":["argoproj.io"],"resources":["applicationsets"],"verbs":["get","watch","patch"]}]' |
-      grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
-  fi
+  # Return early if already running
+  h0 -n argowf status argo-workflows >/dev/null 2>&1 \
+  && echo "ArgoWF already installed, skipping" \
+  && return 0
+
+  # Install Argo Workflows
+  h0 upgrade --install -n argowf --create-namespace --wait --timeout 5m \
+    argo-workflows argo/argo-workflows --version "${ARGOWF_CHART_VERSION}" \
+    --set 'server.serviceType=LoadBalancer' \
+    --set 'server.authModes={server}' \
+    --set 'server.servicePort=80' \
+    --set 'workflow.serviceAccount.create=true' \
+    --set 'workflow.serviceAccount.name=argo-workflow' \
+    --set 'workflow.rbac.create=true' \
+    --set 'controller.workflowNamespaces={argocd}' \
+    --set-json 'workflow.rbac.rules=[{"apiGroups":["argoproj.io"],"resources":["applicationsets"],"verbs":["get","watch","patch"]}]' |
+    grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
 
   # Set argowf.${DOMAIN} as ext DNS name
   k0 -n argowf annotate svc argo-workflows-server coredns.io/hostname=argowf."${DOMAIN}"
@@ -805,10 +766,8 @@ kiali-multicluster() {
   blue "───[ External kiali multi-cluster setup ]───────────────────────────────"
   ensure_ips # Ensure cluster IPs are initialized
 
-  local prepare_out=""
   for cluster in $(clusters); do
-    local out
-    out=$(retry kiali-prepare-remote-cluster.sh \
+    retry kiali-prepare-remote-cluster.sh \
       --kiali-cluster-context "kind-${MNGR}" \
       --remote-cluster-context "kind-${cluster}" \
       --view-only false \
@@ -817,17 +776,10 @@ kiali-multicluster() {
       --kiali-cluster-namespace monitoring \
       --remote-cluster-name "${cluster}" \
       --remote-cluster-url "https://${IP[${cluster}]}:6443" |
-      grep -v '^INFO:')
-    echo "${out}"
-    prepare_out+="${out}"$'\n'
+      grep -v '^INFO:'
   done
 
-  # Only force a kiali reconcile when a remote-cluster secret was actually
-  # created. A blanket date-based annotation would trigger an unnecessary
-  # reconcile on every run.
-  if grep -qE ' created$' <<< "${prepare_out}"; then
-    k0 -n monitoring annotate kiali kiali kiali.io/reconcile="$(date +%s)" --overwrite
-  fi
+  k0 -n monitoring annotate kiali kiali kiali.io/reconcile="$(date +%s)" --overwrite
 }; SECTIONS+=( kiali-multicluster )
 
 #------------------------------------------------------------------------------

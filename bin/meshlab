@@ -660,6 +660,15 @@ bootstrap-dag() {
 	          parameters:
 	          - name: selectors
 	            value: name=istio-ewgw
+	      - name: istio-ewgw-sni
+	        dependencies: [istio-istiod]
+	        templateRef:
+	          name: argocd-sync-and-wait
+	          template: argocd-sync-and-wait
+	        arguments:
+	          parameters:
+	          - name: selectors
+	            value: name=istio-ewgw-sni
 	      - name: kiali-operator
 	        dependencies:
 	        - prometheus
@@ -668,6 +677,7 @@ bootstrap-dag() {
 	        - istio-ztunnel
 	        - istio-nsgw
 	        - istio-ewgw
+	        - istio-ewgw-sni
 	        templateRef:
 	          name: argocd-sync-and-wait
 	          template: argocd-sync-and-wait

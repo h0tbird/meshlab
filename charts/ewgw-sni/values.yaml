@@ -1,0 +1,6 @@
+---
+# Network this gateway belongs to. Used for SNI host suffix in the Gateway CR.
+network: ""
+# Selector label value used by the Gateway CR to find the gateway proxy pods.
+# Must match a label set on the istio/gateway chart deployment.
+selectorLabel: istio-ewgw-sni

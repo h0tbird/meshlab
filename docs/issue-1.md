@@ -141,6 +141,19 @@ The change should be made in `charts/ewgw` (or a new sibling chart, e.g.
 `charts/istio/templates/applicationsets/istio-ewgw.yaml`. Do **not** patch the cluster
 directly — Argo CD will revert it.
 
+Implementation note: when validated locally, the new SNI gateway showed up correctly in
+istiod's `/debug/networkz` (both `pasta-1` and `pasta-2` 15443 entries appeared), but the
+sidecar's EDS for `worker.service-2.svc.cluster.local` still only contained the local
+endpoint. Possible follow-ups if this persists after deploying via Argo CD:
+
+- Add a `DestinationRule` for the cross-cluster service with
+  `trafficPolicy.tls.mode: ISTIO_MUTUAL` (or rely on a `STRICT` `PeerAuthentication`)
+  so `isMtlsEnabled(lbEp)` returns true in `EndpointsByNetworkFilter`.
+- Confirm `b.gateways().IsMultiNetworkEnabled()` is true from the sidecar's perspective
+  (an istiod restart helps after the new gateway lands).
+- Double-check that the SNI gateway Service ends up with cluster ID = its own kind
+  cluster (it should, via `topology.istio.io/cluster` auto-labeling).
+
 ### B. Move workloads to ambient
 
 Label `service-1` and `service-2` namespaces with

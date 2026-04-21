@@ -1,0 +1,66 @@
+---
+# Classic SNI east-west gateway. Sidecar workloads cannot use the ambient
+# HBONE east-west gateway (istio-ewgw) for cross-network traffic, so we
+# deploy this additional gateway exposing port 15443 with SNI
+# AUTO_PASSTHROUGH. The istio.io/network label on the Service makes istiod
+# advertise it as the network gateway for the local network.
+#
+# See docs/issue-1.md for details.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: istio-ewgw-sni
+  namespace: argocd
+spec:
+  generators:
+  - clusters:
+      selector:
+        matchLabels:
+          argocd.argoproj.io/secret-type: cluster
+  template:
+    metadata:
+      name: {{`'{{name}}-istio-ewgw-sni'`}}
+      labels:
+        name: istio-ewgw-sni
+    spec:
+      project: istio
+      sources:
+      - repoURL: https://istio-release.storage.googleapis.com/charts
+        targetRevision: {{ .Values.chartVersion }}
+        chart: gateway
+        helm:
+          releaseName: istio-ewgw-sni
+          valuesObject:
+            revision: {{ .Values.chartVersion | replace "." "-" }}
+            # Labels propagated to Deployment, Pod and Service. The
+            # `istio` label drives the Gateway CR selector. The
+            # topology.istio.io/network label tells istiod which network
+            # this gateway belongs to.
+            labels:
+              istio: istio-ewgw-sni
+              topology.istio.io/network: {{`'{{name}}'`}}
+            service:
+              type: LoadBalancer
+              ports:
+              - name: status-port
+                port: 15021
+                targetPort: 15021
+              - name: tls
+                port: 15443
+                targetPort: 15443
+            autoscaling:
+              enabled: false
+      - repoURL: https://github.com/h0tbird/meshlab.git
+        targetRevision: master
+        path: charts/ewgw-sni
+        helm:
+          releaseName: istio-ewgw-sni-cr
+          valuesObject:
+            network: {{`'{{name}}'`}}
+            selectorLabel: istio-ewgw-sni
+      destination:
+        server: {{`'{{server}}'`}}
+        namespace: istio-system
+      syncPolicy:
+        syncOptions:
+        - CreateNamespace=true

@@ -1,0 +1,30 @@
+---
+# Cross-network gateway for classic sidecars.
+#
+# Sidecars cannot use the ambient HBONE east-west gateway (no double-HBONE
+# support, see https://github.com/istio/istio/issues/57878). When istiod
+# can only find an HBONE E/W gateway for a remote network, it drops the
+# remote endpoints from the sidecar's EDS, breaking cross-cluster traffic.
+#
+# This Gateway exposes an SNI AUTO_PASSTHROUGH listener on port 15443 so
+# that classic sidecars get a non-HBONE network gateway and can route to
+# remote services in other clusters/networks.
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: cross-network-gateway
+  namespace: istio-system
+  labels:
+    topology.istio.io/network: {{ .Values.network | quote }}
+spec:
+  selector:
+    istio: {{ .Values.selectorLabel | quote }}
+  servers:
+  - port:
+      number: 15443
+      name: tls
+      protocol: TLS
+    tls:
+      mode: AUTO_PASSTHROUGH
+    hosts:
+    - "*.local"

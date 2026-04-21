@@ -326,7 +326,8 @@ setup-coredns() {
     local cell
     cell=${CELL_OF[${cluster}]}
 
-    kubectl --context "kind-${cluster}" -n kube-system create cm coredns \
+    local output
+    output=$(kubectl --context "kind-${cluster}" -n kube-system create cm coredns \
     --dry-run=client -o yaml --from-literal=Corefile="
     .:53 {
       errors
@@ -353,10 +354,13 @@ setup-coredns() {
     }
     ${DOMAIN}:53 {
       forward . ${mngr_exdns_ip}
-    }" | kubectl --context "kind-${cluster}" -n kube-system apply -f - 2>/dev/null
+    }" | kubectl --context "kind-${cluster}" -n kube-system apply -f - 2>/dev/null)
+    echo "${output}"
 
-    # Restart otherwise it takes a while to pick up the new config
-    kubectl --context "kind-${cluster}" -n kube-system rollout restart deployment coredns
+    # Only restart if the ConfigMap actually changed; otherwise this is a no-op.
+    if [[ "${output}" != *"unchanged"* ]]; then
+      kubectl --context "kind-${cluster}" -n kube-system rollout restart deployment coredns
+    fi
 
   ) & done; join
 }; SECTIONS+=( setup-coredns )
@@ -367,6 +371,11 @@ setup-coredns() {
 
 setup-argocd() {
   blue "───[ ArgoCD ]───────────────────────────────────────────────────────────"
+
+  # Return early if already running
+  h0 -n argocd status argocd >/dev/null 2>&1 \
+  && echo "ArgoCD already installed, skipping" \
+  && return 0
 
   # Install ArgoCD
   h0 upgrade --install -n argocd --create-namespace --wait --timeout 5m \
@@ -449,6 +458,11 @@ install-applicationsets() {
 
 setup-argowf() {
   blue "───[ ArgoWF ]───────────────────────────────────────────────────────────"
+
+  # Return early if already running
+  h0 -n argowf status argo-workflows >/dev/null 2>&1 \
+  && echo "ArgoWF already installed, skipping" \
+  && return 0
 
   # Install Argo Workflows
   h0 upgrade --install -n argowf --create-namespace --wait --timeout 5m \

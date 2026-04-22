@@ -824,11 +824,11 @@ deploy-workloads() {
   blue "───[ Deploy workloads ]─────────────────────────────────────────────────"
 
   # Deploy swarmctl workloads
-  # go run -C ../k-swarm ./cmd/swarmctl --context 'pasta-*|pizza-*' i --yes --istio-revision stable --image-tag main --dataplane-mode sidecar --ingress-mode none
-  # go run -C ../k-swarm ./cmd/swarmctl --context 'pasta-*|pizza-*' w 1:2 --yes --istio-revision stable --image-tag main --dataplane-mode sidecar --ingress-mode none
+  go run -C ../k-swarm ./cmd/swarmctl --context 'pasta-*|pizza-*' i --yes --istio-revision stable --image-tag main --dataplane-mode ambient --ingress-mode none
+  go run -C ../k-swarm ./cmd/swarmctl --context 'pasta-*|pizza-*' w 1:2 --yes --istio-revision stable --image-tag main --dataplane-mode ambient --ingress-mode none
 
-  swarmctl --context 'pasta-*|pizza-*' i --yes --istio-revision stable --image-tag main
-  swarmctl --context 'pasta-*|pizza-*' w 1:2 --yes --istio-revision stable --image-tag main
+  # swarmctl --context 'pasta-*|pizza-*' i --yes --istio-revision stable --image-tag main
+  # swarmctl --context 'pasta-*|pizza-*' w 1:2 --yes --istio-revision stable --image-tag main
 
   # Deploy the helloworld sample app from upstream Istio
   for CLUSTER in $(clusters); do

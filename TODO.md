@@ -1,2 +1,1 @@
-- Rename from `--worker-log-responses` to `--log-responses` in `swarmctl`.
 - Fix cluster name is reported as `kind-dev` by downward API (I think).

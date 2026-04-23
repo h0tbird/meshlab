@@ -830,7 +830,7 @@ deploy-workloads() {
 
   # Deploy swarmctl workloads
   go run -C ../k-swarm ./cmd/swarmctl --context 'pasta-*|pizza-*' i --yes --istio-revision stable --image-tag main --dataplane-mode ambient --ingress-mode none --multi-cluster
-  go run -C ../k-swarm ./cmd/swarmctl --context 'pasta-*|pizza-*' w 1:2 --yes --istio-revision stable --image-tag main --dataplane-mode ambient --ingress-mode none --multi-cluster --worker-log-responses
+  go run -C ../k-swarm ./cmd/swarmctl --context 'pasta-*|pizza-*' w 1:2 --yes --istio-revision stable --image-tag main --dataplane-mode ambient --ingress-mode none --multi-cluster --log-responses
 
   # swarmctl --context 'pasta-*|pizza-*' i --yes --istio-revision stable --image-tag main
   # swarmctl --context 'pasta-*|pizza-*' w 1:2 --yes --istio-revision stable --image-tag main

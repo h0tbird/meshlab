@@ -1,0 +1,1 @@
+- Rename from `--worker-log-responses` to `--log-responses` in `swarmctl`.

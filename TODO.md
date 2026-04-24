@@ -1,1 +1,2 @@
-- Add a flag to 'swarmctl manifest install' so that no apply is done and yaml goes to stdout.
+- Think about `clusterDomain`.
+- Remove `swarmctl manifest generate`.

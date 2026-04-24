@@ -1,2 +1,3 @@
 - Think about `clusterDomain`.
-- Remove `swarmctl manifest generate`.
+- `swarmctl manifest install` becomes the new root command
+- `swarmctl manifest dump` becomes `swarmctl dump`

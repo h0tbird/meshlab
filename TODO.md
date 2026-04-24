@@ -1,2 +1,1 @@
-- Fix cluster name is reported as `kind-dev` by downward API (I think).
-- Avoid installing Telemetry CRDs with swarmctl.
+- Add a flag to 'swarmctl manifest install' so that no apply is done and yaml goes to stdout.

@@ -1,1 +1,2 @@
 - Fix cluster name is reported as `kind-dev` by downward API (I think).
+- Avoid installing Telemetry CRDs with swarmctl.

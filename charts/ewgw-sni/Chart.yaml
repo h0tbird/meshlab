@@ -1,0 +1,5 @@
+apiVersion: v2
+name: ewgw-sni
+description: Classic SNI east-west gateway resources (cross-network Gateway CR) for sidecar multi-cluster traffic
+type: application
+version: 0.1.0

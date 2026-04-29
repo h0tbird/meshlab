@@ -79,6 +79,37 @@ RUN VERSION="X.Y.Z" && ARCH=$(archmap 'arm64' 'amd64') && \
 3. **Compare versions** and identify components needing upgrades
 4. **Present summary** showing current vs latest versions before making changes
 5. **Apply updates** preserving the formatting in each file
+6. **If the user asked for a PR**: create a branch, commit, push, and open a PR
+   (see "Creating the PR" below)
+
+## Fetching Latest Versions — Tips
+
+- **GitHub releases — prefer the `gh` CLI over `fetch_webpage`.** It is faster
+  and produces compact output. The terminal tool runs `gh` without a TTY, which
+  triggers the alternate-screen pager and returns empty output. Always disable
+  it explicitly:
+
+  ```bash
+  env GH_FORCE_TTY= GH_PAGER= PAGER=cat NO_COLOR=1 \
+      gh release list -R <owner>/<repo> -L 5
+  ```
+
+  Fetch many repos in a single command using a small shell helper to keep
+  output compact and easy to scan.
+
+- **Helm chart versions — `gh` is also faster than ArtifactHub.** The
+  ArtifactHub HTML pages are extremely large (tens of thousands of tokens of
+  changelog noise). Prefer one of these compact sources:
+  - Chart repo's `index.yaml` (e.g. `curl -sL <repo-url>/index.yaml | yq ...`)
+  - The chart's `Chart.yaml` on GitHub
+  - `gh release list` for the upstream project repo
+  Only fall back to `fetch_webpage` against ArtifactHub when no other source
+  exists.
+
+- **Latest kubectl** lives at `https://dl.k8s.io/release/stable.txt`
+  (note: `cdn.dl.k8s.io` may not resolve from the devcontainer — use `dl.k8s.io`).
+
+- **Latest Go** is in `https://go.dev/dl/?mode=json` (first entry).
 
 ## Formatting Rules
 
@@ -106,8 +137,35 @@ RUN VERSION="v0.32.0" && ARCH=$(archmap 'arm64' 'amd64') && \
 
 - **Prefer stable releases** over pre-release/alpha/beta/RC versions for all components
 - **Stay on current stable series**: When the latest version of a component is a pre-release (RC/alpha/beta), stay on the current stable major.minor series and check for the latest patch version in that series (e.g., if latest Cilium is 1.19.0-rc.1, check for the latest 1.18.x stable release)
+- **`gh release list` shows pre-releases inline** — the `Latest` label marks the
+  newest stable release; do not blindly take the first row. As of 2026-04, both
+  Istio (`1.30.0-beta.0`) and Cilium (`1.20.0-pre.1`) had pre-releases newer
+  than the latest stable.
 - **Note major version upgrades** that may introduce breaking changes
 - **Dependencies**: Some components have compatibility requirements (e.g., Kiali version should be compatible with Istio version)
+
+## Creating the PR
+
+When the user requests a PR:
+
+1. Create a branch off `master`, e.g. `upgrade-components-YYYY-MM`.
+2. Commit the changes with a structured body listing each bumped component
+   (`old -> new`), grouped by file.
+3. Push the branch.
+4. Open the PR with `gh pr create`. **The `istio/istio` repo is added as a
+   workspace remote, so `gh` may pick it as the default upstream and fail with
+   `No commits between istio:master and h0tbird:<branch>`. Always pass
+   `--repo h0tbird/meshlab --base master --head <branch>` explicitly.**
+   Also set `GH_PAGER=cat NO_COLOR=1` so the command does not open the pager.
+
+   ```bash
+   env GH_PAGER=cat NO_COLOR=1 gh pr create \
+     --repo h0tbird/meshlab --base master --head <branch> \
+     --title "Upgrade meshlab components" \
+     --body "..."
+   ```
+
+5. Use the same summary table format from "Output Format" as the PR body.
 
 ## Output Format
 

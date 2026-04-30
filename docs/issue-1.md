@@ -1,180 +1,228 @@
-# Issue 1: Cross-cluster sidecar traffic broken after switching to ambient east-west gateway
+# Issue 1: Cross-cluster sidecar/ambient connectivity in a multi-network mesh
 
-## Symptom
+## TL;DR — current status
 
-Cross-cluster traffic between sidecar-injected workloads stopped working after enabling
-ambient mode in both clusters. Specifically, `worker` in `service-1` (kind-pasta-1) can no
-longer reach `worker` in `service-2` (kind-pasta-2) (and vice versa). Local in-cluster traffic
-still works fine.
+| Direction | Cross-cluster status |
+|---|---|
+| ambient ↔ ambient | ✅ Works (HBONE EW gateway, port 15008) |
+| sidecar ↔ sidecar | ✅ Works (SNI/AUTO_PASSTHROUGH EW gateway, port 15443) |
+| ambient → remote sidecar | ❌ Not supported in Istio 1.29.x **or** 1.30.0-beta.0 — upstream [#57877](https://github.com/istio/istio/issues/57877) |
+| sidecar → remote ambient | ❌ Not supported in Istio 1.29.x **or** 1.30.0-beta.0 — upstream [#57878](https://github.com/istio/istio/issues/57878) |
 
-## Environment
+Same-cluster paths (any combination of sidecar/ambient) all work. The two ❌ rows are
+**known upstream limitations**, not a misconfiguration of this lab.
+
+## Lab topology recap
 
 - Two primary clusters in a multi-network mesh:
-  - `kind-pasta-1` — network `pasta-1`, pod CIDR `10.51.0.0/16`, EW gateway LB `172.18.0.20`
-  - `kind-pasta-2` — network `pasta-2`, pod CIDR `10.52.0.0/16`, EW gateway LB `172.18.0.21`
-- Mesh ID: `pasta`, trust domain: `pasta.local`.
-- Istio revision: `1-29-2`.
-- `istio-remote-secret-pasta-1` / `istio-remote-secret-pasta-2` exist and are accepted by
-  istiod (informers from `cluster[pasta-2]` for Pods/Services/EndpointSlices/Waypoints sync
-  successfully).
-- Ambient is enabled (ztunnel + istio-cni running), but the `service-1` / `service-2`
-  namespaces still use **classic sidecar injection** (`istio.io/rev=stable`, pods have the
-  `istio-proxy` container).
+  - `kind-pasta-1` — network `pasta-1`, pod CIDR `10.51.0.0/16`
+  - `kind-pasta-2` — network `pasta-2`, pod CIDR `10.52.0.0/16`
+- Mesh ID `pasta`, trust domain `pasta.local`, Istio revision `stable` (1.29.2).
+- k-swarm `peer` workloads deployed in four namespaces per cluster:
+  - `swarm-ambient-n1`, `swarm-ambient-n2` (ambient/ztunnel + waypoint)
+  - `swarm-sidecar-n1`, `swarm-sidecar-n2` (sidecar injection)
+- Each peer pod periodically polls `informer.swarm-informer/services` and HTTP-GETs every
+  peer it learns about. Logs (`/tmp/hops/all.log` after running the collection one-liner
+  below) carry `src` / `dst` / `http.status` for every hop.
 
-## Diagnosis
+## What was done to get to this state
 
-### 1. EDS only contains the local endpoint
+1. **Renamed** the original ambient EW gateway from `istio-eastwestgateway` to
+   `istio-eastwestgateway-ambient`
+   ([charts/ewgw/templates/gateway-ambient.yaml](../charts/ewgw/templates/gateway-ambient.yaml)).
+   It still uses `gatewayClassName: istio-east-west`, listener `HBONE/15008`,
+   `tls.mode: Terminate`, `gateway.istio.io/tls-terminate-mode: ISTIO_MUTUAL`.
+2. **Added** a sibling sidecar EW gateway `istio-eastwestgateway-sidecar`
+   ([charts/ewgw/templates/gateway-sidecar.yaml](../charts/ewgw/templates/gateway-sidecar.yaml)).
+   - `gatewayClassName: istio` (NOT `istio-east-west` — that class only accepts the
+     ambient HBONE listener).
+   - Single listener: `port: 15443`, `protocol: TLS`, `hostname: "*.local"`,
+     `tls.mode: Passthrough`.
+   - `topology.istio.io/network` label on the Gateway → istiod auto-registers the
+     resulting Service as the cross-network gateway for the local network and turns on
+     **AUTO_PASSTHROUGH** SNI routing for sidecars.
+3. **Enabled `PILOT_ENABLE_ALPHA_GATEWAY_API=true`** on istiod
+   ([charts/istio/templates/applicationsets/istio-istiod.yaml](../charts/istio/templates/applicationsets/istio-istiod.yaml)).
+   The `protocol: TLS` listener on a Gateway-API `Gateway` is alpha in 1.29.x and is
+   silently ignored without this flag (the gateway provisions but its Deployment stays
+   `Degraded` and istiod never programs an inbound 15443 listener).
+4. **Updated swarmctl** ([h0tbird/k-swarm PR #140](https://github.com/h0tbird/k-swarm/pull/140))
+   so `--multi-cluster --dataplane-mode sidecar` adds the bits needed for cross-cluster
+   sidecar discovery:
+   - The sidecar `peer` Service gets the `istio.io/global: "true"` label (required by the
+     mesh's `serviceScopeConfigs` filter; istiod won't publish the service to remote
+     clusters without it).
+   - The matching `DestinationRule` sets
+     `localityLbSetting.enabled: false` with
+     `failoverPriority: [topology.istio.io/cluster]` so cross-cluster failover is actually
+     exercised instead of always landing on the local pod.
+5. **Wired the swarmctl `--multi-cluster` flag into the lab bootstrap**
+   ([bin/meshlab](../bin/meshlab), `deploy-workloads` section) so re-creating the lab
+   produces the right config out of the box.
 
+## Current connectivity matrix (after all the changes above)
+
+Legend: ✅ observed cross-cluster traffic; ❌ rooted in an upstream architectural
+limitation (calls succeed against the local-cluster endpoint but the remote endpoint is
+filtered out of EDS).
+
+| Source ↓ \ Destination → | p1/amb-n1 | p1/amb-n2 | p1/sc-n1 | p1/sc-n2 | p2/amb-n1 | p2/amb-n2 | p2/sc-n1 | p2/sc-n2 |
+|---|---|---|---|---|---|---|---|---|
+| **p1 / ambient-n1** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| **p1 / ambient-n2** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| **p1 / sidecar-n1** | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ |
+| **p1 / sidecar-n2** | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ |
+| **p2 / ambient-n1** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **p2 / ambient-n2** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **p2 / sidecar-n1** | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **p2 / sidecar-n2** | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+
+## Why the two ❌ patterns can't be fixed (in 1.29.x or 1.30.0-beta.0)
+
+Verified by reading the source at tags `1.29.2` and `1.30.0-beta.0` (both fetched into
+`/workspaces/istio`).
+
+`pilot/pkg/xds/endpoints/ep_filters.go` `selectNetworkGateways(...)` is **identical**
+between the two versions:
+
+```go
+// If we operate in ambient multi-network mode skip gateways that don't have HBONE port
+if features.EnableAmbientMultiNetwork && !isSidecarProxy(b.proxy) {
+    // ambient (ztunnel/waypoint) only consider gateways with HBONEPort != 0
+}
+// Sidecar proxies cannot talk to ambient E/W gateway for now, so when we see an ambient
+// E/W gateway (e.g., a gateway that listens on hbone port, but does not have an mTLS port
+// we filter it out.
+if isSidecarProxy(b.proxy) {
+    // sidecar Envoys only consider gateways with Port != 0 (the 15443 mTLS one)
+}
 ```
-$ istioctl --context kind-pasta-1 -n service-1 proxy-config endpoints deploy/worker \
-    --cluster 'outbound|80||worker.service-2.svc.cluster.local'
 
-ENDPOINT             STATUS      OUTLIER CHECK     CLUSTER
-10.51.0.115:8082     HEALTHY     OK                outbound|80||worker.service-2.svc.cluster.local
+Plus a few lines earlier:
+
+```go
+// Cross-network traffic relies on mTLS for SNI routing in sidecar mode.
+if (!features.EnableAmbientMultiNetwork || isSidecarProxy(b.proxy)) && !isMtlsEnabled(lbEp) {
+    continue
+}
 ```
 
-Only the **local** pasta-1 endpoint is present. The pasta-2 endpoint is missing entirely,
-even though istiod is connected to pasta-2 and has its services in cache.
+Translated to our ❌ cases:
 
-### 2. istiod explicitly says it has no E/W gateway for the remote network
+- **sidecar src → remote ambient dst.** Sidecar Envoy is only ever pointed at the
+  15443/PASSTHROUGH EW gateway; that gateway expects the destination pod to terminate
+  Istio mTLS on the app port. Ambient pods don't — ztunnel only listens on HBONE/15008.
+  Even if we tricked the sidecar into talking to the HBONE gateway, sidecar Envoy
+  cannot speak HBONE outbound at all.
+- **ambient src → remote sidecar dst.** Ztunnel sends HBONE/double-HBONE to the ambient
+  EW gateway, which forwards HBONE to the destination's ztunnel. Sidecar pods have no
+  ztunnel and no HBONE listener. The ambient EW gateway has no logic to "downgrade"
+  HBONE to plain mTLS toward a sidecar pod.
 
-```
-{"level":"warn","scope":"ads",
- "msg":"Workload waypoint belongs to a different network (pasta-2), but no E/W gateway configured, skipping it."}
-{"level":"warn","scope":"ads",
- "msg":"Workload helloworld-v2 belongs to a different network (pasta-2), but no E/W gateway configured, skipping it."}
-```
+The 1.30 EW TLS-passthrough feature (`releasenotes/notes/ewgw-tls-passthrough.yaml`)
+**does not bridge these modes** — it adds operator-authored TLSRoute passthrough on the
+**ambient** EW gateway (motivating example: exposing the K8s API server cross-network),
+not automatic per-Service SNI plumbing the way the sidecar 15443 gateway does. So it
+cannot replace either of the two EW gateways we deploy today.
 
-Repeated continuously during xDS pushes.
+## Upstream tracking
 
-### 3. The east-west gateway is HBONE-only
+| # | Title | What it covers |
+|---|---|---|
+| [istio#57878](https://github.com/istio/istio/issues/57878) | "Sidecar sees Ambient E/W Gateway, can't communicate" | Our `sidecar → remote ambient` ❌. Maintainer @krinkinmu confirms it's deferred until pure-ambient multi-network stabilizes. PR [#58131](https://github.com/istio/istio/pull/58131) is a partial fix (filter ambient EW gateways out of sidecar EDS) — not a real bridge. |
+| [istio#57877](https://github.com/istio/istio/issues/57877) | "Sidecar global services cause tcp reset" | Our `ambient → remote sidecar` ❌ when the sidecar Service is labeled `istio.io/global=true`. |
+| [istio#54921](https://github.com/istio/istio/issues/54921) | "Sidecars cannot send HBONE to headless services handled by ztunnel" | Same root cause, single-cluster variant. @howardjohn has a prototype patch (unmerged) extending `BestEffortInferServiceMTLSMode` with an `HBONE` option. |
+| [istio#51445](https://github.com/istio/istio/issues/51445) | "Tracking issue for sidecar -> waypoint interop" | Umbrella tracking for sidecar↔ambient migration interop. |
+| [istio#42137](https://github.com/istio/istio/issues/42137) | "Support Single Network Multicluster for Ambient" | Adjacent ambient multi-cluster evolution. |
 
-`charts/ewgw/templates/gateway.yaml` (introduced by commit `bf10f6e03c`,
-"Ambient multi-cluster multi-network multi-primary"):
+## Possible (operator-authored) workarounds — not implemented
 
-```yaml
-apiVersion: gateway.networking.k8s.io/v1
-kind: Gateway
-metadata:
-  name: istio-eastwestgateway
-  namespace: istio-system
-  labels:
-    topology.istio.io/network: <network>
-spec:
-  gatewayClassName: istio-east-west
-  listeners:
-  - name: mesh
-    port: 15008
-    protocol: HBONE
-    tls:
-      mode: Terminate
-      options:
-        gateway.istio.io/tls-terminate-mode: ISTIO_MUTUAL
-```
+- **Put a waypoint in front of the sidecar Service** in the destination cluster. Then
+  ambient sources can reach the sidecar workload via HBONE → ambient EW gateway →
+  waypoint, and the waypoint re-originates plain mTLS to the sidecar pod. This unlocks
+  the `ambient src → remote sidecar dst` direction only. (See
+  `EnableAmbientWaypointMultiNetwork`, on by default in 1.29.x.)
+- **No symmetric workaround** exists for `sidecar src → remote ambient dst`. The only
+  real options are (a) move the source workload to ambient, or (b) wait for a future
+  upstream feature that lets sidecars egress through the ambient HBONE EW gateway.
 
-Resulting Service:
-
-```
-$ kubectl -n istio-system get svc istio-eastwestgateway -o wide
-NAME                    TYPE           CLUSTER-IP     EXTERNAL-IP   PORT(S)
-istio-eastwestgateway   LoadBalancer   10.96.80.237   172.18.0.20   15021:31535/TCP,15008:32712/TCP
-```
-
-There is **no** `15443 / TLS / AUTO_PASSTHROUGH` listener — the listener that classic sidecars
-need for cross-network traffic.
-
-The previous chart (replaced in `bf10f6e03c`) was the upstream `istio/gateway` chart with
-ports `15443 / 15012 / 15017 / 15021`, which is why cross-cluster traffic used to work.
-
-### 4. Why istiod silently drops the remote endpoint
-
-This is a known limitation in 1.29. From
-`istio/tests/integration/ambient/baseline_test.go`:
-
-> Currently sidecars cannot talk to ambient endpoints on a remote network.
->
-> Sidecars can't use double-HBONE and therefore cannot use ambient E/W gateways. And if we
-> filter out all the ambient gateways, due to an old bug/feature, EDS generation code, when
-> it can't find any E/W gateways for an endpoint, it just assumes that it's directly
-> reachable and does not even try to use HBONE — this is not correct.
->
-> See https://github.com/istio/istio/issues/57878
-
-So istiod:
-
-1. Sees the remote workload `worker.service-2` in `pasta-2`.
-2. Looks for a non-HBONE network gateway for `pasta-2` to put into the sidecar's EDS.
-3. Finds only an HBONE gateway, which sidecars can't use.
-4. Drops the endpoint from the sidecar's EDS and emits the
-   `"... belongs to a different network ..., but no E/W gateway configured, skipping it."`
-   warning.
-
-That leaves only the local pasta-1 endpoint, matching what we observed.
-
-## Root cause
-
-Commit `bf10f6e03c` swapped the classic SNI east-west gateway (port 15443
-AUTO_PASSTHROUGH) for an ambient HBONE-only Gateway-API gateway (port 15008). The new
-gateway is correct for ambient/ztunnel traffic but incompatible with classic sidecars,
-which still inject in `service-1` and `service-2`. As a result, all cross-cluster
-sidecar-to-sidecar traffic loses its remote endpoints.
-
-## Fix options
-
-### A. Re-add a classic SNI east-west gateway alongside the HBONE one (recommended)
-
-Deploy the upstream `istio/gateway` Helm chart (or an equivalent
-`Deployment` + `Service` + `networking.istio.io/v1 Gateway`) in `istio-system` with:
-
-- Service ports: `15021` (status), `15443` (TLS pass-through), `15012` (XDS), `15017` (webhook).
-- A `networking.istio.io/v1 Gateway` with a `*.local` host on port 15443,
-  `tls.mode: AUTO_PASSTHROUGH`.
-- Service label `topology.istio.io/network=<network>` so istiod discovers it as the
-  network gateway for that network.
-
-Keep the existing HBONE gateway for ambient. Once istiod sees a non-HBONE network gateway
-for `pasta-2`, the remote endpoint will reappear in the sidecar's EDS as
-`<gateway_ip>:15443` with SNI routing, and traffic will work again.
-
-The change should be made in `charts/ewgw` (or a new sibling chart, e.g.
-`charts/ewgw-sni`) and exposed via a new ApplicationSet next to
-`charts/istio/templates/applicationsets/istio-ewgw.yaml`. Do **not** patch the cluster
-directly — Argo CD will revert it.
-
-### B. Move workloads to ambient
-
-Label `service-1` and `service-2` namespaces with
-`istio.io/dataplane-mode=ambient` and stop injecting sidecars (remove the
-`istio.io/rev=stable` label). Ambient workloads can use the existing HBONE EW gateway
-through ztunnel without further changes.
-
-## Useful commands used during investigation
+## Useful commands
 
 ```sh
-# List clusters and EW gateways
-for c in kind-pasta-1 kind-pasta-2; do
-  kubectl --context $c -n istio-system get svc istio-eastwestgateway --show-labels
+# Refresh peer hop logs
+mkdir -p /tmp/hops
+for ctx in kind-pasta-1 kind-pasta-2; do
+  for ns in swarm-ambient-n1 swarm-ambient-n2 swarm-sidecar-n1 swarm-sidecar-n2; do
+    pod=$(kubectl --context $ctx -n $ns get pod -l app=peer -o name | head -1)
+    [ -z "$pod" ] && continue
+    echo "=== $ctx/$ns/$pod ==="
+    kubectl --context $ctx -n $ns logs $pod -c peer --tail=300 2>/dev/null \
+      || kubectl --context $ctx -n $ns logs $pod --tail=300
+  done
+done > /tmp/hops/all.log 2>&1
+
+# Aggregate into a (src cluster|ns) -> (dst cluster|ns) = http.status table
+grep -oE '"src": \{"cluster":"[^"]+","node":"[^"]+","namespace":"[^"]+"[^}]*\}, "dst": \{"cluster":"[^"]+","node":"[^"]+","namespace":"[^"]+"[^}]*\}, "http": \{"status":[0-9]+' /tmp/hops/all.log \
+  | sed -E 's/.*"src": \{"cluster":"([^"]+)".*"namespace":"([^"]+)".*"dst": \{"cluster":"([^"]+)".*"namespace":"([^"]+)".*"status":([0-9]+).*/\1|\2 -> \3|\4 = \5/' \
+  | sort | uniq -c
+
+# Verify the swarmctl multi-cluster bits made it onto the sidecar peer Services / DRs
+for ctx in kind-pasta-1 kind-pasta-2; do
+  for ns in swarm-sidecar-n1 swarm-sidecar-n2; do
+    echo "=== $ctx/$ns ==="
+    kubectl --context $ctx -n $ns get svc peer -o jsonpath='{.metadata.labels}'; echo
+    kubectl --context $ctx -n $ns get destinationrule -o yaml | grep -A4 localityLbSetting
+  done
 done
 
-# Check multi-cluster secrets
-for c in kind-pasta-1 kind-pasta-2; do
-  kubectl --context $c -n istio-system get secrets -l istio/multiCluster=true
+# Check that the two EW gateways exist and are Healthy
+for ctx in kind-pasta-1 kind-pasta-2; do
+  kubectl --context $ctx -n istio-system get gateway,svc | \
+    grep -E 'istio-eastwestgateway-(ambient|sidecar)'
 done
 
-# Check EDS for the remote service from a sidecar workload
-istioctl --context kind-pasta-1 -n service-1 proxy-config endpoints deploy/worker \
-  --cluster 'outbound|80||worker.service-2.svc.cluster.local'
-
-# Look for the smoking-gun warning in istiod logs
-kubectl --context kind-pasta-1 -n istio-system logs deploy/istiod-1-29-2 \
-  | grep -i 'different network'
+# Look for the multi-network EDS warning in istiod logs (should be quiet for sidecar
+# services now; will still appear for ambient->sidecar / sidecar->ambient remote pairs)
+kubectl --context kind-pasta-1 -n istio-system logs deploy/istiod-stable \
+  | grep -i 'different network\|no reachable E/W gateway'
 ```
+
+## History (what changed since the original write-up)
+
+The original version of this document described the regression introduced by commit
+`bf10f6e03c` ("Ambient multi-cluster multi-network multi-primary (#28)"), which replaced
+the upstream classic `istio/gateway` (15443/AUTO_PASSTHROUGH) with an ambient-only HBONE
+gateway. Steps that were taken since then (in chronological order):
+
+1. Built a connectivity matrix from `/tmp/hops/all.log`. Initial state: only ambient↔ambient
+   cross-cluster worked; everything else was local-only.
+2. Renamed the original gateway to `istio-eastwestgateway-ambient` and added a sibling
+   `istio-eastwestgateway-sidecar`. First attempt used `gatewayClassName: istio-east-west`
+   which silently rejected the TLS listener — fixed by switching to `gatewayClassName: istio`.
+3. Hit a `Degraded` Deployment on the new sidecar gateway. Root cause: the `protocol: TLS`
+   listener is alpha in 1.29.x. Fixed by enabling `PILOT_ENABLE_ALPHA_GATEWAY_API=true`
+   on istiod. Both gateways then went `Healthy`.
+4. Updated swarmctl ([PR #140](https://github.com/h0tbird/k-swarm/pull/140)) to add
+   `--multi-cluster` for the sidecar dataplane mode → labels Service with
+   `istio.io/global=true` and configures `localityLbSetting` for cross-cluster failover.
+   Re-deployed peers.
+5. Re-ran the matrix. **NEW:** sidecar↔sidecar cross-cluster works. Remaining ❌ are the
+   two cross-mode cross-cluster cells.
+6. Inspected Istio 1.29.2 source then diffed against 1.30.0-beta.0 (370 commits, 63
+   release notes). Confirmed `selectNetworkGateways` is unchanged and the cross-mode gap
+   is still architectural in 1.30.0-beta.0.
+7. Searched open Istio issues. Found upstream issues
+   [#57877](https://github.com/istio/istio/issues/57877) and
+   [#57878](https://github.com/istio/istio/issues/57878) tracking exactly these two
+   cells. Both labeled `feature/Multi-cluster` + `area/ambient`, both deferred.
 
 ## References
 
-- Upstream issue: https://github.com/istio/istio/issues/57878
-- Test that documents the limitation:
-  `istio/tests/integration/ambient/baseline_test.go` (search for
-  "Sidecars can't use double-HBONE").
-- Commit that introduced the regression: `bf10f6e03c`
-  "Ambient multi-cluster multi-network multi-primary (#28)".
+- [charts/ewgw/templates/gateway-ambient.yaml](../charts/ewgw/templates/gateway-ambient.yaml)
+- [charts/ewgw/templates/gateway-sidecar.yaml](../charts/ewgw/templates/gateway-sidecar.yaml)
+- [charts/istio/templates/applicationsets/istio-istiod.yaml](../charts/istio/templates/applicationsets/istio-istiod.yaml)
+- [bin/meshlab](../bin/meshlab) — `deploy-workloads` section
+- Upstream code paths verified: `pilot/pkg/xds/endpoints/ep_filters.go`,
+  `pilot/pkg/networking/core/cluster.go`, `pilot/pkg/serviceregistry/kube/conversion.go`,
+  `pilot/pkg/features/ambient.go`.
+- k-swarm PR with the multi-cluster bits: <https://github.com/h0tbird/k-swarm/pull/140>.

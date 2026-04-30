@@ -34,6 +34,11 @@ spec:
                 AUTO_RELOAD_PLUGIN_CERTS: true
                 PILOT_ENABLE_WORKLOAD_ENTRY_AUTOREGISTRATION: true
                 PILOT_ENABLE_WORKLOAD_ENTRY_HEALTHCHECKS: true
+                # Required for the sidecar east-west Gateway: the istio
+                # GatewayClass treats Gateway-API "TLS" listeners as alpha
+                # in 1.29.x, so PASSTHROUGH cross-network listeners on 15443
+                # are otherwise rejected with UnsupportedProtocol.
+                PILOT_ENABLE_ALPHA_GATEWAY_API: "true"
                 ISTIOD_CUSTOM_HOST: {{`'istiod.{{name}}'`}}
                 AMBIENT_ENABLE_MULTI_NETWORK: "true"
                 AMBIENT_ENABLE_BAGGAGE: "true"

@@ -1,8 +1,13 @@
 ---
+# East-west gateway for ambient-mode workloads.
+#
+# Ambient uses HBONE (HTTP/2 CONNECT tunneling mTLS) on port 15008 with
+# TLS.Mode=Terminate so the ztunnel/waypoint can decapsulate and forward
+# traffic to local workloads.
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
-  name: istio-eastwestgateway
+  name: istio-eastwestgateway-ambient
   namespace: istio-system
   labels:
     topology.istio.io/network: {{ .Values.network | quote }}

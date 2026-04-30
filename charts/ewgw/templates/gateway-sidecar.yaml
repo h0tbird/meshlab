@@ -1,0 +1,27 @@
+---
+# East-west gateway for sidecar-based workloads.
+#
+# Sidecars cannot use the HBONE listener used by ambient (port 15008,
+# TLS.Mode=Terminate). For multi-network multi-primary discovery, sidecars
+# expect a TLS listener on port 15443 with mode Passthrough so that istiod
+# can publish remote endpoints with SNI auto-passthrough routing.
+#
+# A Service labeled topology.istio.io/network=<network> that listens on
+# port 15443 is the signal pilot uses to register the gateway as a cross-
+# network gateway for sidecar mTLS.
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: istio-eastwestgateway-sidecar
+  namespace: istio-system
+  labels:
+    topology.istio.io/network: {{ .Values.network | quote }}
+spec:
+  gatewayClassName: istio-east-west
+  listeners:
+  - name: cross-network
+    hostname: "*.local"
+    port: 15443
+    protocol: TLS
+    tls:
+      mode: Passthrough

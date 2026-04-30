@@ -4,11 +4,22 @@
 <details><summary><b>Option A</b>: Local Development (VS Code)</summary>
 <p>
 
+Make sure the **Dev Containers** extension is installed in **VS Code**, then
+either use the `make code` shortcut:
+
+```console
+make -C ~/path/to/meshlab code
+```
+
+This builds the correct `vscode-remote://dev-container+<hex>/...` URI and
+opens the workspace attached to the dev container in one step.
+
+Alternatively, do it manually:
+
 1. Open the repository in **VS Code**.
-2. Make sure the **Dev Containers** extension is installed.
-3. Run: `Dev Containers: Reopen in Container`
-4. Run: `File: Open Workspace from File...`
-5. Select: `meshlab.code-workspace`
+2. Run: `Dev Containers: Reopen in Container`
+3. Run: `File: Open Workspace from File...`
+4. Select: `meshlab.code-workspace`
 
 </p>
 </details>
@@ -101,6 +112,7 @@ Development Targets
   istio-images     Build Istio images.
   istio-charts     Build Istio charts.
   istio-labels     Add labels to Istio images.
+  code             Open the meshlab workspace in VS Code (run from host).
 ```
 
 ---

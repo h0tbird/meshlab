@@ -119,3 +119,15 @@ istio-labels: ## Add labels to Istio images.
 		crane mutate ${ISTIO_HUB}/$${target}:${ISTIO_TAG} \
 			--label org.opencontainers.image.source=${ISTIO_SOURCE}; \
 	done
+
+#------------------------------------------------------------------------------
+# Open this workspace in VS Code attached to the dev container. Must be run
+# from the host (not inside the dev container) so that $(CURDIR) resolves to
+# the host path that the Dev Containers extension expects.
+#------------------------------------------------------------------------------
+
+.PHONY: code
+code: ## Open the meshlab workspace in VS Code (run from host).
+	@host="$$(cd $(CURDIR) && pwd -P)"; \
+	hex="$$(printf %s "$$host" | xxd -p -c 256)"; \
+	code --file-uri "vscode-remote://dev-container+$${hex}/workspaces/meshlab/meshlab.code-workspace"

@@ -15,9 +15,17 @@ metadata:
   name: istio-eastwestgateway-sidecar
   namespace: istio-system
   labels:
+    # Used by pilot to register this Service as the cross-network gateway
+    # for the local network. Combined with port 15443 (DefaultNetworkGatewayPort),
+    # it triggers AUTO_PASSTHROUGH SNI routing for sidecar-to-remote-cluster
+    # mTLS. See pilot/pkg/serviceregistry/kube/conversion.go IsAutoPassthrough.
     topology.istio.io/network: {{ .Values.network | quote }}
 spec:
-  gatewayClassName: istio-east-west
+  # Note: NOT istio-east-west. The istio-east-west GatewayClass only accepts
+  # the ambient HBONE/Terminate listener on 15008 and rejects everything else.
+  # The regular istio GatewayClass is what upstream uses for sidecar east-west
+  # (see istio testdata/eastwest.yaml).
+  gatewayClassName: istio
   listeners:
   - name: cross-network
     hostname: "*.local"

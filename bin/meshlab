@@ -828,10 +828,12 @@ tilt-up() {
 deploy-workloads() {
   blue "───[ Deploy workloads ]─────────────────────────────────────────────────"
 
-  # Deploy swarmctl workloads
+  # Deploy swarmctl ambient workloads
   go run -C ../k-swarm ./cmd/swarmctl --context 'pasta-*|pizza-*' i --yes --istio-revision stable --image-tag main --dataplane-mode ambient --ingress-mode none --multi-cluster
   go run -C ../k-swarm ./cmd/swarmctl --context 'pasta-*|pizza-*' w 1:2 --yes --istio-revision stable --image-tag main --dataplane-mode ambient --ingress-mode none --multi-cluster --log-responses
 
+  # Deploy swarmctl sidecar workloads
+  go run -C ../k-swarm ./cmd/swarmctl --context 'pasta-*|pizza-*' w 1:2 --yes --istio-revision stable --image-tag main --dataplane-mode sidecar --ingress-mode none --log-responses
 }; SECTIONS+=( deploy-workloads )
 
 #------------------------------------------------------------------------------

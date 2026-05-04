@@ -887,11 +887,16 @@ _meshlab() {
     return
   fi
 
-  case ${words[2]} in
+  # Shift past the subcommand so inner _arguments sees a clean command line.
+  local sub=${words[2]}
+  (( CURRENT-- ))
+  words=( "${words[1]}" "${words[@]:2}" )
+
+  case $sub in
     create)
       _arguments \
-        '--cell-count[Number of workload cells]:count:(1 2)' \
-        '--network-mode[Istio network topology]:mode:(multi single)'
+        '*--cell-count[Number of workload cells]:count:(1 2)' \
+        '*--network-mode[Istio network topology]:mode:(multi single)'
       ;;
     run)
       _arguments \

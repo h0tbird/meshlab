@@ -45,13 +45,17 @@ cleanup() {
   docker kill $(docker ps -f "name=kindccm" -q) 2>/dev/null || true
   argocd context --delete "${MNGR}" 2>/dev/null || true
 
-  # Tear down whichever of our clusters kind currently knows about.
-  local known=" ${MNGR} ${CELLS[*]} "
+  # Intersection of clusters kind knows about and clusters we own.
+  local known=" ${MNGR} ${CELLS[*]} " ours=()
   while read -r cluster; do
-    [[ " ${known} " == *" ${cluster} "* ]] || continue
-    pkill -f "tilt up --context kind-${cluster}" 2>/dev/null || true
-    kind --kubeconfig ~/.kube/config.host delete cluster --name "${cluster}" 2>/dev/null || true
+    [[ " ${known} " == *" ${cluster} "* ]] && ours+=("${cluster}")
   done < <(kind --kubeconfig ~/.kube/config.host get clusters 2>/dev/null)
+
+  # Stop tilt for each, then delete them all in one kind invocation.
+  for cluster in "${ours[@]}"; do
+    pkill -f "tilt up --context kind-${cluster}" 2>/dev/null || true
+  done
+  (( ${#ours[@]} )) && kind --kubeconfig ~/.kube/config.host delete clusters "${ours[@]}" 2>/dev/null || true
 
   # Only kill socat tunnels we started from publish()
   pkill -f 'socat TCP-LISTEN:[0-9]+,fork TCP:' 2>/dev/null || true

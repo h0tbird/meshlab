@@ -452,7 +452,7 @@ install-applicationsets() {
   helm template ./charts/vault --set "chartVersion=${VAULT_CHART_VERSION}" | k0 "${ssa[@]}" &
   helm template ./charts/cert-manager --set "chartVersion=${CERT_MANAGER_CHART_VERSION}" | k0 "${ssa[@]}" &
   helm template ./charts/kubernetes-replicator --set "chartVersion=${KUBERNETES_REPLICATOR_CHART_VERSION}" | k0 "${ssa[@]}" &
-  helm template ./charts/istio --set "chartVersion=${ISTIO_CHART_VERSION}" | k0 "${ssa[@]}" &
+  helm template ./charts/istio --set "chartVersion=${ISTIO_CHART_VERSION}" --set "networkMode=${NETWORK_MODE}" | k0 "${ssa[@]}" &
   helm template ./charts/kiali --set "chartVersion=${KIALI_CHART_VERSION}" | k0 "${ssa[@]}" &
   join
 }; SECTIONS+=( install-applicationsets )
@@ -931,6 +931,24 @@ EOF
 # [i] Validate the command line arguments
 #------------------------------------------------------------------------------
 
+# Strip global flags (currently just --network-mode) before the subcommand so
+# the existing positional dispatch below stays unchanged. Default mode is
+# `multi` to preserve backwards compatibility with PR #28.
+export NETWORK_MODE="multi"
+ARGS=()
+while (($#)); do
+  case "$1" in
+    --network-mode=*) NETWORK_MODE="${1#*=}"; shift ;;
+    --network-mode)   NETWORK_MODE="${2:?--network-mode requires a value}"; shift 2 ;;
+    *)                ARGS+=("$1"); shift ;;
+  esac
+done
+case "${NETWORK_MODE}" in
+  multi|single) ;;
+  *) echo "Invalid --network-mode '${NETWORK_MODE}' (expected: multi|single)" >&2; exit 1 ;;
+esac
+set -- "${ARGS[@]}"
+
 case "${1:-}" in
   create) export WLCNT="${2:-1}" ;;
   delete) cleanup; exit 0 ;;
@@ -938,7 +956,7 @@ case "${1:-}" in
   run)  export WLCNT="${3:-1}"; measure "${2:?Usage: $0 run <section> [count]}"; exit 0 ;;
   list) printf '%s\n' "${SECTIONS[@]}"; exit 0 ;;
   completion) completion "${2:-}"; exit 0 ;;
-  *)    echo "Usage: $(basename "$0") <create|delete|watch|list|run SECTION [count]|completion <shell>>"; exit 1 ;;
+  *)    echo "Usage: $(basename "$0") [--network-mode=multi|single] <create|delete|watch|list|run SECTION [count]|completion <shell>>"; exit 1 ;;
 esac
 
 #------------------------------------------------------------------------------

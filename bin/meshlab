@@ -947,14 +947,16 @@ export NETWORK_MODE=multi
 _uint()  { [[ "$1" =~ ^[0-9]+$ ]]            || { echo "expected non-negative integer, got '$1'" >&2; exit 1; }; }
 _oneof() { local v=$1; shift; [[ " $* " == *" $v "* ]] || { echo "expected one of: $*, got '$v'" >&2; exit 1; }; }
 
+parse_create_args() {
+  while (($#)); do case "$1" in
+    --cell-count)   _uint  "${2:-}";              CELL_COUNT=$2;   shift 2 ;;
+    --network-mode) _oneof "${2:-}" multi single; NETWORK_MODE=$2; shift 2 ;;
+    *) echo "unknown create flag: $1" >&2; exit 1 ;;
+  esac; done
+}
+
 case "${1:-}" in
-  create)
-    shift
-    while (($#)); do case "$1" in
-      --cell-count)   _uint  "${2:-}";              CELL_COUNT=$2;   shift 2 ;;
-      --network-mode) _oneof "${2:-}" multi single; NETWORK_MODE=$2; shift 2 ;;
-      *) echo "unknown create flag: $1" >&2; exit 1 ;;
-    esac; done ;;
+  create)     shift; parse_create_args "$@" ;;
   delete)     cleanup; exit 0 ;;
   watch)      watch --color 'ml short'; exit 0 ;;
   run)        export CELL_COUNT="${3:-1}"; measure "${2:?Usage: $0 run <section> [count]}"; exit 0 ;;

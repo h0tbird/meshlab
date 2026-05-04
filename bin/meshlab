@@ -874,7 +874,7 @@ _meshlab() {
   local state
 
   subcommands=(
-    'create:Create clusters and run all sections (optional WLCNT)'
+    'create:Create clusters and run all sections (optional WLCNT and --network-mode)'
     'delete:Tear down clusters and clean up'
     'watch:Watch cluster state via `ml short`'
     'list:List all available sections'
@@ -931,32 +931,35 @@ EOF
 # [i] Validate the command line arguments
 #------------------------------------------------------------------------------
 
-# Strip global flags (currently just --network-mode) before the subcommand so
-# the existing positional dispatch below stays unchanged. Default mode is
-# `multi` to preserve backwards compatibility with PR #28.
-export NETWORK_MODE="multi"
-ARGS=()
-while (($#)); do
-  case "$1" in
-    --network-mode=*) NETWORK_MODE="${1#*=}"; shift ;;
-    --network-mode)   NETWORK_MODE="${2:?--network-mode requires a value}"; shift 2 ;;
-    *)                ARGS+=("$1"); shift ;;
+# `create` accepts an optional positional [count] and an optional
+# `--network-mode <multi|single>` flag (default `multi`, matching PR #28).
+parse_create_args() {
+  export WLCNT=1
+  export NETWORK_MODE="multi"
+  while (($#)); do
+    case "$1" in
+      --network-mode)
+        NETWORK_MODE="${2:?--network-mode requires a value}"; shift 2 ;;
+      [0-9]*)
+        WLCNT="$1"; shift ;;
+      *)
+        echo "Unknown create argument: $1" >&2; exit 1 ;;
+    esac
+  done
+  case "${NETWORK_MODE}" in
+    multi|single) ;;
+    *) echo "Invalid --network-mode '${NETWORK_MODE}' (expected: multi|single)" >&2; exit 1 ;;
   esac
-done
-case "${NETWORK_MODE}" in
-  multi|single) ;;
-  *) echo "Invalid --network-mode '${NETWORK_MODE}' (expected: multi|single)" >&2; exit 1 ;;
-esac
-set -- "${ARGS[@]}"
+}
 
 case "${1:-}" in
-  create) export WLCNT="${2:-1}" ;;
+  create) shift; parse_create_args "$@" ;;
   delete) cleanup; exit 0 ;;
   watch) watch --color 'ml short'; exit 0 ;;
   run)  export WLCNT="${3:-1}"; measure "${2:?Usage: $0 run <section> [count]}"; exit 0 ;;
   list) printf '%s\n' "${SECTIONS[@]}"; exit 0 ;;
   completion) completion "${2:-}"; exit 0 ;;
-  *)    echo "Usage: $(basename "$0") [--network-mode=multi|single] <create|delete|watch|list|run SECTION [count]|completion <shell>>"; exit 1 ;;
+  *)    echo "Usage: $(basename "$0") <create [count] [--network-mode multi|single]|delete|watch|list|run SECTION [count]|completion <shell>>"; exit 1 ;;
 esac
 
 #------------------------------------------------------------------------------

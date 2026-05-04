@@ -939,38 +939,28 @@ EOF
 # [i] Validate the command line arguments
 #------------------------------------------------------------------------------
 
-# `create` accepts two optional flags:
-#   --cell-count <N>               number of workload cells (default 1)
-#   --network-mode <multi|single>  Istio network topology (default multi)
-parse_create_args() {
-  export CELL_COUNT=1
-  export NETWORK_MODE="multi"
-  while (($#)); do
-    case "$1" in
-      --cell-count)
-        CELL_COUNT="${2:?--cell-count requires a value}"; shift 2 ;;
-      --network-mode)
-        NETWORK_MODE="${2:?--network-mode requires a value}"; shift 2 ;;
-      *)
-        echo "Unknown create argument: $1" >&2; exit 1 ;;
-    esac
-  done
-  [[ "${CELL_COUNT}" =~ ^[0-9]+$ ]] \
-    || { echo "Invalid --cell-count '${CELL_COUNT}' (expected a non-negative integer)" >&2; exit 1; }
-  case "${NETWORK_MODE}" in
-    multi|single) ;;
-    *) echo "Invalid --network-mode '${NETWORK_MODE}' (expected: multi|single)" >&2; exit 1 ;;
-  esac
-}
+# Defaults for `create` flags.
+export CELL_COUNT=1
+export NETWORK_MODE=multi
+
+# Tiny validators (assert, with a friendly error).
+_uint()  { [[ "$1" =~ ^[0-9]+$ ]]            || { echo "expected non-negative integer, got '$1'" >&2; exit 1; }; }
+_oneof() { local v=$1; shift; [[ " $* " == *" $v "* ]] || { echo "expected one of: $*, got '$v'" >&2; exit 1; }; }
 
 case "${1:-}" in
-  create) shift; parse_create_args "$@" ;;
-  delete) cleanup; exit 0 ;;
-  watch) watch --color 'ml short'; exit 0 ;;
-  run)  export CELL_COUNT="${3:-1}"; measure "${2:?Usage: $0 run <section> [count]}"; exit 0 ;;
-  list) printf '%s\n' "${SECTIONS[@]}"; exit 0 ;;
+  create)
+    shift
+    while (($#)); do case "$1" in
+      --cell-count)   _uint  "${2:-}";              CELL_COUNT=$2;   shift 2 ;;
+      --network-mode) _oneof "${2:-}" multi single; NETWORK_MODE=$2; shift 2 ;;
+      *) echo "unknown create flag: $1" >&2; exit 1 ;;
+    esac; done ;;
+  delete)     cleanup; exit 0 ;;
+  watch)      watch --color 'ml short'; exit 0 ;;
+  run)        export CELL_COUNT="${3:-1}"; measure "${2:?Usage: $0 run <section> [count]}"; exit 0 ;;
+  list)       printf '%s\n' "${SECTIONS[@]}"; exit 0 ;;
   completion) completion "${2:-}"; exit 0 ;;
-  *)    echo "Usage: $(basename "$0") <create [--cell-count N] [--network-mode multi|single]|delete|watch|list|run SECTION [count]|completion <shell>>"; exit 1 ;;
+  *) echo "Usage: $(basename "$0") <create [--cell-count N] [--network-mode multi|single]|delete|watch|list|run SECTION [count]|completion <shell>>"; exit 1 ;;
 esac
 
 #------------------------------------------------------------------------------

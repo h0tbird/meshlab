@@ -958,11 +958,11 @@ parse_create_args() {
 
 # Main case statement for top-level subcommands. Each subcommand is responsible for validating its own arguments (if any).
 case "${1:-}" in
-  create)     shift; parse_create_args "$@" ;;
-  delete)     cleanup; exit 0 ;;
-  watch)      watch --color 'ml short'; exit 0 ;;
-  run)        export CELL_COUNT="${3:-1}"; measure "${2:?Usage: $0 run <section> [count]}"; exit 0 ;;
-  list)       printf '%s\n' "${SECTIONS[@]}"; exit 0 ;;
+  create) shift; parse_create_args "$@" ;;
+  delete) cleanup; exit 0 ;;
+  watch) watch --color 'ml short'; exit 0 ;;
+  run) export CELL_COUNT="${3:-1}"; measure "${2:?Usage: $0 run <section> [count]}"; exit 0 ;;
+  list) printf '%s\n' "${SECTIONS[@]}"; exit 0 ;;
   completion) completion "${2:-}"; exit 0 ;;
   *) echo "Usage: $(basename "$0") <create [--cell-count N] [--network-mode multi|single]|delete|watch|list|run SECTION [count]|completion <shell>>"; exit 1 ;;
 esac

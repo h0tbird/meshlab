@@ -878,7 +878,7 @@ _meshlab() {
     'delete:Tear down clusters and clean up'
     'watch:Watch cluster state via `ml short`'
     'list:List all available sections'
-    'run:Run a single section (run <section> [count])'
+    'run:Run a single section (run <section> [--cell-count N])'
     'completion:Print shell completion script (completion <shell>)'
   )
 
@@ -886,6 +886,7 @@ _meshlab() {
     '1: :->cmd' \
     '2: :->arg2' \
     '3: :->arg3' \
+    '4: :->arg4' \
     && return
 
   case $state in
@@ -911,14 +912,25 @@ _meshlab() {
     arg3)
       case ${words[2]} in
         run)
-          counts=(1 2)
-          _describe -t counts 'workload count' counts
+          flags=(--cell-count)
+          _describe -t flags 'run flag' flags
           ;;
         create)
           case ${words[3]} in
             --cell-count)   counts=(1 2);   _describe -t counts 'count' counts ;;
             --network-mode) modes=(multi single); _describe -t modes 'mode' modes ;;
           esac
+          ;;
+      esac
+      ;;
+    arg4)
+      case ${words[2]} in
+        run)
+          [[ ${words[3]} == --cell-count ]] && { counts=(1 2); _describe -t counts 'count' counts; }
+          ;;
+        create)
+          flags=(--cell-count --network-mode)
+          _describe -t flags 'create flag' flags
           ;;
       esac
       ;;
@@ -956,15 +968,24 @@ parse_create_args() {
   esac; done
 }
 
+# Parse `run` arguments: a required section name followed by optional flags.
+parse_run_args() {
+  SECTION="${1:?Usage: meshlab run <section> [--cell-count N]}"; shift
+  while (($#)); do case "$1" in
+    --cell-count) _uint "${2:-}"; CELL_COUNT=$2; shift 2 ;;
+    *) echo "unknown run flag: $1" >&2; exit 1 ;;
+  esac; done
+}
+
 # Main case statement for top-level subcommands. Each subcommand is responsible for validating its own arguments (if any).
 case "${1:-}" in
   create) shift; parse_create_args "$@" ;;
   delete) cleanup; exit 0 ;;
   watch) watch --color 'ml short'; exit 0 ;;
-  run) export CELL_COUNT="${3:-1}"; measure "${2:?Usage: $0 run <section> [count]}"; exit 0 ;;
+  run) shift; parse_run_args "$@"; measure "${SECTION}"; exit 0 ;;
   list) printf '%s\n' "${SECTIONS[@]}"; exit 0 ;;
   completion) completion "${2:-}"; exit 0 ;;
-  *) echo "Usage: $(basename "$0") <create [--cell-count N] [--network-mode multi|single]|delete|watch|list|run SECTION [count]|completion <shell>>"; exit 1 ;;
+  *) echo "Usage: $(basename "$0") <create [--cell-count N] [--network-mode multi|single]|delete|watch|list|run SECTION [--cell-count N]|completion <shell>>"; exit 1 ;;
 esac
 
 #------------------------------------------------------------------------------

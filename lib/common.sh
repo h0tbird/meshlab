@@ -61,48 +61,6 @@ all_clusters() {
   echo "${MNGR} $(clusters)"
 }
 
-# Manager cluster + every workload cluster across every cell (ignores CELL_COUNT).
-# Used as a safety fallback for cleanup when no persisted state is available.
-every_cluster() {
-  local out="${MNGR}"
-  for cell in "${!CELLS[@]}"; do
-    out+=" ${CELLS[${cell}]}"
-  done
-  echo "${out}"
-}
-
-# Path to the persisted lab state (CELL_COUNT, NETWORK_MODE) written by
-# `meshlab create` and consumed by `meshlab delete` so cleanup tears down
-# exactly what was provisioned.
-export MESHLAB_STATE_FILE="./tmp/.meshlab-state"
-
-save_state() {
-  mkdir -p "$(dirname "${MESHLAB_STATE_FILE}")"
-  cat > "${MESHLAB_STATE_FILE}" <<EOF
-CELL_COUNT=${CELL_COUNT}
-NETWORK_MODE=${NETWORK_MODE}
-EOF
-}
-
-# Load persisted state if present. Returns 0 if loaded, 1 otherwise.
-load_state() {
-  [[ -f "${MESHLAB_STATE_FILE}" ]] || return 1
-  # shellcheck disable=SC1090
-  source "${MESHLAB_STATE_FILE}"
-  export CELL_COUNT NETWORK_MODE
-}
-
-# Clusters that `meshlab delete` should tear down. If `meshlab create` left a
-# state file behind, honor it (delete exactly what was provisioned). Otherwise
-# fall back to every known cluster as a safety net for stale environments.
-clusters_to_clean() {
-  if [[ -f "${MESHLAB_STATE_FILE}" ]]; then
-    all_clusters
-  else
-    every_cluster
-  fi
-}
-
 #------------------------------------------------------------------------------
 # Returns the CIDR for the given cluster
 #------------------------------------------------------------------------------

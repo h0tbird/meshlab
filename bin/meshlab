@@ -45,18 +45,16 @@ cleanup() {
   docker kill $(docker ps -f "name=kindccm" -q) 2>/dev/null || true
   argocd context --delete "${MNGR}" 2>/dev/null || true
 
-  # Kill tilt instances we started (one per workload cluster)
-  for cluster in $(clusters_to_clean); do
+  # Tear down whichever of our clusters kind currently knows about.
+  local known=" ${MNGR} ${CELLS[*]} "
+  while read -r cluster; do
+    [[ " ${known} " == *" ${cluster} "* ]] || continue
     pkill -f "tilt up --context kind-${cluster}" 2>/dev/null || true
-  done
+    kind --kubeconfig ~/.kube/config.host delete cluster --name "${cluster}" 2>/dev/null || true
+  done < <(kind --kubeconfig ~/.kube/config.host get clusters 2>/dev/null)
 
   # Only kill socat tunnels we started from publish()
   pkill -f 'socat TCP-LISTEN:[0-9]+,fork TCP:' 2>/dev/null || true
-
-  # Delete the kind clusters we provisioned
-  for cluster in $(clusters_to_clean); do
-    kind --kubeconfig ~/.kube/config.host delete cluster --name "${cluster}" 2>/dev/null || true
-  done
 
   rm -rf ./tmp/* ./tmp/.[!.]* 2>/dev/null || true
 }
@@ -944,7 +942,6 @@ parse_create_args() {
     --network-mode) _oneof "${2:-}" multi single; NETWORK_MODE=$2; shift 2 ;;
     *) echo "unknown create flag: $1" >&2; exit 1 ;;
   esac; done
-  save_state
 }
 
 # Parse `run` arguments: a required section name followed by optional flags.
@@ -959,7 +956,7 @@ parse_run_args() {
 # Main case statement for top-level subcommands. Each subcommand is responsible for validating its own arguments (if any).
 case "${1:-}" in
   create) shift; parse_create_args "$@" ;;
-  delete) load_state || true; cleanup; exit 0 ;;
+  delete) cleanup; exit 0 ;;
   watch) watch --color 'ml short'; exit 0 ;;
   run) shift; parse_run_args "$@"; measure "${SECTION}"; exit 0 ;;
   list) printf '%s\n' "${SECTIONS[@]}"; exit 0 ;;

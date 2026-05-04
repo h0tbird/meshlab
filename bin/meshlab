@@ -45,16 +45,16 @@ cleanup() {
   docker kill $(docker ps -f "name=kindccm" -q) 2>/dev/null || true
   argocd context --delete "${MNGR}" 2>/dev/null || true
 
-  # Only kill tilt instances we started (one per workload cluster)
-  for cluster in $(clusters); do
+  # Only kill tilt instances we started (one per workload cluster, across every cell)
+  for cluster in $(every_cluster); do
     pkill -f "tilt up --context kind-${cluster}" 2>/dev/null || true
   done
 
   # Only kill socat tunnels we started from publish()
   pkill -f 'socat TCP-LISTEN:[0-9]+,fork TCP:' 2>/dev/null || true
 
-  # Only delete clusters we created
-  for cluster in $(all_clusters); do
+  # Only delete clusters we created (across every cell, regardless of CELL_COUNT)
+  for cluster in $(every_cluster); do
     kind --kubeconfig ~/.kube/config.host delete cluster --name "${cluster}" 2>/dev/null || true
   done
 

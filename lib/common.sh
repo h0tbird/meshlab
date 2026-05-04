@@ -61,6 +61,15 @@ all_clusters() {
   echo "${MNGR} $(clusters)"
 }
 
+# Manager cluster + every workload cluster across every cell (ignores CELL_COUNT)
+every_cluster() {
+  local out="${MNGR}"
+  for cell in "${!CELLS[@]}"; do
+    out+=" ${CELLS[${cell}]}"
+  done
+  echo "${out}"
+}
+
 #------------------------------------------------------------------------------
 # Returns the CIDR for the given cluster
 #------------------------------------------------------------------------------

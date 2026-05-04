@@ -874,7 +874,7 @@ _meshlab() {
   local state
 
   subcommands=(
-    'create:Create clusters and run all sections (optional --count and --network-mode)'
+    'create:Create clusters and run all sections (optional --cell-count and --network-mode)'
     'delete:Tear down clusters and clean up'
     'watch:Watch cluster state via `ml short`'
     'list:List all available sections'
@@ -899,7 +899,7 @@ _meshlab() {
           _describe -t sections 'section' sections
           ;;
         create)
-          flags=(--count --network-mode)
+          flags=(--cell-count --network-mode)
           _describe -t flags 'create flag' flags
           ;;
         completion)
@@ -916,7 +916,7 @@ _meshlab() {
           ;;
         create)
           case ${words[3]} in
-            --count)        counts=(1 2);   _describe -t counts 'count' counts ;;
+            --cell-count)   counts=(1 2);   _describe -t counts 'count' counts ;;
             --network-mode) modes=(multi single); _describe -t modes 'mode' modes ;;
           esac
           ;;
@@ -940,23 +940,23 @@ EOF
 #------------------------------------------------------------------------------
 
 # `create` accepts two optional flags:
-#   --count <N>                  number of workload cells (default 1)
+#   --cell-count <N>               number of workload cells (default 1)
 #   --network-mode <multi|single>  Istio network topology (default multi)
 parse_create_args() {
-  export WLCNT=1
+  export CELL_COUNT=1
   export NETWORK_MODE="multi"
   while (($#)); do
     case "$1" in
-      --count)
-        WLCNT="${2:?--count requires a value}"; shift 2 ;;
+      --cell-count)
+        CELL_COUNT="${2:?--cell-count requires a value}"; shift 2 ;;
       --network-mode)
         NETWORK_MODE="${2:?--network-mode requires a value}"; shift 2 ;;
       *)
         echo "Unknown create argument: $1" >&2; exit 1 ;;
     esac
   done
-  [[ "${WLCNT}" =~ ^[0-9]+$ ]] \
-    || { echo "Invalid --count '${WLCNT}' (expected a non-negative integer)" >&2; exit 1; }
+  [[ "${CELL_COUNT}" =~ ^[0-9]+$ ]] \
+    || { echo "Invalid --cell-count '${CELL_COUNT}' (expected a non-negative integer)" >&2; exit 1; }
   case "${NETWORK_MODE}" in
     multi|single) ;;
     *) echo "Invalid --network-mode '${NETWORK_MODE}' (expected: multi|single)" >&2; exit 1 ;;
@@ -967,10 +967,10 @@ case "${1:-}" in
   create) shift; parse_create_args "$@" ;;
   delete) cleanup; exit 0 ;;
   watch) watch --color 'ml short'; exit 0 ;;
-  run)  export WLCNT="${3:-1}"; measure "${2:?Usage: $0 run <section> [count]}"; exit 0 ;;
+  run)  export CELL_COUNT="${3:-1}"; measure "${2:?Usage: $0 run <section> [count]}"; exit 0 ;;
   list) printf '%s\n' "${SECTIONS[@]}"; exit 0 ;;
   completion) completion "${2:-}"; exit 0 ;;
-  *)    echo "Usage: $(basename "$0") <create [--count N] [--network-mode multi|single]|delete|watch|list|run SECTION [count]|completion <shell>>"; exit 1 ;;
+  *)    echo "Usage: $(basename "$0") <create [--cell-count N] [--network-mode multi|single]|delete|watch|list|run SECTION [count]|completion <shell>>"; exit 1 ;;
 esac
 
 #------------------------------------------------------------------------------

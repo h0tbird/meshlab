@@ -871,7 +871,7 @@ completion() {
 
 _meshlab() {
   local -a subcommands sections
-  local curcontext=$curcontext state line ret=1
+  local state
 
   subcommands=(
     'create:Create clusters and run all sections (optional --cell-count and --network-mode)'
@@ -882,40 +882,32 @@ _meshlab() {
     'completion:Print shell completion script (completion <shell>)'
   )
 
-  _arguments -C \
-    '1: :->cmd' \
-    '*::: :->args' \
-    && ret=0
+  if (( CURRENT == 2 )); then
+    _describe -t commands 'meshlab subcommand' subcommands
+    return
+  fi
 
-  case $state in
-    cmd)
-      _describe -t commands 'meshlab subcommand' subcommands && ret=0
+  case ${words[2]} in
+    create)
+      _arguments \
+        '--cell-count[Number of workload cells]:count:(1 2)' \
+        '--network-mode[Istio network topology]:mode:(multi single)'
       ;;
-    args)
-      case $words[1] in
-        create)
-          _arguments \
-            '--cell-count[Number of workload cells]:count:(1 2)' \
-            '--network-mode[Istio network topology]:mode:(multi single)' \
-            && ret=0
-          ;;
-        run)
-          if (( CURRENT == 2 )); then
-            sections=(${(f)"$(command meshlab list 2>/dev/null)"})
-            _describe -t sections 'section' sections && ret=0
-          else
-            _arguments \
-              '--cell-count[Number of workload cells]:count:(1 2)' \
-              && ret=0
-          fi
-          ;;
-        completion)
-          (( CURRENT == 2 )) && { _values 'shell' zsh && ret=0; }
+    run)
+      _arguments \
+        '1:section:->section' \
+        '*--cell-count[Number of workload cells]:count:(1 2)'
+      case $state in
+        section)
+          sections=(${(f)"$(command meshlab list 2>/dev/null)"})
+          _describe -t sections 'section' sections
           ;;
       esac
       ;;
+    completion)
+      _arguments '1:shell:(zsh)'
+      ;;
   esac
-  return ret
 }
 
 compdef _meshlab meshlab

@@ -870,8 +870,8 @@ completion() {
 # the SECTIONS array defined in the script itself.
 
 _meshlab() {
-  local -a subcommands sections counts shells modes flags
-  local state
+  local -a subcommands sections
+  local curcontext=$curcontext state line ret=1
 
   subcommands=(
     'create:Create clusters and run all sections (optional --cell-count and --network-mode)'
@@ -884,57 +884,38 @@ _meshlab() {
 
   _arguments -C \
     '1: :->cmd' \
-    '2: :->arg2' \
-    '3: :->arg3' \
-    '4: :->arg4' \
-    && return
+    '*::: :->args' \
+    && ret=0
 
   case $state in
     cmd)
-      _describe -t commands 'meshlab subcommand' subcommands
+      _describe -t commands 'meshlab subcommand' subcommands && ret=0
       ;;
-    arg2)
-      case ${words[2]} in
-        run)
-          sections=(${(f)"$(command meshlab list 2>/dev/null)"})
-          _describe -t sections 'section' sections
-          ;;
+    args)
+      case $words[1] in
         create)
-          flags=(--cell-count --network-mode)
-          _describe -t flags 'create flag' flags
+          _arguments \
+            '--cell-count[Number of workload cells]:count:(1 2)' \
+            '--network-mode[Istio network topology]:mode:(multi single)' \
+            && ret=0
+          ;;
+        run)
+          if (( CURRENT == 2 )); then
+            sections=(${(f)"$(command meshlab list 2>/dev/null)"})
+            _describe -t sections 'section' sections && ret=0
+          else
+            _arguments \
+              '--cell-count[Number of workload cells]:count:(1 2)' \
+              && ret=0
+          fi
           ;;
         completion)
-          shells=(zsh)
-          _describe -t shells 'shell' shells
-          ;;
-      esac
-      ;;
-    arg3)
-      case ${words[2]} in
-        run)
-          flags=(--cell-count)
-          _describe -t flags 'run flag' flags
-          ;;
-        create)
-          case ${words[3]} in
-            --cell-count)   counts=(1 2);   _describe -t counts 'count' counts ;;
-            --network-mode) modes=(multi single); _describe -t modes 'mode' modes ;;
-          esac
-          ;;
-      esac
-      ;;
-    arg4)
-      case ${words[2]} in
-        run)
-          [[ ${words[3]} == --cell-count ]] && { counts=(1 2); _describe -t counts 'count' counts; }
-          ;;
-        create)
-          flags=(--cell-count --network-mode)
-          _describe -t flags 'create flag' flags
+          (( CURRENT == 2 )) && { _values 'shell' zsh && ret=0; }
           ;;
       esac
       ;;
   esac
+  return ret
 }
 
 compdef _meshlab meshlab

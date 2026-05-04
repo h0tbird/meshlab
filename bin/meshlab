@@ -870,11 +870,11 @@ completion() {
 # the SECTIONS array defined in the script itself.
 
 _meshlab() {
-  local -a subcommands sections counts shells
+  local -a subcommands sections counts shells modes flags
   local state
 
   subcommands=(
-    'create:Create clusters and run all sections (optional WLCNT and --network-mode)'
+    'create:Create clusters and run all sections (optional --count and --network-mode)'
     'delete:Tear down clusters and clean up'
     'watch:Watch cluster state via `ml short`'
     'list:List all available sections'
@@ -899,8 +899,8 @@ _meshlab() {
           _describe -t sections 'section' sections
           ;;
         create)
-          counts=(1 2)
-          _describe -t counts 'workload count' counts
+          flags=(--count --network-mode)
+          _describe -t flags 'create flag' flags
           ;;
         completion)
           shells=(zsh)
@@ -909,10 +909,18 @@ _meshlab() {
       esac
       ;;
     arg3)
-      if [[ ${words[2]} == run ]]; then
-        counts=(1 2)
-        _describe -t counts 'workload count' counts
-      fi
+      case ${words[2]} in
+        run)
+          counts=(1 2)
+          _describe -t counts 'workload count' counts
+          ;;
+        create)
+          case ${words[3]} in
+            --count)        counts=(1 2);   _describe -t counts 'count' counts ;;
+            --network-mode) modes=(multi single); _describe -t modes 'mode' modes ;;
+          esac
+          ;;
+      esac
       ;;
   esac
 }
@@ -931,21 +939,24 @@ EOF
 # [i] Validate the command line arguments
 #------------------------------------------------------------------------------
 
-# `create` accepts an optional positional [count] and an optional
-# `--network-mode <multi|single>` flag (default `multi`, matching PR #28).
+# `create` accepts two optional flags:
+#   --count <N>                  number of workload cells (default 1)
+#   --network-mode <multi|single>  Istio network topology (default multi)
 parse_create_args() {
   export WLCNT=1
   export NETWORK_MODE="multi"
   while (($#)); do
     case "$1" in
+      --count)
+        WLCNT="${2:?--count requires a value}"; shift 2 ;;
       --network-mode)
         NETWORK_MODE="${2:?--network-mode requires a value}"; shift 2 ;;
-      [0-9]*)
-        WLCNT="$1"; shift ;;
       *)
         echo "Unknown create argument: $1" >&2; exit 1 ;;
     esac
   done
+  [[ "${WLCNT}" =~ ^[0-9]+$ ]] \
+    || { echo "Invalid --count '${WLCNT}' (expected a non-negative integer)" >&2; exit 1; }
   case "${NETWORK_MODE}" in
     multi|single) ;;
     *) echo "Invalid --network-mode '${NETWORK_MODE}' (expected: multi|single)" >&2; exit 1 ;;
@@ -959,7 +970,7 @@ case "${1:-}" in
   run)  export WLCNT="${3:-1}"; measure "${2:?Usage: $0 run <section> [count]}"; exit 0 ;;
   list) printf '%s\n' "${SECTIONS[@]}"; exit 0 ;;
   completion) completion "${2:-}"; exit 0 ;;
-  *)    echo "Usage: $(basename "$0") <create [count] [--network-mode multi|single]|delete|watch|list|run SECTION [count]|completion <shell>>"; exit 1 ;;
+  *)    echo "Usage: $(basename "$0") <create [--count N] [--network-mode multi|single]|delete|watch|list|run SECTION [count]|completion <shell>>"; exit 1 ;;
 esac
 
 #------------------------------------------------------------------------------

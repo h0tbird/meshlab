@@ -40,11 +40,13 @@ spec:
                 # are otherwise rejected with UnsupportedProtocol.
                 PILOT_ENABLE_ALPHA_GATEWAY_API: "true"
                 ISTIOD_CUSTOM_HOST: {{`'istiod.{{name}}'`}}
-{{- if eq .Values.networkMode "multi" }}
+                # Master switch for ambient cross-cluster endpoint
+                # discovery. Despite the name, this is required even in
+                # single-network mode (flat L3 via Cilium ClusterMesh) to
+                # let ztunnel see remote-cluster ambient workloads. With
+                # this off, ambient services are pinned to local-cluster
+                # endpoints regardless of remote-secret federation.
                 AMBIENT_ENABLE_MULTI_NETWORK: "true"
-{{- else if eq .Values.networkMode "single" }}
-                AMBIENT_ENABLE_MULTI_NETWORK: "false"
-{{- end }}
                 AMBIENT_ENABLE_BAGGAGE: "true"
             global:
             # hub: ghcr.io/h0tbird

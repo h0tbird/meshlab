@@ -1,3 +1,2 @@
-- Think about `clusterDomain`.
-- `swarmctl manifest install` becomes the new root command
-- `swarmctl manifest dump` becomes `swarmctl dump`
+- ISTIO_META_REQUESTED_NETWORK_VIEW
+- AMBIENT_ENABLE_BAGGAGE

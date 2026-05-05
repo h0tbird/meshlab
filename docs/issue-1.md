@@ -66,16 +66,16 @@ Legend: ✅ observed cross-cluster traffic; ❌ rooted in an upstream architectu
 limitation (calls succeed against the local-cluster endpoint but the remote endpoint is
 filtered out of EDS).
 
-| Source ↓ \ Destination → | p1/amb-n1 | p1/amb-n2 | p1/sc-n1 | p1/sc-n2 | p2/amb-n1 | p2/amb-n2 | p2/sc-n1 | p2/sc-n2 |
+| Src ↓ \ Dst → | p1/am1 | p1/am2 | p1/sc1 | p1/sc2 | p2/am1 | p2/am2 | p2/sc1 | p2/sc2 |
 |---|---|---|---|---|---|---|---|---|
-| **p1 / ambient-n1** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
-| **p1 / ambient-n2** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
-| **p1 / sidecar-n1** | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ |
-| **p1 / sidecar-n2** | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ |
-| **p2 / ambient-n1** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
-| **p2 / ambient-n2** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
-| **p2 / sidecar-n1** | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **p2 / sidecar-n2** | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **p1/am1** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| **p1/am2** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| **p1/sc1** | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ |
+| **p1/sc2** | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ |
+| **p2/am1** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **p2/am2** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **p2/sc1** | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **p2/sc2** | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ## Why the two ❌ patterns can't be fixed (in 1.29.x or 1.30.0-beta.0)
 

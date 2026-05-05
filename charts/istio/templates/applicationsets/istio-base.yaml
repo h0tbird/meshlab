@@ -40,8 +40,6 @@ spec:
             topology.istio.io/network: {{`'{{name}}'`}}
 {{- else if eq .Values.networkMode "single" }}
             topology.istio.io/network: {{`'{{metadata.labels.cell}}'`}}
-{{- else }}
-{{- fail (printf "unsupported networkMode %q (expected: multi|single)" .Values.networkMode) }}
 {{- end }}
       ignoreDifferences:
       - group: admissionregistration.k8s.io

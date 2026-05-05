@@ -44,8 +44,6 @@ spec:
                 AMBIENT_ENABLE_MULTI_NETWORK: "true"
 {{- else if eq .Values.networkMode "single" }}
                 AMBIENT_ENABLE_MULTI_NETWORK: "false"
-{{- else }}
-{{- fail (printf "unsupported networkMode %q (expected: multi|single)" .Values.networkMode) }}
 {{- end }}
                 AMBIENT_ENABLE_BAGGAGE: "true"
             global:
@@ -55,7 +53,7 @@ spec:
               meshID: {{`'{{metadata.labels.cell}}'`}}
 {{- if eq .Values.networkMode "multi" }}
               network: {{`'{{name}}'`}}
-{{- else }}
+{{- else if eq .Values.networkMode "single" }}
               network: {{`'{{metadata.labels.cell}}'`}}
 {{- end }}
               logAsJson: true

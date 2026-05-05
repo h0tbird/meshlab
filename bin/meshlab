@@ -54,7 +54,7 @@ cleanup() {
   pkill -f 'socat TCP-LISTEN:[0-9]+,fork TCP:' 2>/dev/null || true
 
   # Only delete clusters we created
-  kind delete clusters "${MNGR}" ${CELLS[*]}
+  kind --kubeconfig ~/.kube/config.host delete clusters "${MNGR}" ${CELLS[*]}
 
   rm -rf ./tmp/*
 }

@@ -40,14 +40,22 @@ spec:
                 # are otherwise rejected with UnsupportedProtocol.
                 PILOT_ENABLE_ALPHA_GATEWAY_API: "true"
                 ISTIOD_CUSTOM_HOST: {{`'istiod.{{name}}'`}}
+{{- if eq .Values.networkMode "multi" }}
                 AMBIENT_ENABLE_MULTI_NETWORK: "true"
+{{- else if eq .Values.networkMode "single" }}
+                AMBIENT_ENABLE_MULTI_NETWORK: "false"
+{{- end }}
                 AMBIENT_ENABLE_BAGGAGE: "true"
             global:
             # hub: ghcr.io/h0tbird
             # tag: 1.28.3-patch.1-dev
               variant: "debug"
               meshID: {{`'{{metadata.labels.cell}}'`}}
+{{- if eq .Values.networkMode "multi" }}
               network: {{`'{{name}}'`}}
+{{- else if eq .Values.networkMode "single" }}
+              network: {{`'{{metadata.labels.cell}}'`}}
+{{- end }}
               logAsJson: true
               defaultPodDisruptionBudget:
                 enabled: false

@@ -30,14 +30,14 @@ readonly DIM='\e[2m'
 readonly RST='\e[0m'
 
 #------------------------------------------------------------------------------
-# List the first ${WLCNT} workload cells (or their clusters)
+# List the first ${CELL_COUNT} workload cells (or their clusters)
 #------------------------------------------------------------------------------
 
-# List the first ${WLCNT} workload cells
+# List the first ${CELL_COUNT} workload cells
 cells() {
   local count=0
   for cell in "${!CELLS[@]}"; do
-    ((++count > ${WLCNT:-1})) && break
+    ((++count > ${CELL_COUNT:-1})) && break
     echo -n "${cell} "
   done
 }
@@ -47,11 +47,11 @@ all_cells() {
   echo "mngr $(cells)"
 }
 
-# List the first ${WLCNT} workload clusters
+# List the first ${CELL_COUNT} workload clusters
 clusters() {
   local count=0
   for cell in "${!CELLS[@]}"; do
-    ((++count > ${WLCNT:-1})) && break
+    ((++count > ${CELL_COUNT:-1})) && break
     echo -n "${CELLS[${cell}]} "
   done
 }

@@ -54,9 +54,7 @@ cleanup() {
   pkill -f 'socat TCP-LISTEN:[0-9]+,fork TCP:' 2>/dev/null || true
 
   # Only delete clusters we created
-  for cluster in $(all_clusters); do
-    kind --kubeconfig ~/.kube/config.host delete cluster --name "${cluster}" 2>/dev/null || true
-  done
+  kind --kubeconfig ~/.kube/config.host delete clusters "${MNGR}" ${CELLS[*]}
 
   rm -rf ./tmp/*
 }
@@ -452,7 +450,7 @@ install-applicationsets() {
   helm template ./charts/vault --set "chartVersion=${VAULT_CHART_VERSION}" | k0 "${ssa[@]}" &
   helm template ./charts/cert-manager --set "chartVersion=${CERT_MANAGER_CHART_VERSION}" | k0 "${ssa[@]}" &
   helm template ./charts/kubernetes-replicator --set "chartVersion=${KUBERNETES_REPLICATOR_CHART_VERSION}" | k0 "${ssa[@]}" &
-  helm template ./charts/istio --set "chartVersion=${ISTIO_CHART_VERSION}" | k0 "${ssa[@]}" &
+  helm template ./charts/istio --set "chartVersion=${ISTIO_CHART_VERSION}" --set "networkMode=${NETWORK_MODE}" | k0 "${ssa[@]}" &
   helm template ./charts/kiali --set "chartVersion=${KIALI_CHART_VERSION}" | k0 "${ssa[@]}" &
   join
 }; SECTIONS+=( install-applicationsets )
@@ -870,49 +868,47 @@ completion() {
 # the SECTIONS array defined in the script itself.
 
 _meshlab() {
-  local -a subcommands sections counts shells
+  local -a subcommands sections
   local state
 
   subcommands=(
-    'create:Create clusters and run all sections (optional WLCNT)'
+    'create:Create clusters and run all sections (optional --cell-count and --network-mode)'
     'delete:Tear down clusters and clean up'
     'watch:Watch cluster state via `ml short`'
     'list:List all available sections'
-    'run:Run a single section (run <section> [count])'
+    'run:Run a single section (run <section> [--cell-count N])'
     'completion:Print shell completion script (completion <shell>)'
   )
 
-  _arguments -C \
-    '1: :->cmd' \
-    '2: :->arg2' \
-    '3: :->arg3' \
-    && return
+  if (( CURRENT == 2 )); then
+    _describe -t commands 'meshlab subcommand' subcommands
+    return
+  fi
 
-  case $state in
-    cmd)
-      _describe -t commands 'meshlab subcommand' subcommands
+  # Shift past the subcommand so inner _arguments sees a clean command line.
+  local sub=${words[2]}
+  (( CURRENT-- ))
+  words=( "${words[1]}" "${words[@]:2}" )
+
+  case $sub in
+    create)
+      _arguments \
+        '*--cell-count[Number of workload cells]:count:(1 2)' \
+        '*--network-mode[Istio network topology]:mode:(multi single)'
       ;;
-    arg2)
-      case ${words[2]} in
-        run)
+    run)
+      _arguments \
+        '1:section:->section' \
+        '*--cell-count[Number of workload cells]:count:(1 2)'
+      case $state in
+        section)
           sections=(${(f)"$(command meshlab list 2>/dev/null)"})
           _describe -t sections 'section' sections
           ;;
-        create)
-          counts=(1 2)
-          _describe -t counts 'workload count' counts
-          ;;
-        completion)
-          shells=(zsh)
-          _describe -t shells 'shell' shells
-          ;;
       esac
       ;;
-    arg3)
-      if [[ ${words[2]} == run ]]; then
-        counts=(1 2)
-        _describe -t counts 'workload count' counts
-      fi
+    completion)
+      _arguments '1:shell:(zsh)'
       ;;
   esac
 }
@@ -931,14 +927,41 @@ EOF
 # [i] Validate the command line arguments
 #------------------------------------------------------------------------------
 
+# Defaults for `create` flags.
+export CELL_COUNT=1
+export NETWORK_MODE=multi
+
+# Tiny validators (assert, with a friendly error).
+_uint()  { [[ "$1" =~ ^[0-9]+$ ]] || { echo "expected non-negative integer, got '$1'" >&2; exit 1; }; }
+_oneof() { local v=$1; shift; [[ " $* " == *" $v "* ]] || { echo "expected one of: $*, got '$v'" >&2; exit 1; }; }
+
+# Parse `create` flags (called by the main case statement below). Flags must be passed before any positional arguments.
+parse_create_args() {
+  while (($#)); do case "$1" in
+    --cell-count)   _uint  "${2:-}"; CELL_COUNT=$2; shift 2 ;;
+    --network-mode) _oneof "${2:-}" multi single; NETWORK_MODE=$2; shift 2 ;;
+    *) echo "unknown create flag: $1" >&2; exit 1 ;;
+  esac; done
+}
+
+# Parse `run` arguments: a required section name followed by optional flags.
+parse_run_args() {
+  SECTION="${1:?Usage: meshlab run <section> [--cell-count N]}"; shift
+  while (($#)); do case "$1" in
+    --cell-count) _uint "${2:-}"; CELL_COUNT=$2; shift 2 ;;
+    *) echo "unknown run flag: $1" >&2; exit 1 ;;
+  esac; done
+}
+
+# Main case statement for top-level subcommands. Each subcommand is responsible for validating its own arguments (if any).
 case "${1:-}" in
-  create) export WLCNT="${2:-1}" ;;
+  create) shift; parse_create_args "$@" ;;
   delete) cleanup; exit 0 ;;
   watch) watch --color 'ml short'; exit 0 ;;
-  run)  export WLCNT="${3:-1}"; measure "${2:?Usage: $0 run <section> [count]}"; exit 0 ;;
+  run) shift; parse_run_args "$@"; measure "${SECTION}"; exit 0 ;;
   list) printf '%s\n' "${SECTIONS[@]}"; exit 0 ;;
   completion) completion "${2:-}"; exit 0 ;;
-  *)    echo "Usage: $(basename "$0") <create|delete|watch|list|run SECTION [count]|completion <shell>>"; exit 1 ;;
+  *) echo "Usage: $(basename "$0") <create [--cell-count N] [--network-mode multi|single]|delete|watch|list|run SECTION [--cell-count N]|completion <shell>>"; exit 1 ;;
 esac
 
 #------------------------------------------------------------------------------

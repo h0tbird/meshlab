@@ -36,7 +36,11 @@ spec:
         - CreateNamespace=true
         managedNamespaceMetadata:
           labels:
+{{- if eq .Values.networkMode "multi" }}
             topology.istio.io/network: {{`'{{name}}'`}}
+{{- else if eq .Values.networkMode "single" }}
+            topology.istio.io/network: {{`'{{metadata.labels.cell}}'`}}
+{{- end }}
       ignoreDifferences:
       - group: admissionregistration.k8s.io
         kind: ValidatingWebhookConfiguration

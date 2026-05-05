@@ -126,3 +126,4 @@ Development Targets
 - Istio sources are cloned to `../istio` if missing. Both repos mount under `/workspaces`.
 - Each workload cluster's Tilt watches `pilot-discovery` and live-updates on change.
 - Run `make istio-binaries` to build new Istio binaries.
+- Cilium *ClusterMesh* always provides pod-to-pod L3 reachability within a cell. The `--network-mode` flag chooses whether Istio piggybacks on that flat network (`single` — no EWGW between sibling clusters) or treats each cluster as its own Istio network and routes between them through the east-west gateway (`multi`).

@@ -1,1 +1,7 @@
 ---
+# Network topology mode used by the istio ApplicationSets:
+#   multi  - one Istio network per cluster, east-west gateway deployed (PR #28).
+#   single - one Istio network per cell (clusters in the same cell share a
+#            network), east-west gateway omitted. Cells remain isolated.
+# Overridden at deploy time by `bin/meshlab --network-mode=...`.
+networkMode: multi

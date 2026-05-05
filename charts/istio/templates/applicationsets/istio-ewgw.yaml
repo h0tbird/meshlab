@@ -1,3 +1,4 @@
+{{- if eq .Values.networkMode "multi" -}}
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
@@ -31,3 +32,4 @@ spec:
       syncPolicy:
         syncOptions:
         - CreateNamespace=true
+{{- end }}

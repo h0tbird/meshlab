@@ -8,7 +8,8 @@
 	},
 	"initializeCommand": {
 		"lazy-load-ssh-keys": "ssh -T git@github.com || true",
-		"create-istio-dir": "mkdir -p ${localWorkspaceFolder}/../istio"
+		"create-istio-dir": "mkdir -p ${localWorkspaceFolder}/../istio",
+		"create-k-swarm-dir": "mkdir -p ${localWorkspaceFolder}/../k-swarm"
 	},
 	"mounts": [
 		"type=bind,source=/run/host-services/ssh-auth.sock,target=/ssh-agent",
@@ -33,7 +34,9 @@
 	"containerEnv": {
 		"GITHUB_TOKEN": "${localEnv:GITHUB_TOKEN}",
 		"GITHUB_USER": "${localEnv:GITHUB_USER}",
-		"DOCKER_HOST": "unix:///var/run/docker-host.sock"
+		"DOCKER_HOST": "unix:///var/run/docker-host.sock",
+		"MESHLAB_ISTIO_REPO": "${localEnv:MESHLAB_ISTIO_REPO:istio/istio}",
+		"MESHLAB_KSWARM_REPO": "${localEnv:MESHLAB_KSWARM_REPO:h0tbird/k-swarm}"
 	},
 	"remoteUser": "root",
 	"runArgs": [
@@ -109,9 +112,15 @@
 		"memory": "15gb"
 	},
 	"postCreateCommand": {
-		// Host's ../istio is mounted read-write, so clone istio repo if not already present.
-		"clone-istio": "test -d /workspaces/istio/.git || { gh repo clone h0tbird/forked-istio /workspaces/istio && cd /workspaces/istio && git remote add upstream https://github.com/istio/istio.git; }"
+		// Backup config.json for restoring after DinD.
+		"backup-docker-config": "cp ~/.docker/config.json ~/.docker/config.json.bkp"
 	},
-	// Backup config.json for restoring after DinD.
-	"postStartCommand": "cp ~/.docker/config.json ~/.docker/config.json.bkp"
+	"postStartCommand": {
+		// Clone istio repo if missing. Override default (istio/istio) with MESHLAB_ISTIO_REPO=<owner>/<repo>.
+		// When a fork is used, an 'upstream' remote pointing at istio/istio is added automatically.
+		"clone-istio": "test -d /workspaces/istio/.git || { gh repo clone \"${MESHLAB_ISTIO_REPO}\" /workspaces/istio && { [ \"${MESHLAB_ISTIO_REPO}\" = \"istio/istio\" ] || git -C /workspaces/istio remote add upstream https://github.com/istio/istio.git; }; }",
+		// Clone k-swarm repo if missing. Override default (h0tbird/k-swarm) with MESHLAB_KSWARM_REPO=<owner>/<repo>.
+		// When a fork is used, an 'upstream' remote pointing at h0tbird/k-swarm is added automatically.
+		"clone-k-swarm": "test -d /workspaces/k-swarm/.git || { gh repo clone \"${MESHLAB_KSWARM_REPO}\" /workspaces/k-swarm && { [ \"${MESHLAB_KSWARM_REPO}\" = \"h0tbird/k-swarm\" ] || git -C /workspaces/k-swarm remote add upstream https://github.com/h0tbird/k-swarm.git; }; }"
+	}
 }

@@ -1,4 +1,5 @@
 {
+	"$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
 	"name": "meshlab",
 	"build": {
 		"dockerfile": "Dockerfile",
@@ -17,7 +18,6 @@
 		"type=bind,source=${localWorkspaceFolder}/../istio,target=/workspaces/istio",
 		"type=bind,source=${localWorkspaceFolder}/../k-swarm,target=/workspaces/k-swarm",
 		"type=bind,source=/var/run/docker.sock,target=/var/run/docker-host.sock"
-
 	],
 	"features": {
 		"ghcr.io/devcontainers/features/docker-in-docker:2": {
@@ -34,9 +34,7 @@
 	"containerEnv": {
 		"GITHUB_TOKEN": "${localEnv:GITHUB_TOKEN}",
 		"GITHUB_USER": "${localEnv:GITHUB_USER}",
-		"DOCKER_HOST": "unix:///var/run/docker-host.sock",
-		"MESHLAB_ISTIO_REPO": "${localEnv:MESHLAB_ISTIO_REPO:istio/istio}",
-		"MESHLAB_KSWARM_REPO": "${localEnv:MESHLAB_KSWARM_REPO:h0tbird/k-swarm}"
+		"DOCKER_HOST": "unix:///var/run/docker-host.sock"
 	},
 	"remoteUser": "root",
 	"runArgs": [
@@ -118,7 +116,7 @@
 	"postStartCommand": {
 		// Clone repos if missing. Override defaults with MESHLAB_ISTIO_REPO / MESHLAB_KSWARM_REPO=<owner>/<repo>.
 		// When a fork is used, an 'upstream' remote pointing at the canonical repo is added automatically.
-		"clone-istio": ".devcontainer/clone-repo.sh istio/istio \"${MESHLAB_ISTIO_REPO}\" /workspaces/istio",
-		"clone-k-swarm": ".devcontainer/clone-repo.sh h0tbird/k-swarm \"${MESHLAB_KSWARM_REPO}\" /workspaces/k-swarm"
+		"clone-istio": ".devcontainer/clone-repo.sh istio/istio ${localEnv:MESHLAB_ISTIO_REPO:istio/istio} /workspaces/istio",
+		"clone-k-swarm": ".devcontainer/clone-repo.sh h0tbird/k-swarm ${localEnv:MESHLAB_KSWARM_REPO:h0tbird/k-swarm} /workspaces/k-swarm"
 	}
 }

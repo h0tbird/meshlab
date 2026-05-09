@@ -129,7 +129,7 @@ join() {
 
 net_bytes() {
   awk '/:/ && $1 !~ /^lo:/ { gsub(":", "", $1); rx += $2; tx += $10 }
-       END { printf "%.0f", rx + tx }' /proc/net/dev
+       END { printf "%.0f", rx + tx }' /proc/net/dev 2>/dev/null || echo 0
 }
 
 #------------------------------------------------------------------------------

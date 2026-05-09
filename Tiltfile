@@ -147,14 +147,20 @@ spec:
           value: /var/run/secrets/remote/config
         - name: CA_TRUSTED_NODE_ACCOUNTS
           value: istio-system/ztunnel
+        - name: AMBIENT_ENABLE_BAGGAGE
+          value: "true"
+        - name: AMBIENT_ENABLE_MULTI_NETWORK
+          value: "true"
         - name: AUTO_RELOAD_PLUGIN_CERTS
           value: "true"
         - name: ENABLE_NATIVE_SIDECARS
           value: "true"
         - name: ISTIOD_CUSTOM_HOST
           value: istiod.{cluster_name}
-      # - name: PILOT_ENABLE_AMBIENT
-      #   value: "true"
+        - name: PILOT_ENABLE_ALPHA_GATEWAY_API
+          value: "true"
+        - name: PILOT_ENABLE_AMBIENT
+          value: "true"
         - name: PILOT_ENABLE_WORKLOAD_ENTRY_AUTOREGISTRATION
           value: "true"
         - name: PILOT_ENABLE_WORKLOAD_ENTRY_HEALTHCHECKS
@@ -165,11 +171,6 @@ spec:
           value: "false"
         - name: CLUSTER_ID
           value: {cluster_name}
-        - name: GOMEMLIMIT
-          valueFrom:
-            resourceFieldRef:
-              divisor: "1"
-              resource: limits.memory
         - name: GOMAXPROCS
           valueFrom:
             resourceFieldRef:
@@ -203,7 +204,7 @@ spec:
         resources:
           requests:
             cpu: 500m
-            memory: 2048Mi
+            memory: 2Gi
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:

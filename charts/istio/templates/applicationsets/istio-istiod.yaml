@@ -53,6 +53,14 @@ spec:
             # tag: 1.28.3-patch.1-dev
               variant: "debug"
               meshID: {{`'{{metadata.labels.cell}}'`}}
+              # Kind clusters are configured with kubeadm
+              # `networking.dnsDomain: <cell>.local`, so in-cluster service
+              # FQDNs are e.g. foo.bar.svc.pasta.local. Override the istiod
+              # chart default of cluster.local so istiod's --domain flag and
+              # the proxy config it ships to sidecars/ztunnel match the
+              # actual cluster DNS suffix.
+              proxy:
+                clusterDomain: {{`'{{metadata.labels.cell}}.local'`}}
 {{- if eq .Values.networkMode "multi" }}
               network: {{`'{{name}}'`}}
 {{- else if eq .Values.networkMode "single" }}

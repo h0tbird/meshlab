@@ -65,7 +65,7 @@ istio-images: ## Build Istio images.
 	@echo "Building Istio images"
 	rm ~/.docker/config.json || true \
 	&& echo ${GITHUB_TOKEN} | docker login ghcr.io -u ${GITHUB_USER} --password-stdin 2>/dev/null \
-	&& cd /workspaces/istio \
+	&& cd /workspaces/istio && ./prow/buildx-create \
 	&& make docker.push HUB=${ISTIO_HUB} TAG=${ISTIO_TAG} \
 	DOCKER_BUILD_VARIANTS="distroless debug" \
 	DOCKER_ARCHITECTURES="linux/amd64,linux/arm64" \

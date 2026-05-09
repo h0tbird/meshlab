@@ -34,6 +34,13 @@ spec:
                 AUTO_RELOAD_PLUGIN_CERTS: true
                 PILOT_ENABLE_WORKLOAD_ENTRY_AUTOREGISTRATION: true
                 PILOT_ENABLE_WORKLOAD_ENTRY_HEALTHCHECKS: true
+                # Inject the istio-proxy sidecar as a Kubernetes native
+                # sidecar (initContainer with restartPolicy: Always, GA in
+                # K8s 1.29). Guarantees Envoy is up before app containers
+                # start and shuts down after them, fixing startup races and
+                # Job/CronJob termination. Sidecar mode only; ambient is
+                # unaffected.
+                ENABLE_NATIVE_SIDECARS: "true"
                 # Required for the sidecar east-west Gateway: the istio
                 # GatewayClass treats Gateway-API "TLS" listeners as alpha
                 # in 1.29.x, so PASSTHROUGH cross-network listeners on 15443

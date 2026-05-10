@@ -43,7 +43,8 @@ cleanup() {
   blue "───[ Cleanup ]──────────────────────────────────────────────────────────"
 
   # shellcheck disable=SC2046
-  docker kill $(docker ps -f "name=kindccm" -q) 2>/dev/null || true
+  docker kill "$(docker ps -qf "name=kindccm")" 2>/dev/null || true
+  docker rm -f "$(docker ps -aqf "name=^kindccm-")" 2>/dev/null || true
   argocd context --delete "${MNGR}" 2>/dev/null || true
 
   # Only kill tilt instances we started (one per workload cluster)

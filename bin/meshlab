@@ -31,6 +31,7 @@ readonly OTEL_COLLECTOR_CHART_VERSION='0.152.0'        # https://artifacthub.io/
 readonly VAULT_CHART_VERSION='0.32.0'                  # https://artifacthub.io/packages/helm/hashicorp/vault
 readonly CERT_MANAGER_CHART_VERSION='v1.20.2'          # https://artifacthub.io/packages/helm/cert-manager/cert-manager
 readonly KUBERNETES_REPLICATOR_CHART_VERSION='2.12.3'  # https://artifacthub.io/packages/helm/kubernetes-replicator/kubernetes-replicator
+readonly METRICS_SERVER_CHART_VERSION='3.13.0'         # https://artifacthub.io/packages/helm/metrics-server/metrics-server
 readonly ISTIO_CHART_VERSION='1.29.2'                  # https://artifacthub.io/packages/helm/istio-official/base
 readonly KIALI_CHART_VERSION='2.25.0'                  # https://artifacthub.io/packages/helm/kiali/kiali-operator
 
@@ -451,6 +452,7 @@ install-applicationsets() {
   helm template ./charts/vault --set "chartVersion=${VAULT_CHART_VERSION}" | k0 "${ssa[@]}" &
   helm template ./charts/cert-manager --set "chartVersion=${CERT_MANAGER_CHART_VERSION}" | k0 "${ssa[@]}" &
   helm template ./charts/kubernetes-replicator --set "chartVersion=${KUBERNETES_REPLICATOR_CHART_VERSION}" | k0 "${ssa[@]}" &
+  helm template ./charts/metrics-server --set "chartVersion=${METRICS_SERVER_CHART_VERSION}" | k0 "${ssa[@]}" &
   helm template ./charts/istio --set "chartVersion=${ISTIO_CHART_VERSION}" --set "networkMode=${NETWORK_MODE}" | k0 "${ssa[@]}" &
   helm template ./charts/kiali --set "chartVersion=${KIALI_CHART_VERSION}" | k0 "${ssa[@]}" &
   join
@@ -596,6 +598,15 @@ bootstrap-dag() {
 	          parameters:
 	          - name: selectors
 	            value: name=kubernetes-replicator
+	      - name: metrics-server
+	        dependencies: [cilium]
+	        templateRef:
+	          name: argocd-sync-and-wait
+	          template: argocd-sync-and-wait
+	        arguments:
+	          parameters:
+	          - name: selectors
+	            value: name=metrics-server
 	      - name: populate-vault
 	        dependencies: [vault]
 	        templateRef:

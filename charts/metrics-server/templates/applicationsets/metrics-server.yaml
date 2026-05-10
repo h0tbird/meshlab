@@ -1,0 +1,32 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: metrics-server
+  namespace: argocd
+spec:
+  generators:
+  - clusters:
+      selector:
+        matchLabels:
+          argocd.argoproj.io/secret-type: cluster
+  template:
+    metadata:
+      name: {{`'{{name}}-metrics-server'`}}
+      labels:
+        name: metrics-server
+    spec:
+      project: monitoring
+      source:
+        repoURL: https://kubernetes-sigs.github.io/metrics-server/
+        targetRevision: {{ .Values.chartVersion }}
+        chart: metrics-server
+        helm:
+          releaseName: metrics-server
+          valuesObject:
+            args:
+              # kind kubelets serve metrics with self-signed certs
+              - --kubelet-insecure-tls
+      destination:
+        server: {{`'{{server}}'`}}
+        namespace: monitoring

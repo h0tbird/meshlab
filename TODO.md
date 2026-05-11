@@ -6,6 +6,7 @@
 # Getting started
 - [ ] Multi-root VS Code workspace in a Devcontainer
   - [ ] make code
+  - [ ] Dockerfile + devcontainer.json
 
 # Deploy
 - [ ] dood and dind

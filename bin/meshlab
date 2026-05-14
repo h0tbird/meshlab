@@ -42,9 +42,6 @@ readonly KIALI_CHART_VERSION='2.26.0'                  # https://artifacthub.io/
 cleanup() {
   blue "───[ Cleanup ]──────────────────────────────────────────────────────────"
 
-  # shellcheck disable=SC2046
-  docker kill "$(docker ps -qf "name=kindccm")" 2>/dev/null || true
-  docker rm -f "$(docker ps -aqf "name=^kindccm-")" 2>/dev/null || true
   argocd context --delete "${MNGR}" 2>/dev/null || true
 
   # Only kill tilt instances we started (one per workload cluster)
@@ -55,9 +52,17 @@ cleanup() {
   # Only kill socat tunnels we started from publish()
   pkill -f 'socat TCP-LISTEN:[0-9]+,fork TCP:' 2>/dev/null || true
 
-  # Only delete clusters we created
+  # Delete clusters first while cloud-provider-kind is still running, so it
+  # can reconcile LoadBalancer Service removals and tear down the per-LB
+  # envoy containers (kindccm-<hash>) it spawned.
   # shellcheck disable=SC2048,SC2086 # intentional word splitting
   kind --kubeconfig ~/.kube/config.host delete clusters "${MNGR}" ${CELLS[*]}
+
+  # Stop the controller and force-remove any straggler envoy LBs. Shell-side
+  # name matching since docker's `-f name=` is a substring match with no
+  # reliable regex anchors across versions.
+  docker ps -aq --filter name='^kindccm$' --filter name='^kindccm-' \
+  | xargs -r docker rm -f >/dev/null 2>&1
 
   rm -rf ./tmp/*
 }

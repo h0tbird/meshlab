@@ -132,8 +132,8 @@ RUN VERSION="0.3.7" && ARCH=$(archmap 'arm64' 'amd64') && \
 
 # Install btop (https://github.com/aristocratos/btop/releases)
 RUN VERSION="1.4.7" && ARCH=$(archmap 'aarch64' 'x86_64') && \
-    $CURL https://github.com/aristocratos/btop/releases/download/v${VERSION}/btop-${ARCH}-unknown-linux-musl.tbz | \
-    tar -xjC /usr/local/bin --strip-components 3 -f - ./btop/bin/btop
+    $CURL https://github.com/aristocratos/btop/releases/download/v${VERSION}/btop-${ARCH}-unknown-linux-musl.tar.gz | \
+    tar -xzC /usr/local/bin --strip-components 3 -f - ./btop/bin/btop
 
 # Install tilt (https://github.com/tilt-dev/tilt/releases)
 RUN VERSION="0.37.3" && ARCH=$(archmap 'arm64' 'x86_64') && \

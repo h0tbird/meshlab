@@ -60,7 +60,7 @@ RUN echo 'dind() { docker -H unix:///var/run/docker.sock "$@" }' >> /etc/zsh/zsh
 RUN echo "source <(meshlab completion zsh)" >> /etc/zsh/zshrc
 
 # Install Go (https://go.dev/dl/)
-RUN VERSION="1.26.2" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="1.26.3" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL https://go.dev/dl/go${VERSION}.linux-${ARCH}.tar.gz | tar -xzC /usr/local && \
     echo 'export PATH=$PATH:/usr/local/go/bin' >> /etc/zsh/zshenv && \
     echo 'export PATH=$PATH:$HOME/go/bin' >> /etc/zsh/zshenv
@@ -71,13 +71,13 @@ RUN VERSION="v0.31.0" && ARCH=$(archmap 'arm64' 'amd64') && \
     chmod +x /usr/local/bin/kind && echo "source <(kind completion zsh)" >> /etc/zsh/zshrc
 
 # Install kubectl (https://cdn.dl.k8s.io/release/stable.txt)
-RUN VERSION="v1.36.0" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="v1.36.1" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL -o /usr/local/bin/kubectl https://dl.k8s.io/release/${VERSION}/bin/linux/${ARCH}/kubectl && \
     chmod +x /usr/local/bin/kubectl && ln -s /usr/local/bin/kubectl /usr/local/bin/k && \
     echo "source <(kubectl completion zsh)" >> /etc/zsh/zshrc
 
 # Install helm (https://github.com/helm/helm/releases)
-RUN VERSION="v4.1.4" && \
+RUN VERSION="v4.2.0" && \
     $CURL -o /tmp/get_helm.sh https://raw.githubusercontent.com/helm/helm/${VERSION}/scripts/get-helm-4 && \
     chmod 700 /tmp/get_helm.sh && /tmp/get_helm.sh --version ${VERSION} && rm -f /tmp/get_helm.sh && \
     echo "source <(helm completion zsh)" >> /etc/zsh/zshrc
@@ -88,7 +88,7 @@ RUN VERSION="v4.53.2" && ARCH=$(archmap 'arm64' 'amd64') && \
     chmod +x /usr/local/bin/yq && echo "source <(yq completion zsh)" >> /etc/zsh/zshrc
 
 # Install argocd (https://github.com/argoproj/argo-cd/releases)
-RUN VERSION="v3.3.8" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="v3.4.2" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/download/${VERSION}/argocd-linux-${ARCH} && \
     chmod +x /usr/local/bin/argocd && echo "source <(argocd completion zsh)" >> /etc/zsh/zshrc
 
@@ -131,12 +131,12 @@ RUN VERSION="0.3.7" && ARCH=$(archmap 'arm64' 'amd64') && \
     tar -xzC /usr/local/bin swarmctl && echo "source <(swarmctl completion zsh)" >> /etc/zsh/zshrc
 
 # Install btop (https://github.com/aristocratos/btop/releases)
-RUN VERSION="1.4.6" && ARCH=$(archmap 'aarch64' 'x86_64') && \
+RUN VERSION="1.4.7" && ARCH=$(archmap 'aarch64' 'x86_64') && \
     $CURL https://github.com/aristocratos/btop/releases/download/v${VERSION}/btop-${ARCH}-unknown-linux-musl.tbz | \
     tar -xjC /usr/local/bin --strip-components 3 -f - ./btop/bin/btop
 
 # Install tilt (https://github.com/tilt-dev/tilt/releases)
-RUN VERSION="0.37.2" && ARCH=$(archmap 'arm64' 'x86_64') && \
+RUN VERSION="0.37.3" && ARCH=$(archmap 'arm64' 'x86_64') && \
     $CURL https://github.com/tilt-dev/tilt/releases/download/v${VERSION}/tilt.${VERSION}.linux.${ARCH}.tar.gz | \
     tar -xzC /usr/local/bin tilt && echo "source <(tilt completion zsh)" >> /etc/zsh/zshrc
 

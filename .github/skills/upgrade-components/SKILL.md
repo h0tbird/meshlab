@@ -5,9 +5,10 @@ description: Upgrades meshlab component versions defined in bin/meshlab (Helm ch
 
 # Meshlab Component Upgrade Skill
 
-This skill helps upgrade the versions of all meshlab infrastructure components defined in two locations:
+This skill helps upgrade the versions of all meshlab infrastructure components defined in these locations:
 - `bin/meshlab` - Helm chart versions for deployed components
 - `.devcontainer/Dockerfile` - CLI tool versions for the development environment
+- `Tiltfile` - Istio version pinned for the `pilot-discovery` live-reload dev loop (must be bumped in lockstep with `ISTIO_CHART_VERSION`)
 
 ---
 
@@ -132,6 +133,69 @@ Example:
 ```dockerfile
 RUN VERSION="v0.32.0" && ARCH=$(archmap 'arm64' 'amd64') && \
 ```
+
+### For `Tiltfile` (Istio only):
+When `ISTIO_CHART_VERSION` is bumped, update the two version variables
+near the top of `Tiltfile`:
+
+```starlark
+version_dash = '1-30-0'   # dashed form, used in revision labels
+version_dot  = '1.30.0'   # dotted form, must match ISTIO_CHART_VERSION
+```
+
+Both must stay in lockstep with the Istio chart version.
+
+In addition, the `Tiltfile` embeds a full `kind: Deployment` manifest for
+`istiod` that mirrors the Deployment rendered by the upstream Istio Helm
+chart. New Istio versions frequently tweak this Deployment (new env vars,
+changed args, new volume mounts, updated probes, etc.), so the embedded
+manifest **may also need to be updated** to stay in sync.
+
+The diff cannot be computed reliably from the chart alone — the user
+verifies it through **ArgoCD** (which renders the chart in-cluster and
+shows the diff between what ArgoCD wants to apply and what Tilt has
+mutated). After the new chart is deployed:
+
+1. Open the istiod Application in ArgoCD and inspect the diff for the
+   `istiod-<version_dash>` Deployment.
+2. Port any non-Tilt-specific changes (new env vars, args, volumes, etc.)
+   into the embedded YAML in `Tiltfile`. Do **not** touch the bits Tilt
+   injects (the `image:` reference, restart annotations, sync mounts).
+3. Ask the user before making these edits if the diff is ambiguous —
+   never guess at chart changes without seeing the ArgoCD diff.
+
+## Istio Image & Binary Rebuild (required on every Istio bump)
+
+When `ISTIO_CHART_VERSION` is bumped, the Istio fork in `/workspaces/istio`
+must be synced and the images + binaries rebuilt so that the Tiltfile
+live-reload loop can consume them.
+
+1. **Sync the fork with upstream and check out the target tag**:
+
+   ```bash
+   cd /workspaces/istio
+   git fetch upstream --tags
+   git checkout <ISTIO_CHART_VERSION>   # e.g. 1.30.0
+   ```
+
+   The `1.x.y` release tags live on `upstream` (`istio/istio`), not on the
+   `h0tbird/forked-istio` `origin`, so `git fetch --tags` alone (which only
+   pulls from `origin`) is not enough — always fetch from `upstream`
+   explicitly.
+
+2. **Publish new multi-arch images to ghcr.io** so the Tiltfile can pull them
+   (run from `/workspaces/meshlab`, where the `Makefile` lives):
+
+   ```bash
+   make istio-images ISTIO_HUB=ghcr.io/h0tbird ISTIO_TAG=<ISTIO_CHART_VERSION>
+   ```
+
+3. **Rebuild the Istio binaries** so the Tiltfile live-reload loop redeploys
+   `pilot-discovery` with the new code (also from `/workspaces/meshlab`):
+
+   ```bash
+   make istio-binaries
+   ```
 
 ## Important Considerations
 

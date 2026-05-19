@@ -5,9 +5,10 @@ description: Upgrades meshlab component versions defined in bin/meshlab (Helm ch
 
 # Meshlab Component Upgrade Skill
 
-This skill helps upgrade the versions of all meshlab infrastructure components defined in two locations:
+This skill helps upgrade the versions of all meshlab infrastructure components defined in these locations:
 - `bin/meshlab` - Helm chart versions for deployed components
 - `.devcontainer/Dockerfile` - CLI tool versions for the development environment
+- `Tiltfile` - Istio version pinned for the `pilot-discovery` live-reload dev loop (must be bumped in lockstep with `ISTIO_CHART_VERSION`)
 
 ---
 
@@ -132,6 +133,18 @@ Example:
 ```dockerfile
 RUN VERSION="v0.32.0" && ARCH=$(archmap 'arm64' 'amd64') && \
 ```
+
+### For `Tiltfile` (Istio only):
+When `ISTIO_CHART_VERSION` is bumped, also update the two version variables
+near the top of `Tiltfile`:
+
+```starlark
+version_dash = '1-30-0'   # dashed form, used in revision labels
+version_dot  = '1.30.0'   # dotted form, must match ISTIO_CHART_VERSION
+```
+
+Both must stay in lockstep with the Istio chart version. No other Tiltfile
+edits are required.
 
 ## Important Considerations
 

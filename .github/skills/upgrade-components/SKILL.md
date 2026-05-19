@@ -135,7 +135,7 @@ RUN VERSION="v0.32.0" && ARCH=$(archmap 'arm64' 'amd64') && \
 ```
 
 ### For `Tiltfile` (Istio only):
-When `ISTIO_CHART_VERSION` is bumped, also update the two version variables
+When `ISTIO_CHART_VERSION` is bumped, update the two version variables
 near the top of `Tiltfile`:
 
 ```starlark
@@ -143,8 +143,26 @@ version_dash = '1-30-0'   # dashed form, used in revision labels
 version_dot  = '1.30.0'   # dotted form, must match ISTIO_CHART_VERSION
 ```
 
-Both must stay in lockstep with the Istio chart version. No other Tiltfile
-edits are required.
+Both must stay in lockstep with the Istio chart version.
+
+In addition, the `Tiltfile` embeds a full `kind: Deployment` manifest for
+`istiod` that mirrors the Deployment rendered by the upstream Istio Helm
+chart. New Istio versions frequently tweak this Deployment (new env vars,
+changed args, new volume mounts, updated probes, etc.), so the embedded
+manifest **may also need to be updated** to stay in sync.
+
+The diff cannot be computed reliably from the chart alone — the user
+verifies it through **ArgoCD** (which renders the chart in-cluster and
+shows the diff between what ArgoCD wants to apply and what Tilt has
+mutated). After the new chart is deployed:
+
+1. Open the istiod Application in ArgoCD and inspect the diff for the
+   `istiod-<version_dash>` Deployment.
+2. Port any non-Tilt-specific changes (new env vars, args, volumes, etc.)
+   into the embedded YAML in `Tiltfile`. Do **not** touch the bits Tilt
+   injects (the `image:` reference, restart annotations, sync mounts).
+3. Ask the user before making these edits if the diff is ambiguous —
+   never guess at chart changes without seeing the ArgoCD diff.
 
 ## Istio Image & Binary Rebuild (required on every Istio bump)
 

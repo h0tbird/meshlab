@@ -41,8 +41,3 @@ spec:
 {{- else if eq .Values.networkMode "single" }}
             topology.istio.io/network: {{`'{{metadata.labels.cell}}'`}}
 {{- end }}
-      ignoreDifferences:
-      - group: admissionregistration.k8s.io
-        kind: ValidatingWebhookConfiguration
-        jsonPointers:
-        - /webhooks/0/failurePolicy

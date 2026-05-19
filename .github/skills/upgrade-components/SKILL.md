@@ -146,6 +146,39 @@ version_dot  = '1.30.0'   # dotted form, must match ISTIO_CHART_VERSION
 Both must stay in lockstep with the Istio chart version. No other Tiltfile
 edits are required.
 
+## Istio Image & Binary Rebuild (required on every Istio bump)
+
+When `ISTIO_CHART_VERSION` is bumped, the Istio fork in `/workspaces/istio`
+must be synced and the images + binaries rebuilt so that the Tiltfile
+live-reload loop can consume them.
+
+1. **Sync the fork with upstream and check out the target tag**:
+
+   ```bash
+   cd /workspaces/istio
+   git fetch upstream --tags
+   git checkout <ISTIO_CHART_VERSION>   # e.g. 1.30.0
+   ```
+
+   The `1.x.y` release tags live on `upstream` (`istio/istio`), not on the
+   `h0tbird/forked-istio` `origin`, so `git fetch --tags` alone (which only
+   pulls from `origin`) is not enough — always fetch from `upstream`
+   explicitly.
+
+2. **Publish new multi-arch images to ghcr.io** so the Tiltfile can pull them
+   (run from `/workspaces/meshlab`, where the `Makefile` lives):
+
+   ```bash
+   make istio-images ISTIO_HUB=ghcr.io/h0tbird ISTIO_TAG=<ISTIO_CHART_VERSION>
+   ```
+
+3. **Rebuild the Istio binaries** so the Tiltfile live-reload loop redeploys
+   `pilot-discovery` with the new code (also from `/workspaces/meshlab`):
+
+   ```bash
+   make istio-binaries
+   ```
+
 ## Important Considerations
 
 - **Prefer stable releases** over pre-release/alpha/beta/RC versions for all components

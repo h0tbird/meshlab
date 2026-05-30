@@ -85,32 +85,72 @@ RUN VERSION="X.Y.Z" && ARCH=$(archmap 'arm64' 'amd64') && \
 
 ## Fetching Latest Versions — Tips
 
-- **GitHub releases — prefer the `gh` CLI over `fetch_webpage`.** It is faster
-  and produces compact output. The terminal tool runs `gh` without a TTY, which
-  triggers the alternate-screen pager and returns empty output. Always disable
-  it explicitly:
+Two copy-paste blocks below check **every** component in one shot. Run them
+verbatim — they encode the gotchas learned the hard way, so don't re-derive
+the commands (that is what wastes tokens). Then `kubectl`/`Go` are two extra
+one-liners.
 
-  ```bash
-  env GH_FORCE_TTY= GH_PAGER= PAGER=cat NO_COLOR=1 \
-      gh release list -R <owner>/<repo> -L 5
-  ```
+### Block 1 — all GitHub-release components (one batch call)
 
-  Fetch many repos in a single command using a small shell helper to keep
-  output compact and easy to scan.
+The `--json`/`-q` filter selects the entry flagged `isLatest`, so it skips
+pre-releases automatically — no need to eyeball the `Latest` label.
 
-- **Helm chart versions — `gh` is also faster than ArtifactHub.** The
-  ArtifactHub HTML pages are extremely large (tens of thousands of tokens of
-  changelog noise). Prefer one of these compact sources:
-  - Chart repo's `index.yaml` (e.g. `curl -sL <repo-url>/index.yaml | yq ...`)
-  - The chart's `Chart.yaml` on GitHub
-  - `gh release list` for the upstream project repo
-  Only fall back to `fetch_webpage` against ArtifactHub when no other source
-  exists.
+```bash
+env GH_FORCE_TTY= GH_PAGER= PAGER=cat NO_COLOR=1 bash -c '
+for repo in \
+  kubernetes-sigs/cloud-provider-kind k8s-gateway/k8s_gateway \
+  argoproj/argo-cd argoproj/argo-workflows hashicorp/vault \
+  cert-manager/cert-manager mittwald/kubernetes-replicator \
+  kubernetes-sigs/metrics-server istio/istio kiali/kiali \
+  kubernetes-sigs/kind helm/helm mikefarah/yq cilium/cilium-cli \
+  smallstep/cli cli/cli rust-lang/mdBook h0tbird/k-swarm \
+  aristocratos/btop tilt-dev/tilt google/go-containerregistry \
+  grafana/grafanactl sharkdp/bat cilium/cilium; do
+  echo -n "$repo: "
+  gh release list -R $repo -L 8 --json tagName,isLatest \
+    -q "[.[] | select(.isLatest)] | .[0].tagName // \"(none)\"" 2>/dev/null
+done'
+```
 
-- **Latest kubectl** lives at `https://dl.k8s.io/release/stable.txt`
-  (note: `cdn.dl.k8s.io` may not resolve from the devcontainer — use `dl.k8s.io`).
+### Block 2 — Helm chart versions from each repo's `index.yaml`
 
-- **Latest Go** is in `https://go.dev/dl/?mode=json` (first entry).
+`gh`/`index.yaml` are far cheaper than ArtifactHub (whose HTML is tens of
+thousands of tokens of changelog noise). **yq gotchas that cost retries last
+time — get them right the first time:**
+- yq has **no `-r` flag** (that's jq). Plain `yq '...'` already prints raw.
+- For case-insensitive regex use `test("(?i)pattern")`. Do **not** use the
+  jq-style `test("pattern";"i")` — yq rejects the `"i"` option arg.
+- Entries are already sorted newest-first, so `.[0]` after filtering = latest.
+- Fetch each chart **individually** (one `curl … | yq` per line). A single
+  loop over many large `index.yaml` files truncated its output last time and
+  forced re-runs.
+
+```bash
+f='map(select(.version | test("(?i)-(rc|alpha|beta|pre|dev|snapshot)") | not)) | .[0].version'
+echo "cilium:                $(curl -sL https://helm.cilium.io/index.yaml                                  | yq ".entries.cilium | $f")"
+echo "k8s-gateway:           $(curl -sL https://k8s-gateway.github.io/k8s_gateway/index.yaml               | yq ".entries.\"k8s-gateway\" | $f")"
+echo "argo-cd:               $(curl -sL https://argoproj.github.io/argo-helm/index.yaml                    | yq ".entries.\"argo-cd\" | $f")"
+echo "argo-workflows:        $(curl -sL https://argoproj.github.io/argo-helm/index.yaml                    | yq ".entries.\"argo-workflows\" | $f")"
+echo "prometheus:            $(curl -sL https://prometheus-community.github.io/helm-charts/index.yaml      | yq ".entries.prometheus | $f")"
+echo "grafana:               $(curl -sL https://grafana.github.io/helm-charts/index.yaml                   | yq ".entries.grafana | $f")"
+echo "otel-collector:        $(curl -sL https://open-telemetry.github.io/opentelemetry-helm-charts/index.yaml | yq ".entries.\"opentelemetry-collector\" | $f")"
+echo "vault:                 $(curl -sL https://helm.releases.hashicorp.com/index.yaml                     | yq ".entries.vault | $f")"
+echo "cert-manager:          $(curl -sL https://charts.jetstack.io/index.yaml                              | yq ".entries.\"cert-manager\" | $f")"
+echo "kubernetes-replicator: $(curl -sL https://helm.mittwald.de/index.yaml                                | yq ".entries.\"kubernetes-replicator\" | $f")"
+echo "metrics-server:        $(curl -sL https://kubernetes-sigs.github.io/metrics-server/index.yaml        | yq ".entries.\"metrics-server\" | $f")"
+echo "kiali-operator:        $(curl -sL https://kiali.org/helm-charts/index.yaml                           | yq ".entries.\"kiali-operator\" | $f")"
+```
+
+Note: the Helm **chart** version differs from the upstream app version (e.g.
+the cert-manager chart is `vX.Y.Z`, Vault chart `0.32.x` vs Vault app `2.x`).
+Always compare against the chart `index.yaml`, not the project's GitHub release.
+
+### Block 3 — kubectl and Go
+
+```bash
+echo "kubectl: $(curl -sL https://dl.k8s.io/release/stable.txt)"   # use dl.k8s.io, NOT cdn.dl.k8s.io
+echo "go: $(curl -sL 'https://go.dev/dl/?mode=json' | yq -p json '.[0].version')"
+```
 
 ## Formatting Rules
 
@@ -212,18 +252,21 @@ live-reload loop can consume them.
 
 When the user requests a PR:
 
-1. Create a branch off `master`, e.g. `upgrade-components-YYYY-MM`.
+1. Create a branch off `master`, e.g. `upgrade-components-YYYY-MM`. If a branch
+   with that name already exists (from a previous merged upgrade), fall back to
+   a dated form like `upgrade-components-YYYY-MM-DD` rather than reusing it.
 2. Commit the changes with a structured body listing each bumped component
    (`old -> new`), grouped by file.
 3. Push the branch.
-4. Open the PR with `gh pr create`. **The `istio/istio` repo is added as a
+4. Open the PR with `gh pr create` (add `--draft` if the user asked for a draft).
+   **The `istio/istio` repo is added as a
    workspace remote, so `gh` may pick it as the default upstream and fail with
    `No commits between istio:master and h0tbird:<branch>`. Always pass
    `--repo h0tbird/meshlab --base master --head <branch>` explicitly.**
    Also set `GH_PAGER=cat NO_COLOR=1` so the command does not open the pager.
 
    ```bash
-   env GH_PAGER=cat NO_COLOR=1 gh pr create \
+   env GH_PAGER=cat NO_COLOR=1 gh pr create --draft \
      --repo h0tbird/meshlab --base master --head <branch> \
      --title "Upgrade meshlab components" \
      --body "..."

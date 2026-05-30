@@ -88,7 +88,7 @@ RUN VERSION="v4.53.2" && ARCH=$(archmap 'arm64' 'amd64') && \
     chmod +x /usr/local/bin/yq && echo "source <(yq completion zsh)" >> /etc/zsh/zshrc
 
 # Install argocd (https://github.com/argoproj/argo-cd/releases)
-RUN VERSION="v3.4.2" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="v3.4.3" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/download/${VERSION}/argocd-linux-${ARCH} && \
     chmod +x /usr/local/bin/argocd && echo "source <(argocd completion zsh)" >> /etc/zsh/zshrc
 
@@ -98,7 +98,7 @@ RUN VERSION="v4.0.5" && ARCH=$(archmap 'arm64' 'amd64') && \
     chmod +x /usr/local/bin/argo && echo "source <(argo completion zsh)" >> /etc/zsh/zshrc
 
 # Install cilium-cli (https://github.com/cilium/cilium-cli/releases)
-RUN VERSION="v0.19.2" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="v0.19.4" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL https://github.com/cilium/cilium-cli/releases/download/${VERSION}/cilium-linux-${ARCH}.tar.gz | tar -xz -C /usr/local/bin/ && \
     chmod +x /usr/local/bin/cilium && echo "source <(cilium completion zsh)" >> /etc/zsh/zshrc
 
@@ -115,13 +115,13 @@ RUN VERSION="0.30.2" && ARCH=$(archmap 'arm64' 'amd64') && cd /tmp && \
     echo "source <(step completion zsh)" >> /etc/zsh/zshrc
 
 # Install gh (https://github.com/cli/cli/releases)
-RUN VERSION="2.92.0" && ARCH=$(archmap 'arm64' 'amd64') && cd /tmp && \
+RUN VERSION="2.93.0" && ARCH=$(archmap 'arm64' 'amd64') && cd /tmp && \
     $CURL -O https://github.com/cli/cli/releases/download/v${VERSION}/gh_${VERSION}_linux_${ARCH}.deb && \
     dpkg -i gh_${VERSION}_linux_${ARCH}.deb && rm -f gh_${VERSION}_linux_${ARCH}.deb && \
     echo "source <(gh completion -s zsh)" >> /etc/zsh/zshrc
 
 # Install mdbook (https://github.com/rust-lang/mdBook/releases)
-RUN VERSION="v0.5.2" && ARCH=$(archmap 'aarch64' 'x86_64') && \
+RUN VERSION="v0.5.3" && ARCH=$(archmap 'aarch64' 'x86_64') && \
     $CURL https://github.com/rust-lang/mdbook/releases/download/${VERSION}/mdbook-${VERSION}-${ARCH}-unknown-linux-musl.tar.gz | \
     tar -xzC /usr/local/bin mdbook && echo "source <(mdbook completions zsh)" >> /etc/zsh/zshrc
 

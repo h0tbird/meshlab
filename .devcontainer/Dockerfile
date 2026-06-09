@@ -60,13 +60,13 @@ RUN echo 'dind() { docker -H unix:///var/run/docker.sock "$@" }' >> /etc/zsh/zsh
 RUN echo "source <(meshlab completion zsh)" >> /etc/zsh/zshrc
 
 # Install Go (https://go.dev/dl/)
-RUN VERSION="1.26.3" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="1.26.4" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL https://go.dev/dl/go${VERSION}.linux-${ARCH}.tar.gz | tar -xzC /usr/local && \
     echo 'export PATH=$PATH:/usr/local/go/bin' >> /etc/zsh/zshenv && \
     echo 'export PATH=$PATH:$HOME/go/bin' >> /etc/zsh/zshenv
 
 # Install kind (https://github.com/kubernetes-sigs/kind/releases)
-RUN VERSION="v0.31.0" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="v0.32.0" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL -o /usr/local/bin/kind https://github.com/kubernetes-sigs/kind/releases/download/${VERSION}/kind-linux-${ARCH} && \
     chmod +x /usr/local/bin/kind && echo "source <(kind completion zsh)" >> /etc/zsh/zshrc
 
@@ -83,7 +83,7 @@ RUN VERSION="v4.2.0" && \
     echo "source <(helm completion zsh)" >> /etc/zsh/zshrc
 
 # Install yq (https://github.com/mikefarah/yq/releases)
-RUN VERSION="v4.53.2" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="v4.53.3" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL -o /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/${VERSION}/yq_linux_${ARCH} && \
     chmod +x /usr/local/bin/yq && echo "source <(yq completion zsh)" >> /etc/zsh/zshrc
 
@@ -103,7 +103,7 @@ RUN VERSION="v0.19.4" && ARCH=$(archmap 'arm64' 'amd64') && \
     chmod +x /usr/local/bin/cilium && echo "source <(cilium completion zsh)" >> /etc/zsh/zshrc
 
 # Install istioctl (https://github.com/istio/istio/releases)
-RUN VERSION="1.30.0" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="1.30.1" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL -o /tmp/istio.tar.gz https://github.com/istio/istio/releases/download/${VERSION}/istio-${VERSION}-linux-${ARCH}.tar.gz && \
     tar -xC /usr/local/bin --strip-components 2 -f /tmp/istio.tar.gz istio-${VERSION}/bin/istioctl && rm -f /tmp/istio.tar.gz && \
     echo "source <(istioctl completion zsh)" >> /etc/zsh/zshrc

@@ -49,9 +49,7 @@ all_cells() {
 
 # List the first ${CELL_COUNT} workload clusters
 clusters() {
-  local count=0
-  for cell in "${!CELLS[@]}"; do
-    ((++count > ${CELL_COUNT:-1})) && break
+  for cell in $(cells); do
     echo -n "${CELLS[${cell}]} "
   done
 }

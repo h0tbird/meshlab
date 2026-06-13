@@ -16,6 +16,9 @@ declare -A CELLS=(
   [pizza]="pizza-1 pizza-2"
 )
 
+# Ordered list of workload cells (associative arrays don't preserve key order)
+declare -a CELL_ORDER=( pasta pizza )
+
 # Reverse map (cluster -> cell), covers manager + all workload clusters
 # shellcheck disable=SC2034 # used by bin/meshlab
 declare -A CELL_OF=(
@@ -36,7 +39,7 @@ readonly RST='\e[0m'
 # List the first ${CELL_COUNT} workload cells
 cells() {
   local count=0
-  for cell in "${!CELLS[@]}"; do
+  for cell in "${CELL_ORDER[@]}"; do
     ((++count > ${CELL_COUNT:-1})) && break
     echo -n "${cell} "
   done

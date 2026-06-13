@@ -38,7 +38,7 @@ readonly RST='\e[0m'
 
 # List the first ${CELL_COUNT} workload cells
 cells() {
-  local count=0
+  local count=0 cell
   for cell in "${CELL_ORDER[@]}"; do
     ((++count > ${CELL_COUNT:-1})) && break
     echo -n "${cell} "
@@ -52,6 +52,7 @@ all_cells() {
 
 # List the first ${CELL_COUNT} workload clusters
 clusters() {
+  local cell
   for cell in $(cells); do
     echo -n "${CELLS[${cell}]} "
   done
@@ -193,6 +194,7 @@ declare -gxA IP; IP_INIT=false
 
 ensure_ips() {
   [[ "${IP_INIT}" == true ]] && return 0
+  local cluster
   for cluster in $(all_clusters); do
     IP[${cluster}]=$(docker inspect "${cluster}-control-plane" |
       jq -r '.[].NetworkSettings.Networks.kind.IPAddress')

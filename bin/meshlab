@@ -93,26 +93,20 @@ cloud-provider-kind() {
 pull-through-cache() {
   blue "───[ Pull-through registries ]──────────────────────────────────────────"
 
-  docker start registry-docker.io 2>/dev/null || docker run -d \
-    -e REGISTRY_PROXY_REMOTEURL=https://registry-1.docker.io \
-    --restart always \
-    --name registry-docker.io \
-    --network kind \
-    registry:2
+  local -A registries=(
+    [docker.io]=https://registry-1.docker.io
+    [quay.io]=https://quay.io
+    [ghcr.io]=https://ghcr.io
+  )
 
-  docker start registry-quay.io 2>/dev/null || docker run -d \
-    -e REGISTRY_PROXY_REMOTEURL=https://quay.io \
-    --restart always \
-    --name registry-quay.io \
-    --network kind \
-    registry:2
-
-  docker start registry-ghcr.io 2>/dev/null || docker run -d \
-    -e REGISTRY_PROXY_REMOTEURL=https://ghcr.io \
-    --restart always \
-    --name registry-ghcr.io \
-    --network kind \
-    registry:2
+  for name in "${!registries[@]}"; do
+    docker start "registry-${name}" 2>/dev/null || docker run -d \
+      -e REGISTRY_PROXY_REMOTEURL="${registries[${name}]}" \
+      --restart always \
+      --name "registry-${name}" \
+      --network kind \
+      registry:2
+  done
 }; SECTIONS+=( pull-through-cache )
 
 #------------------------------------------------------------------------------

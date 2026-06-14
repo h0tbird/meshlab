@@ -36,6 +36,9 @@
 		"GITHUB_USER": "${localEnv:GITHUB_USER}",
 		"DOCKER_HOST": "unix:///var/run/docker-host.sock"
 	},
+	// Runs as root with a privileged, host-networked container. Required for the
+	// in-container kind clusters and DinD; this trades isolation for capability
+	// and is safe only because the container is a local, single-user dev sandbox.
 	"remoteUser": "root",
 	"runArgs": [
 		"--name", "meshlab",

@@ -10,9 +10,14 @@ set -euo pipefail
 
 clone_repo() {
   local canonical="$1" effective="$2" target="$3"
-  [ -d "${target}/.git" ] && return 0
-  gh repo clone "${effective}" "${target}"
-  if [ "${effective}" != "${canonical}" ]; then
+  if [ ! -d "${target}/.git" ]; then
+    gh repo clone "${effective}" "${target}"
+  fi
+  # Ensure an 'upstream' remote points at the canonical repo when a fork is in
+  # use. Done on every run (and idempotently) so it self-heals if a previous
+  # attempt failed or the repo predates the fork override.
+  if [ "${effective}" != "${canonical}" ] &&
+    ! git -C "${target}" remote get-url upstream >/dev/null 2>&1; then
     git -C "${target}" remote add upstream "https://github.com/${canonical}.git"
   fi
 }

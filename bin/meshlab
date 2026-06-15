@@ -132,6 +132,13 @@ create-clusters() {
 		    kind: ClusterConfiguration
 		    networking:
 		      dnsDomain: "${cell}.local"
+		  - |-
+		    kind: KubeletConfiguration
+		    serializeImagePulls: false
+		    featureGates:
+		      KubeletCrashLoopBackOffMax: true
+		    crashLoopBackOff:
+		      maxContainerRestartPeriod: "10s"
 		EOF
   done
 

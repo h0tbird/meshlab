@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+#
+# check-docker-dood — verify the DooD backend (host Docker Desktop).
+#
+# Probes /var/run/docker-host.sock directly with a hard timeout so a stale
+# Docker Desktop proxy socket can never make this hang (unlike `dood ps`).
+# Prints "OK: ..." on success, "FAIL: ..." and a non-zero exit otherwise.
+
+set -uo pipefail
+
+sock=/var/run/docker-host.sock
+name='DooD (host Docker Desktop)'
+
+if [[ ! -S "${sock}" ]]; then
+  echo "FAIL: ${name} — socket ${sock} is missing (check the devcontainer mount)"
+  exit 1
+fi
+
+if ver=$(curl -fsS --unix-socket "${sock}" --connect-timeout 2 --max-time 5 \
+  http://localhost/version 2>/dev/null); then
+  platform=$(jq -r '.Platform.Name // "unknown"' <<<"${ver}")
+  api=$(jq -r '.ApiVersion // "?"' <<<"${ver}")
+  echo "OK: ${name} reachable — ${platform} (API ${api})"
+else
+  echo "FAIL: ${name} — ${sock} did not respond within 5s"
+  echo "      Docker Desktop is down or the proxy socket is stale; recreate the container."
+  exit 1
+fi

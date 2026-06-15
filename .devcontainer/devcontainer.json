@@ -13,6 +13,9 @@
 		"create-k-swarm-dir": "mkdir -p ${localWorkspaceFolder}/../k-swarm"
 	},
 	"mounts": [
+		// DooD: Docker Desktop's host-services proxy socket. More robust than
+		// bind-mounting the host's /var/run/docker.sock, which requires the
+		// "default Docker socket" option and can go stale across restarts.
 		"type=bind,source=/run/host-services/docker.proxy.sock,target=/var/run/docker-host.sock",
 		"type=bind,source=/run/host-services/ssh-auth.sock,target=/ssh-agent",
 		"type=bind,source=${localEnv:HOME}/.kube/config,target=/root/.kube/config.host",
@@ -28,10 +31,16 @@
 			"version": "latest"
 		}
 	},
+	// Injected only into VS Code shells and lifecycle scripts, not into the image
+	// or PID 1 (the docker-in-docker entrypoint):
+	//   - GITHUB_TOKEN/GITHUB_USER: keep the token out of container metadata
+	//     while still available to `gh`.
+	//   - DOCKER_HOST: default plain `docker` to DooD (host Docker Desktop).
+	//     Kept out of containerEnv so it doesn't break the DinD entrypoint's
+	//     `docker info` readiness probe. The `dind`/`dood` helpers use explicit
+	//     -H and are unaffected.
 	"remoteEnv": {
-		"LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}"
-	},
-	"containerEnv": {
+		"LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}",
 		"GITHUB_TOKEN": "${localEnv:GITHUB_TOKEN}",
 		"GITHUB_USER": "${localEnv:GITHUB_USER}",
 		"DOCKER_HOST": "unix:///var/run/docker-host.sock"

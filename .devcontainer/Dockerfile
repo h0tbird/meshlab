@@ -26,8 +26,14 @@ ENV CURL="curl -fsSL --retry 8 --retry-all-errors --retry-max-time 120 --connect
 RUN printf '#!/bin/sh\ncase "$(arch)" in aarch64) echo "$1";; x86_64) echo "$2";; *) echo "archmap: unsupported arch $(arch)" >&2; exit 1;; esac\n' > /usr/local/bin/archmap && \
     chmod +x /usr/local/bin/archmap
 
-# Install base packages
-RUN apt-get update && \
+# Install base packages.
+# Configure apt to retry transient failures (including "Temporary failure
+# resolving ..." against ports.ubuntu.com on arm64) and to time out instead of
+# hanging on a slow mirror. BuildKit builds use a separate netns whose resolver
+# can flake even when `docker run ... apt-get update` works on the host, so the
+# retries make the build deterministic.
+RUN printf 'Acquire::Retries "8";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' > /etc/apt/apt.conf.d/80-retries && \
+    apt-get update && \
     apt-get install -y --no-install-recommends \
     curl jq iputils-ping dnsutils neovim socat \
     netcat-openbsd apache2-utils shellcheck \
@@ -37,16 +43,9 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/* && \
     chmod -x /etc/update-motd.d/*
 
-# Set zsh as default shell.
-# DOCKER_API_VERSION is exported in /etc/zsh/zprofile (login shells only)
-# rather than zshenv (every shell), and only when the docker socket exists,
-# to avoid a curl on every interactive subshell startup.
+# Set zsh as the default shell for both users.
 RUN chsh -s /usr/bin/zsh root && \
     chsh -s /usr/bin/zsh vscode && \
-    printf '%s\n' \
-      'if [ -S /var/run/docker.sock ]; then' \
-      '  export DOCKER_API_VERSION=$(curl -s --unix-socket /var/run/docker.sock http://localhost/version | jq -r .ApiVersion)' \
-      'fi' >> /etc/zsh/zprofile && \
     sed -i '/^ZSH_THEME/c\ZSH_THEME="robbyrussell"' /root/.zshrc && \
     sed -i '/^ZSH_THEME/c\ZSH_THEME="robbyrussell"' /home/vscode/.zshrc
 

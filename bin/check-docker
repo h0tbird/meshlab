@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+#
+# check-docker — combined health check for both Docker backends.
+#
+# Runs check-docker-dood (DooD) and check-docker-dind (DinD) and exits
+# non-zero if either fails. Neither probe can hang (both are time-bounded).
+
+set -uo pipefail
+
+rc=0
+check-docker-dood || rc=1
+check-docker-dind || rc=1
+
+if [[ "${rc}" -eq 0 ]]; then
+  echo "OK: both Docker backends healthy"
+fi
+exit "${rc}"

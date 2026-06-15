@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2317  # section functions are dispatched indirectly via `make` -> `__run-section` -> `measure`, so ShellCheck cannot see them being called
 
 #------------------------------------------------------------------------------
 # [i] Initializations
@@ -936,12 +937,51 @@ EOF
 }
 
 #------------------------------------------------------------------------------
+# [i] Create: run all sections as a parallel dependency graph
+#------------------------------------------------------------------------------
+
+create() {
+
+  # The generated Makefile and the failure log live under ./tmp; create-clusters
+  # also mkdirs it, but generate_dag_mk runs before make so do it here too.
+  mkdir -p ./tmp
+  rm -f ./tmp/failed
+
+  # Emit the section DAG and let `make -j` schedule it. --output-sync=recurse
+  # buffers each section's output and flushes it as one contiguous block, so
+  # concurrent sections never interleave. -k (keep-going) lets a wave finish so
+  # every failure is reported instead of aborting on the first one.
+  generate_dag_mk ./tmp/dag.mk
+  local rc=0
+  make -j -k --output-sync=recurse -f ./tmp/dag.mk all || rc=$?
+
+  # Print total execution time and network traffic.
+  local summary pad
+  summary="$(human_time "${SECONDS}"), $(human_bytes "$(( $(net_bytes) - NET_START ))")"
+  pad=$(printf '─%.0s' $(seq 1 $((57 - ${#summary}))))
+  printf '\n%b───[ Done in %b%s%b%b ]%s%b\n\n' \
+    "${CYAN}" "${RST}${DIM}" "${summary}" "${RST}" "${CYAN}" "${pad}" "${RST}"
+
+  # Report any failed sections.
+  if [[ -s ./tmp/failed ]]; then
+    local failed
+    failed=$(sort -u ./tmp/failed | paste -sd', ' -)
+    printf '%b───[ Failed: %s ]%b\n\n' "${CYAN}" "${failed}" "${RST}" >&2
+    return "$(( rc == 0 ? 1 : rc ))"
+  fi
+
+  return "${rc}"
+}
+
+#------------------------------------------------------------------------------
 # [i] Validate the command line arguments
 #------------------------------------------------------------------------------
 
-# Defaults for `create` flags.
-export CELL_COUNT=1
-export NETWORK_MODE=multi
+# Defaults for `create` flags. Use parameter expansion so child processes
+# spawned by `make` (via `__run-section`) inherit the values chosen on the
+# parent `create` invocation instead of resetting them to the defaults.
+export CELL_COUNT="${CELL_COUNT:-1}"
+export NETWORK_MODE="${NETWORK_MODE:-multi}"
 
 # Tiny validators (assert, with a friendly error).
 _uint()  { [[ "$1" =~ ^[0-9]+$ ]] || { echo "expected non-negative integer, got '$1'" >&2; exit 1; }; }
@@ -967,26 +1007,12 @@ parse_run_args() {
 
 # Main case statement for top-level subcommands. Each subcommand is responsible for validating its own arguments (if any).
 case "${1:-}" in
-  create) shift; parse_create_args "$@" ;;
+  create) shift; parse_create_args "$@"; create; exit $? ;;
   delete) cleanup; exit 0 ;;
   watch) watch --color 'ml short'; exit 0 ;;
   run) shift; parse_run_args "$@"; measure "${SECTION}"; exit 0 ;;
+  __run-section) measure "${2:?Usage: meshlab __run-section <section>}"; exit 0 ;;
   list) printf '%s\n' "${SECTIONS[@]}"; exit 0 ;;
   completion) completion "${2:-}"; exit 0 ;;
   *) echo "Usage: $(basename "$0") <create [--cell-count N] [--network-mode multi|single]|delete|watch|list|run SECTION [--cell-count N]|completion <shell>>"; exit 1 ;;
 esac
-
-#------------------------------------------------------------------------------
-# [i] Run all sections in order
-#------------------------------------------------------------------------------
-
-for section in "${SECTIONS[@]}"; do measure "${section}"; done
-
-#------------------------------------------------------------------------------
-# [i] Print total execution time and network traffic
-#------------------------------------------------------------------------------
-
-summary="$(human_time "${SECONDS}"), $(human_bytes "$(( $(net_bytes) - NET_START ))")"
-pad=$(printf '─%.0s' $(seq 1 $((57 - ${#summary}))))
-printf '\n%b───[ Done in %b%s%b%b ]%s%b\n\n' \
-  "${CYAN}" "${RST}${DIM}" "${summary}" "${RST}" "${CYAN}" "${pad}" "${RST}"

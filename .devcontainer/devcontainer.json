@@ -13,11 +13,11 @@
 		"create-k-swarm-dir": "mkdir -p ${localWorkspaceFolder}/../k-swarm"
 	},
 	"mounts": [
+		"type=bind,source=/run/host-services/docker.proxy.sock,target=/var/run/docker-host.sock",
 		"type=bind,source=/run/host-services/ssh-auth.sock,target=/ssh-agent",
 		"type=bind,source=${localEnv:HOME}/.kube/config,target=/root/.kube/config.host",
 		"type=bind,source=${localWorkspaceFolder}/../istio,target=/workspaces/istio",
-		"type=bind,source=${localWorkspaceFolder}/../k-swarm,target=/workspaces/k-swarm",
-		"type=bind,source=/var/run/docker.sock,target=/var/run/docker-host.sock"
+		"type=bind,source=${localWorkspaceFolder}/../k-swarm,target=/workspaces/k-swarm"
 	],
 	"features": {
 		"ghcr.io/devcontainers/features/docker-in-docker:2": {

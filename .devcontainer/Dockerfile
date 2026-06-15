@@ -27,11 +27,9 @@ RUN printf '#!/bin/sh\ncase "$(arch)" in aarch64) echo "$1";; x86_64) echo "$2";
     chmod +x /usr/local/bin/archmap
 
 # Install base packages.
-# Configure apt to retry transient failures (including "Temporary failure
-# resolving ..." against ports.ubuntu.com on arm64) and to time out instead of
-# hanging on a slow mirror. BuildKit builds use a separate netns whose resolver
-# can flake even when `docker run ... apt-get update` works on the host, so the
-# retries make the build deterministic.
+# Configure apt to retry transient failures and time out on slow mirrors, so
+# flaky DNS in BuildKit's netns (e.g. ports.ubuntu.com on arm64) doesn't break
+# the build.
 RUN printf 'Acquire::Retries "8";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' > /etc/apt/apt.conf.d/80-retries && \
     apt-get update && \
     apt-get install -y --no-install-recommends \

@@ -46,14 +46,17 @@ export ZOT_DIR_HOST="${LOCAL_WORKSPACE_FOLDER:-${PWD}}/.zot"
 export ZOT_VOLUME="zot-data"
 readonly ZOT_HOST ZOT_PORT ZOT_UI_PORT ZOT_DIR ZOT_DIR_HOST ZOT_VOLUME
 
-# zot proxy upstreams (single source of truth, easily extended). The key is BOTH
-# the upstream host (the containerd registry namespace) and the zot destination
-# path prefix; the value is the upstream registry URL.
+# zot proxy upstreams (single source of truth). The key is BOTH the upstream
+# host (containerd registry namespace) and the zot destination prefix; the
+# value is the upstream registry URL.
 # shellcheck disable=SC2034 # used by bin/meshlab
 declare -A REGISTRIES=(
   [docker.io]="https://registry-1.docker.io"
   [quay.io]="https://quay.io"
   [ghcr.io]="https://ghcr.io"
+  [registry.k8s.io]="https://registry.k8s.io"
+  [registry.istio.io]="https://registry.istio.io"
+  [ecr-public.aws.com]="https://public.ecr.aws"
 )
 
 # Colors

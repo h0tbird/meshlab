@@ -96,11 +96,10 @@ cloud-provider-kind() {
 pull-through-cache() {
   blue "───[ Pull-through cache (zot) ]─────────────────────────────────────────"
 
-  # Render config.json from the REGISTRIES map (fed as tab-separated
-  # upstream<TAB>url lines). Each upstream becomes an on-demand `sync` registry
-  # whose cached images live under its own destination prefix. `compat`/
-  # `preserveDigest` keep Docker media types intact so `image@sha256:` pulls
-  # still resolve. `search` + `ui` enable the bundled web interface.
+  # Render config.json from the REGISTRIES map (tab-separated upstream<TAB>url).
+  # Each upstream becomes an on-demand `sync` registry cached under its own
+  # prefix. `compat`/`preserveDigest` keep Docker media types intact for
+  # `image@sha256:` pulls; `search`/`ui` enable the bundled web interface.
   mkdir -p "${ZOT_DIR}"
   local upstream
   for upstream in "${!REGISTRIES[@]}"; do
@@ -195,11 +194,9 @@ create-clusters() {
 add-registries-to-containerd() {
   blue "───[ Configure containerd ]─────────────────────────────────────────────"
 
-  # Route each upstream through its zot destination prefix. `override_path` makes
-  # containerd treat that path as the registry API root, so a pull of e.g.
-  # docker.io/library/nginx becomes a request to
-  # http://${ZOT_HOST}:${ZOT_PORT}/v2/docker.io/library/nginx. The `server` line
-  # keeps the real upstream as a fallback if zot is unreachable.
+  # Route each upstream through its zot prefix. `override_path` treats that path
+  # as the registry API root (docker.io/library/nginx -> http://${ZOT_HOST}:
+  # ${ZOT_PORT}/v2/docker.io/library/nginx); `server` is the upstream fallback.
   for cluster in $(all_clusters); do (
     local upstream url
     for upstream in "${!REGISTRIES[@]}"; do

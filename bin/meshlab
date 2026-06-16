@@ -105,9 +105,6 @@ pull-through-cache() {
     return 0
   fi
 
-  # Drop any legacy per-registry registry:2 pull-through caches (migration).
-  docker rm -f registry-docker.io registry-quay.io registry-ghcr.io >/dev/null 2>&1 || true
-
   # Remove any stale (stopped) zot container; the named volume below keeps the
   # cached blobs, so recreating the container is cheap and picks up config edits.
   docker rm -f "${ZOT_HOST}" >/dev/null 2>&1 || true
@@ -143,14 +140,6 @@ pull-through-cache() {
     }
   }' > "${ZOT_DIR}/config.json"
 
-  # zot images are published per-arch (amd64|arm64). Use the full image (not
-  # -minimal) so the sync/search/ui extensions are present.
-  local arch
-  case "$(uname -m)" in
-    aarch64|arm64) arch=arm64 ;;
-    *)             arch=amd64 ;;
-  esac
-
   # Persistent blob store. docker here is DooD (the CLI talks to the host
   # daemon), so the devcontainer filesystem can't be bind-mounted; use a named
   # volume instead. It survives `docker rm`, so the cache persists across
@@ -166,7 +155,7 @@ pull-through-cache() {
     --restart always \
     -p "127.0.0.1:${ZOT_UI_PORT}:8080" \
     -v "${ZOT_VOLUME}:/var/lib/registry" \
-    "ghcr.io/project-zot/zot-linux-${arch}:v${ZOT_VERSION}" >/dev/null
+    "ghcr.io/project-zot/zot:v${ZOT_VERSION}" >/dev/null
   docker cp "${ZOT_DIR}/config.json" "${ZOT_HOST}:/etc/zot/config.json"
   docker start "${ZOT_HOST}" >/dev/null
 

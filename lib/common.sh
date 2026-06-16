@@ -27,6 +27,31 @@ declare -A CELL_OF=(
   [pizza-1]=pizza [pizza-2]=pizza
 )
 
+# Pull-through cache (zot). A single zot instance mirrors every upstream registry
+# on demand (its `sync` extension), replacing the per-registry registry:2
+# containers. ${ZOT_PORT} is the port the kind nodes reach over the kind docker
+# network; ${ZOT_UI_PORT} is the host-published port for the web UI and the /v2
+# API (kept off 8080 to avoid colliding with the socat-published service ports).
+# ${ZOT_DIR} holds the rendered config (docker is DooD here, so the config is
+# injected with `docker cp`, not bind-mounted). ${ZOT_VOLUME} is a docker named
+# volume for the blob store, so the cache survives container removal.
+export ZOT_HOST="zot"
+export ZOT_PORT=8080
+export ZOT_UI_PORT=8086
+export ZOT_DIR="${PWD}/.zot"
+export ZOT_VOLUME="zot-data"
+readonly ZOT_HOST ZOT_PORT ZOT_UI_PORT ZOT_DIR ZOT_VOLUME
+
+# zot proxy upstreams (single source of truth, easily extended). The key is BOTH
+# the upstream host (the containerd registry namespace) and the zot destination
+# path prefix; the value is the upstream registry URL.
+# shellcheck disable=SC2034 # used by bin/meshlab
+declare -A REGISTRIES=(
+  [docker.io]="https://registry-1.docker.io"
+  [quay.io]="https://quay.io"
+  [ghcr.io]="https://ghcr.io"
+)
+
 # Colors
 readonly CYAN='\e[1;36m'
 readonly DIM='\e[2m'

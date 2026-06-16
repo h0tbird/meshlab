@@ -34,6 +34,7 @@ readonly KUBERNETES_REPLICATOR_CHART_VERSION='2.12.3'  # https://artifacthub.io/
 readonly METRICS_SERVER_CHART_VERSION='3.13.0'         # https://artifacthub.io/packages/helm/metrics-server/metrics-server
 readonly ISTIO_CHART_VERSION='1.30.1'                  # https://artifacthub.io/packages/helm/istio-official/base
 readonly KIALI_CHART_VERSION='2.27.0'                  # https://artifacthub.io/packages/helm/kiali/kiali-operator
+readonly ZOT_VERSION='2.1.17'                          # https://github.com/project-zot/zot/releases
 
 #------------------------------------------------------------------------------
 # [i] Cleanup
@@ -64,6 +65,11 @@ cleanup() {
   docker ps -aq --filter name='^kindccm$' --filter name='^kindccm-' \
   | xargs -r docker rm -f >/dev/null 2>&1
 
+  # Stop the zot pull-through cache. Its blob store lives in the ${ZOT_VOLUME}
+  # named volume (left on disk), so a subsequent create does not re-download
+  # every image.
+  docker rm -f "${ZOT_HOST}" >/dev/null 2>&1 || true
+
   rm -rf ./tmp/*
 }
 
@@ -87,26 +93,84 @@ cloud-provider-kind() {
 }; SECTIONS+=( cloud-provider-kind )
 
 #------------------------------------------------------------------------------
-# [i] Pull-through image cache
+# [i] Pull-through image cache (zot)
 #------------------------------------------------------------------------------
 
 pull-through-cache() {
-  blue "───[ Pull-through registries ]──────────────────────────────────────────"
+  blue "───[ Pull-through cache (zot) ]─────────────────────────────────────────"
 
-  local -A registries=(
-    [docker.io]=https://registry-1.docker.io
-    [quay.io]=https://quay.io
-    [ghcr.io]=https://ghcr.io
+  # Already running? Nothing to do (its blob store persists across restarts).
+  if docker ps --format '{{.Names}}' | grep -qx "${ZOT_HOST}"; then
+    echo "zot already running, skipping install"
+    return 0
+  fi
+
+  # Drop any legacy per-registry registry:2 pull-through caches (migration).
+  docker rm -f registry-docker.io registry-quay.io registry-ghcr.io >/dev/null 2>&1 || true
+
+  # Remove any stale (stopped) zot container; the named volume below keeps the
+  # cached blobs, so recreating the container is cheap and picks up config edits.
+  docker rm -f "${ZOT_HOST}" >/dev/null 2>&1 || true
+
+  # Render config.json from the REGISTRIES map. Each upstream becomes an
+  # on-demand `sync` registry whose cached images live under its own destination
+  # prefix (the upstream host). `compat`/`preserveDigest` keep Docker media types
+  # intact so `image@sha256:` pulls still resolve. `search` + `ui` enable the
+  # bundled web interface (same binary, no extra component).
+  mkdir -p "${ZOT_DIR}"
+  local upstream registries_json
+  registries_json=$(
+    for upstream in "${!REGISTRIES[@]}"; do
+      jq -n --arg url "${REGISTRIES[${upstream}]}" --arg dest "/${upstream}" '{
+        urls: [$url],
+        onDemand: true,
+        tlsVerify: true,
+        preserveDigest: true,
+        content: [{ prefix: "**", destination: $dest }]
+      }'
+    done | jq -s '.'
   )
 
-  for name in "${!registries[@]}"; do
-    docker start "registry-${name}" 2>/dev/null || docker run -d \
-      -e REGISTRY_PROXY_REMOTEURL="${registries[${name}]}" \
-      --restart always \
-      --name "registry-${name}" \
-      --network kind \
-      registry:2
-  done
+  jq -n --argjson regs "${registries_json}" '{
+    distSpecVersion: "1.1.0",
+    storage: { rootDirectory: "/var/lib/registry", gc: true, dedupe: true },
+    http: { address: "0.0.0.0", port: "8080", compat: ["docker2s2"] },
+    log: { level: "info" },
+    extensions: {
+      sync: { enable: true, registries: $regs },
+      search: { enable: true },
+      ui: { enable: true }
+    }
+  }' > "${ZOT_DIR}/config.json"
+
+  # zot images are published per-arch (amd64|arm64). Use the full image (not
+  # -minimal) so the sync/search/ui extensions are present.
+  local arch
+  case "$(uname -m)" in
+    aarch64|arm64) arch=arm64 ;;
+    *)             arch=amd64 ;;
+  esac
+
+  # Persistent blob store. docker here is DooD (the CLI talks to the host
+  # daemon), so the devcontainer filesystem can't be bind-mounted; use a named
+  # volume instead. It survives `docker rm`, so the cache persists across
+  # `meshlab delete`.
+  docker volume create "${ZOT_VOLUME}" >/dev/null
+
+  # Create the container on the kind network (so nodes resolve it as ${ZOT_HOST})
+  # with the UI/API published on the host at ${ZOT_UI_PORT}, inject the rendered
+  # config (can't bind-mount under DooD), then start it.
+  docker create \
+    --name "${ZOT_HOST}" \
+    --network kind \
+    --restart always \
+    -p "127.0.0.1:${ZOT_UI_PORT}:8080" \
+    -v "${ZOT_VOLUME}:/var/lib/registry" \
+    "ghcr.io/project-zot/zot-linux-${arch}:v${ZOT_VERSION}" >/dev/null
+  docker cp "${ZOT_DIR}/config.json" "${ZOT_HOST}:/etc/zot/config.json"
+  docker start "${ZOT_HOST}" >/dev/null
+
+  echo "zot UI: http://127.0.0.1:${ZOT_UI_PORT}"
 }; SECTIONS+=( pull-through-cache )
 
 #------------------------------------------------------------------------------
@@ -163,34 +227,32 @@ create-clusters() {
 add-registries-to-containerd() {
   blue "───[ Configure containerd ]─────────────────────────────────────────────"
 
-  # Map registries to pull-through caches
-  echo "docker.io --> http://registry-docker.io:5000"
-  echo "quay.io   --> http://registry-quay.io:5000"
-  echo "ghcr.io   --> http://registry-ghcr.io:5000"
-
-  # Configure containerd in all clusters
+  # Route each upstream through its zot destination prefix. `override_path` makes
+  # containerd treat that path as the registry API root, so a pull of e.g.
+  # docker.io/library/nginx becomes a request to
+  # http://${ZOT_HOST}:${ZOT_PORT}/v2/docker.io/library/nginx. The `server` line
+  # keeps the real upstream as a fallback if zot is unreachable.
   for cluster in $(all_clusters); do (
-    docker exec -i "${cluster}-control-plane" bash -c '
-      mkdir -p /etc/containerd/certs.d/docker.io
-      cat <<- EOF > /etc/containerd/certs.d/docker.io/hosts.toml
-			server = "https://registry-1.docker.io"
-			[host."http://registry-docker.io:5000"]
-			  capabilities = ["pull", "resolve"]
-			EOF
-      mkdir -p /etc/containerd/certs.d/quay.io
-      cat <<- EOF > /etc/containerd/certs.d/quay.io/hosts.toml
-			server = "https://quay.io"
-			[host."http://registry-quay.io:5000"]
-			  capabilities = ["pull", "resolve"]
-			EOF
-      mkdir -p /etc/containerd/certs.d/ghcr.io
-      cat <<- EOF > /etc/containerd/certs.d/ghcr.io/hosts.toml
-			server = "https://ghcr.io"
-			[host."http://registry-ghcr.io:5000"]
-			  capabilities = ["pull", "resolve"]
-			EOF
-    '
+    local upstream url
+    for upstream in "${!REGISTRIES[@]}"; do
+      url="${REGISTRIES[${upstream}]}"
+      docker exec -i "${cluster}-control-plane" bash -c "
+        mkdir -p /etc/containerd/certs.d/${upstream}
+        printf '%s\n' \
+          'server = \"${url}\"' \
+          '[host.\"http://${ZOT_HOST}:${ZOT_PORT}/v2/${upstream}\"]' \
+          '  capabilities = [\"pull\", \"resolve\"]' \
+          '  override_path = true' \
+          > /etc/containerd/certs.d/${upstream}/hosts.toml
+      "
+    done
   ) & done; join
+
+  # Show the routing.
+  local upstream
+  for upstream in "${!REGISTRIES[@]}"; do
+    echo "${upstream} --> http://${ZOT_HOST}:${ZOT_PORT}/v2/${upstream}"
+  done
 }; SECTIONS+=( add-registries-to-containerd )
 
 #------------------------------------------------------------------------------

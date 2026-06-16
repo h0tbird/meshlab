@@ -1,6 +1,6 @@
 ---
 name: open-webui
-description: Opens meshlab web UIs (ArgoCD, Argo Workflows, Vault, Prometheus, Grafana, Kiali, Tilt) in the integrated browser. Use this skill when asked to open, access, check, or view any of the lab's web dashboards or UIs.
+description: Opens meshlab web UIs (ArgoCD, Argo Workflows, Vault, Prometheus, Grafana, Kiali, Zot, Tilt) in the integrated browser. Use this skill when asked to open, access, check, or view any of the lab's web dashboards or UIs.
 ---
 
 # Open Web UI Skill
@@ -21,6 +21,7 @@ The VS Code setting `workbench.browser.enableChatTools` must be `true`.
 | Prometheus | http://127.0.0.1:8083 | - |
 | Grafana | http://127.0.0.1:8084 | admin / meshlab123 |
 | Kiali | http://127.0.0.1:8085 | - |
+| Zot | http://127.0.0.1:8086 | - |
 | Tilt pasta-1 | http://127.0.0.1:9091 | - |
 | Tilt pasta-2 | http://127.0.0.1:9092 | - |
 

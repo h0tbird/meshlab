@@ -99,42 +99,30 @@ cloud-provider-kind() {
 pull-through-cache() {
   blue "───[ Pull-through cache (zot) ]─────────────────────────────────────────"
 
-  # Already running? Nothing to do (its blob store persists across restarts).
-  if docker ps --format '{{.Names}}' | grep -qx "${ZOT_HOST}"; then
-    echo "zot already running, skipping install"
-    return 0
-  fi
-
-  # Remove any stale (stopped) zot container; the named volume below keeps the
-  # cached blobs, so recreating the container is cheap and picks up config edits.
-  docker rm -f "${ZOT_HOST}" >/dev/null 2>&1 || true
-
-  # Render config.json from the REGISTRIES map. Each upstream becomes an
-  # on-demand `sync` registry whose cached images live under its own destination
-  # prefix (the upstream host). `compat`/`preserveDigest` keep Docker media types
-  # intact so `image@sha256:` pulls still resolve. `search` + `ui` enable the
-  # bundled web interface (same binary, no extra component).
+  # Render config.json from the REGISTRIES map (fed as tab-separated
+  # upstream<TAB>url lines). Each upstream becomes an on-demand `sync` registry
+  # whose cached images live under its own destination prefix. `compat`/
+  # `preserveDigest` keep Docker media types intact so `image@sha256:` pulls
+  # still resolve. `search` + `ui` enable the bundled web interface.
   mkdir -p "${ZOT_DIR}"
-  local upstream registries_json
-  registries_json=$(
-    for upstream in "${!REGISTRIES[@]}"; do
-      jq -n --arg url "${REGISTRIES[${upstream}]}" --arg dest "/${upstream}" '{
-        urls: [$url],
-        onDemand: true,
-        tlsVerify: true,
-        preserveDigest: true,
-        content: [{ prefix: "**", destination: $dest }]
-      }'
-    done | jq -s '.'
-  )
-
-  jq -n --argjson regs "${registries_json}" '{
+  local upstream
+  for upstream in "${!REGISTRIES[@]}"; do
+    printf '%s\t%s\n' "${upstream}" "${REGISTRIES[${upstream}]}"
+  done | jq -R -s '{
     distSpecVersion: "1.1.0",
     storage: { rootDirectory: "/var/lib/registry", gc: true, dedupe: true },
     http: { address: "0.0.0.0", port: "8080", compat: ["docker2s2"] },
     log: { level: "info" },
     extensions: {
-      sync: { enable: true, registries: $regs },
+      sync: { enable: true, registries: (
+        split("\n") | map(select(length > 0) | split("\t") | {
+          urls: [.[1]],
+          onDemand: true,
+          tlsVerify: true,
+          preserveDigest: true,
+          content: [{ prefix: "**", destination: "/" + .[0] }]
+        })
+      ) },
       search: { enable: true },
       ui: { enable: true }
     }
@@ -150,16 +138,15 @@ pull-through-cache() {
   # bind-mounted read-only from its host path (${ZOT_DIR_HOST}); under DooD the
   # mount source resolves on the host filesystem, and the workspace is
   # bind-mounted there, so the in-container ${ZOT_DIR} maps to ${ZOT_DIR_HOST}.
-  docker run -d \
+  # Skip if already running (its blob store persists across restarts).
+  docker ps --format '{{.Names}}' | grep -qx "${ZOT_HOST}" || \
+  docker run --rm -d \
     --name "${ZOT_HOST}" \
     --network kind \
-    --restart always \
     -p "127.0.0.1:${ZOT_UI_PORT}:8080" \
     -v "${ZOT_DIR_HOST}/config.json:/etc/zot/config.json:ro" \
     -v "${ZOT_VOLUME}:/var/lib/registry" \
     "ghcr.io/project-zot/zot:v${ZOT_VERSION}" >/dev/null
-
-  echo "zot UI: http://127.0.0.1:${ZOT_UI_PORT}"
 }; SECTIONS+=( pull-through-cache )
 
 #------------------------------------------------------------------------------

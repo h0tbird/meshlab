@@ -27,17 +27,13 @@ declare -A CELL_OF=(
   [pizza-1]=pizza [pizza-2]=pizza
 )
 
-# Pull-through cache (zot). A single zot instance mirrors every upstream registry
-# on demand (its `sync` extension), replacing the per-registry registry:2
-# containers. ${ZOT_PORT} is the port the kind nodes reach over the kind docker
-# network; ${ZOT_UI_PORT} is the host-published port for the web UI and the /v2
-# API (kept off 8080 to avoid colliding with the socat-published service ports).
-# ${ZOT_DIR} is the in-container path where the config is rendered; ${ZOT_DIR_HOST}
-# is the same directory's path on the host. docker is DooD here (the CLI talks to
-# the host daemon), so bind-mount sources resolve on the host filesystem -- the
-# workspace is bind-mounted, so we mount the config from ${ZOT_DIR_HOST}.
-# ${ZOT_VOLUME} is a docker named volume for the blob store, so the cache
-# survives container removal.
+# Pull-through cache (zot). A single zot instance mirrors every upstream on
+# demand (`sync` extension). ${ZOT_PORT} is reached by the kind nodes over the
+# kind network; ${ZOT_UI_PORT} publishes the web UI and /v2 API on the host
+# (off 8080 to avoid colliding with socat-published service ports). The config
+# is rendered to ${ZOT_DIR} and bind-mounted from its host path ${ZOT_DIR_HOST}
+# (docker is DooD, so mount sources resolve on the host). ${ZOT_VOLUME} is a
+# named volume for the blob store, so the cache survives container removal.
 export ZOT_HOST="zot"
 export ZOT_PORT=8080
 export ZOT_UI_PORT=8086

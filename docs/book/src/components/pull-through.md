@@ -6,12 +6,11 @@ upstream registry and cached; subsequent pulls of the same image are served from
 the cache instead of hitting the upstream again.
 
 This lab runs a single [zot](https://zotregistry.dev/) instance as the
-pull-through cache for every upstream registry, replacing the previous trio of
-`registry:2` containers. zot runs as a Docker container on the devcontainer host
-(attached to the `kind` network) so it is available before any cluster or CNI
-exists. It uses zot's `sync` extension in **on-demand** mode: an image is mirrored
-from the upstream only when it is first requested, then cached in zot's local
-blob store.
+pull-through cache for every upstream registry. zot runs as a Docker container on
+the devcontainer host (attached to the `kind` network) so it is available before
+any cluster or CNI exists. It uses zot's `sync` extension in **on-demand** mode:
+an image is mirrored from the upstream only when it is first requested, then
+cached in zot's local blob store.
 
 Each upstream is mirrored under its own destination prefix:
 

@@ -20,6 +20,9 @@ Each upstream is mirrored under its own destination prefix:
 | `docker.io` | `/docker.io` | `https://registry-1.docker.io` |
 | `quay.io` | `/quay.io` | `https://quay.io` |
 | `ghcr.io` | `/ghcr.io` | `https://ghcr.io` |
+| `registry.k8s.io` | `/registry.k8s.io` | `https://registry.k8s.io` |
+| `registry.istio.io` | `/registry.istio.io` | `https://registry.istio.io` |
+| `ecr-public.aws.com` | `/ecr-public.aws.com` | `https://public.ecr.aws` |
 
 The upstreams are defined in a single associative array (`REGISTRIES`) in
 `lib/common.sh`; add more by adding a row there.
@@ -79,8 +82,9 @@ curl -s http://127.0.0.1:8086/v2/quay.io/argoproj/argocd/manifests/v2.4.7 | jq
   `add-registries-to-containerd` section.
 - The rendered config lives in `./.zot/config.json` (gitignored). In this
   devcontainer the Docker CLI talks to the host daemon (Docker-out-of-Docker), so
-  the config is injected with `docker cp` rather than bind-mounted, and the
-  cached blobs are kept in the `zot-data` Docker **named volume**.
+  the config is bind-mounted read-only from its host path (the workspace is
+  bind-mounted into the devcontainer), and the cached blobs are kept in the
+  `zot-data` Docker **named volume**.
 - The `zot` container is removed on `meshlab delete`, but the `zot-data` volume
   persists, so a subsequent `meshlab create` does not re-download every image.
 - To remove zot and its cache entirely:

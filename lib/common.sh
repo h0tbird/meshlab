@@ -32,15 +32,19 @@ declare -A CELL_OF=(
 # containers. ${ZOT_PORT} is the port the kind nodes reach over the kind docker
 # network; ${ZOT_UI_PORT} is the host-published port for the web UI and the /v2
 # API (kept off 8080 to avoid colliding with the socat-published service ports).
-# ${ZOT_DIR} holds the rendered config (docker is DooD here, so the config is
-# injected with `docker cp`, not bind-mounted). ${ZOT_VOLUME} is a docker named
-# volume for the blob store, so the cache survives container removal.
+# ${ZOT_DIR} is the in-container path where the config is rendered; ${ZOT_DIR_HOST}
+# is the same directory's path on the host. docker is DooD here (the CLI talks to
+# the host daemon), so bind-mount sources resolve on the host filesystem -- the
+# workspace is bind-mounted, so we mount the config from ${ZOT_DIR_HOST}.
+# ${ZOT_VOLUME} is a docker named volume for the blob store, so the cache
+# survives container removal.
 export ZOT_HOST="zot"
 export ZOT_PORT=8080
 export ZOT_UI_PORT=8086
 export ZOT_DIR="${PWD}/.zot"
+export ZOT_DIR_HOST="${LOCAL_WORKSPACE_FOLDER:-${PWD}}/.zot"
 export ZOT_VOLUME="zot-data"
-readonly ZOT_HOST ZOT_PORT ZOT_UI_PORT ZOT_DIR ZOT_VOLUME
+readonly ZOT_HOST ZOT_PORT ZOT_UI_PORT ZOT_DIR ZOT_DIR_HOST ZOT_VOLUME
 
 # zot proxy upstreams (single source of truth, easily extended). The key is BOTH
 # the upstream host (the containerd registry namespace) and the zot destination

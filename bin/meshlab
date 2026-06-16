@@ -141,23 +141,23 @@ pull-through-cache() {
   }' > "${ZOT_DIR}/config.json"
 
   # Persistent blob store. docker here is DooD (the CLI talks to the host
-  # daemon), so the devcontainer filesystem can't be bind-mounted; use a named
-  # volume instead. It survives `docker rm`, so the cache persists across
-  # `meshlab delete`.
+  # daemon), so use a named volume instead of a devcontainer-local path. It
+  # survives `docker rm`, so the cache persists across `meshlab delete`.
   docker volume create "${ZOT_VOLUME}" >/dev/null
 
-  # Create the container on the kind network (so nodes resolve it as ${ZOT_HOST})
-  # with the UI/API published on the host at ${ZOT_UI_PORT}, inject the rendered
-  # config (can't bind-mount under DooD), then start it.
-  docker create \
+  # Run zot on the kind network (so nodes resolve it as ${ZOT_HOST}) with the
+  # UI/API published on the host at ${ZOT_UI_PORT}. The rendered config is
+  # bind-mounted read-only from its host path (${ZOT_DIR_HOST}); under DooD the
+  # mount source resolves on the host filesystem, and the workspace is
+  # bind-mounted there, so the in-container ${ZOT_DIR} maps to ${ZOT_DIR_HOST}.
+  docker run -d \
     --name "${ZOT_HOST}" \
     --network kind \
     --restart always \
     -p "127.0.0.1:${ZOT_UI_PORT}:8080" \
+    -v "${ZOT_DIR_HOST}/config.json:/etc/zot/config.json:ro" \
     -v "${ZOT_VOLUME}:/var/lib/registry" \
     "ghcr.io/project-zot/zot:v${ZOT_VERSION}" >/dev/null
-  docker cp "${ZOT_DIR}/config.json" "${ZOT_HOST}:/etc/zot/config.json"
-  docker start "${ZOT_HOST}" >/dev/null
 
   echo "zot UI: http://127.0.0.1:${ZOT_UI_PORT}"
 }; SECTIONS+=( pull-through-cache )

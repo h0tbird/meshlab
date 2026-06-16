@@ -79,17 +79,14 @@ cleanup() {
 
 cloud-provider-kind() {
   blue "───[ cloud-provider-kind ]──────────────────────────────────────────────"
-
   docker network ls | grep -q ' kind ' || \
   docker network create kind
-
-  docker ps --format '{{.Names}}' | grep -q '^kindccm$' || {
-    docker run --rm -d \
-      --name kindccm \
-      --network kind \
-      --volume /var/run/docker.sock:/var/run/docker.sock \
-      "registry.k8s.io/cloud-provider-kind/cloud-controller-manager:v${KINDCCM_VERSION}"
-  }
+  docker ps --format '{{.Names}}' | grep -q '^kindccm$' || \
+  docker run --rm -d \
+    --name kindccm \
+    --network kind \
+    --volume /var/run/docker.sock:/var/run/docker.sock \
+    "registry.k8s.io/cloud-provider-kind/cloud-controller-manager:v${KINDCCM_VERSION}"
 }; SECTIONS+=( cloud-provider-kind )
 
 #------------------------------------------------------------------------------
@@ -120,7 +117,7 @@ pull-through-cache() {
           onDemand: true,
           tlsVerify: true,
           preserveDigest: true,
-          content: [{ prefix: "**", destination: "/" + .[0] }]
+          content: [{ prefix: "**", destination: ("/" + .[0]) }]
         })
       ) },
       search: { enable: true },
@@ -128,17 +125,12 @@ pull-through-cache() {
     }
   }' > "${ZOT_DIR}/config.json"
 
-  # Persistent blob store. docker here is DooD (the CLI talks to the host
-  # daemon), so use a named volume instead of a devcontainer-local path. It
-  # survives `docker rm`, so the cache persists across `meshlab delete`.
+  # Create the blob store volume and run zot. Under DooD the docker CLI talks to
+  # the host daemon, so the config bind-mount resolves on the host
+  # (${ZOT_DIR_HOST}) and the cache lives in a named volume that survives
+  # `docker rm`. zot joins the kind network (nodes resolve it as ${ZOT_HOST})
+  # and publishes its UI/API on the host; skip if already running.
   docker volume create "${ZOT_VOLUME}" >/dev/null
-
-  # Run zot on the kind network (so nodes resolve it as ${ZOT_HOST}) with the
-  # UI/API published on the host at ${ZOT_UI_PORT}. The rendered config is
-  # bind-mounted read-only from its host path (${ZOT_DIR_HOST}); under DooD the
-  # mount source resolves on the host filesystem, and the workspace is
-  # bind-mounted there, so the in-container ${ZOT_DIR} maps to ${ZOT_DIR_HOST}.
-  # Skip if already running (its blob store persists across restarts).
   docker ps --format '{{.Names}}' | grep -qx "${ZOT_HOST}" || \
   docker run --rm -d \
     --name "${ZOT_HOST}" \

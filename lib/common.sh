@@ -7,7 +7,9 @@
 export MNGR="mnger-1"
 export DOMAIN="demo.lab"
 export PASS='meshlab123'
-readonly MNGR DOMAIN PASS
+export ZOT_HOST="zot"
+export ZOT_PORT=8080
+readonly MNGR DOMAIN PASS ZOT_HOST ZOT_PORT
 export SECTIONS=()
 
 # Define workload cells and their clusters
@@ -27,24 +29,7 @@ declare -A CELL_OF=(
   [pizza-1]=pizza [pizza-2]=pizza
 )
 
-# Pull-through cache (zot). A single zot instance mirrors every upstream on
-# demand (`sync` extension). ${ZOT_PORT} is reached by the kind nodes over the
-# kind network; ${ZOT_UI_PORT} publishes the web UI and /v2 API on the host
-# (off 8080 to avoid colliding with socat-published service ports). The config
-# is rendered to ${ZOT_DIR} and bind-mounted from its host path ${ZOT_DIR_HOST}
-# (docker is DooD, so mount sources resolve on the host). ${ZOT_VOLUME} is a
-# named volume for the blob store, so the cache survives container removal.
-export ZOT_HOST="zot"
-export ZOT_PORT=8080
-export ZOT_UI_PORT=8086
-export ZOT_DIR="${PWD}/.zot"
-export ZOT_DIR_HOST="${LOCAL_WORKSPACE_FOLDER:-${PWD}}/.zot"
-export ZOT_VOLUME="zot-data"
-readonly ZOT_HOST ZOT_PORT ZOT_UI_PORT ZOT_DIR ZOT_DIR_HOST ZOT_VOLUME
-
-# zot proxy upstreams (single source of truth). The key is BOTH the upstream
-# host (containerd registry namespace) and the zot destination prefix; the
-# value is the upstream registry URL.
+# Map of known registries to their API endpoints
 # shellcheck disable=SC2034 # used by bin/meshlab
 declare -A REGISTRIES=(
   [docker.io]="https://registry-1.docker.io"

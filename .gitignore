@@ -1,4 +1,3 @@
-tmp/
-.zot/
+.tmp/
 docs/book/book/
 *.gz

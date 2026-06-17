@@ -23,15 +23,17 @@ ENV CURL="curl -fsSL --retry 8 --retry-all-errors --retry-max-time 120 --connect
 
 # Architecture helper: archmap <arm64_value> <amd64_value>
 # Exits non-zero on unsupported architectures so broken downloads fail loudly.
-RUN printf '#!/bin/sh\ncase "$(arch)" in aarch64) echo "$1";; x86_64) echo "$2";; *) echo "archmap: unsupported arch $(arch)" >&2; exit 1;; esac\n' > /usr/local/bin/archmap && \
-    chmod +x /usr/local/bin/archmap
+RUN cat > /usr/local/bin/archmap <<'EOF' && chmod +x /usr/local/bin/archmap
+#!/bin/sh
+case "$(arch)" in
+    aarch64) echo "$1" ;;
+    x86_64)  echo "$2" ;;
+    *) echo "archmap: unsupported arch $(arch)" >&2; exit 1 ;;
+esac
+EOF
 
 # Install base packages.
-# Configure apt to retry transient failures and time out on slow mirrors, so
-# flaky DNS in BuildKit's netns (e.g. ports.ubuntu.com on arm64) doesn't break
-# the build.
-RUN printf 'Acquire::Retries "8";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' > /etc/apt/apt.conf.d/80-retries && \
-    apt-get update && \
+RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     curl jq iputils-ping dnsutils neovim socat \
     netcat-openbsd apache2-utils shellcheck \

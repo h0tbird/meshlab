@@ -79,7 +79,7 @@ curl -s http://127.0.0.1:8086/v2/quay.io/argoproj/argocd/manifests/v2.4.7 | jq
 - zot is installed and started by the `pull-through-cache` section of
   `bin/meshlab`, and the clusters are wired to it by the
   `add-registries-to-containerd` section.
-- The rendered config lives in `./.zot/config.json` (gitignored). In this
+- The rendered config lives in `./.tmp/zot-config.json` (gitignored). In this
   devcontainer the Docker CLI talks to the host daemon (Docker-out-of-Docker), so
   the config is bind-mounted read-only from its host path (the workspace is
   bind-mounted into the devcontainer), and the cached blobs are kept in the

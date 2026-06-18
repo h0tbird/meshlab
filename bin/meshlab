@@ -128,6 +128,9 @@ pull-through-cache() {
     -v "${HOST_TMP}/zot-config.json:/etc/zot/config.json:ro" \
     -v "${volume}:/var/lib/registry" \
     "ghcr.io/project-zot/zot:v${ZOT_VERSION}" >/dev/null
+
+  # Show the zot UI URL
+  echo "zot --> http://127.0.0.1:${ui_port}"
 }; SECTIONS+=( pull-through-cache )
 
 #------------------------------------------------------------------------------

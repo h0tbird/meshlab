@@ -47,6 +47,7 @@ readonly ZOT_VERSION='2.1.17'                          # https://github.com/proj
 cleanup() {
   blue "───[ Cleanup ]──────────────────────────────────────────────────────────"
 
+  # Delete the ArgoCD context (if it exists)
   argocd context --delete "${MNGR}" 2>/dev/null || true
 
   # Only kill tilt instances we started (one per workload cluster)

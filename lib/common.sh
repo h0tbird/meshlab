@@ -9,7 +9,8 @@ export DOMAIN="demo.lab"
 export PASS='meshlab123'
 export ZOT_HOST="zot"
 export ZOT_PORT=8080
-readonly MNGR DOMAIN PASS ZOT_HOST ZOT_PORT
+export HOST_TMP="${LOCAL_WORKSPACE_FOLDER}/.tmp"
+readonly MNGR DOMAIN PASS ZOT_HOST ZOT_PORT HOST_TMP
 export SECTIONS=()
 
 # Define workload cells and their clusters

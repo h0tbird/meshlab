@@ -11,7 +11,6 @@ set -euo pipefail
 cd "$(dirname "$0")"/..
 
 # Ensure the temporary directory exists
-HOST_TMP="${LOCAL_WORKSPACE_FOLDER}/.tmp"
 mkdir -p .tmp
 
 # shellcheck source=../lib/common.sh

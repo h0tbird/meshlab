@@ -152,25 +152,87 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="pull-through-registries"><a class="header" href="#pull-through-registries">Pull-through registries</a></h1>
-<p>A pull-through registry is a proxy that sits between your local Docker
-installation and a remote Docker registry. It caches the images you pull from
-the remote registry, and if another user on the same network tries to pull the
-same image, the pull-through registry will serve it to them directly, rather
-than pulling it again from the remote registry. The Container Runtime Interface
-(CRI) in this lab is set up to use local pull-through registries for the
-remote registries <code>docker.io</code>, <code>quay.io</code> and <code>ghcr.io</code> on each cluster.</p>
-<p>List all images in a registry:</p>
-<pre><code class="language-console">curl -s 127.0.0.1:5011/v2/_catalog | jq # docker.io
-curl -s 127.0.0.1:5012/v2/_catalog | jq # quay.io
-curl -s 127.0.0.1:5013/v2/_catalog | jq # ghcr.io
+                        <h1 id="pull-through-cache-zot"><a class="header" href="#pull-through-cache-zot">Pull-through cache (zot)</a></h1>
+<p>A pull-through cache is a proxy that sits between the clusters and the remote
+container registries. The first time an image is pulled it is fetched from the
+upstream registry and cached; subsequent pulls of the same image are served from
+the cache instead of hitting the upstream again.</p>
+<p>This lab runs a single <a href="https://zotregistry.dev/">zot</a> instance as the
+pull-through cache for every upstream registry. zot runs as a Docker container on
+the devcontainer host (attached to the <code>kind</code> network) so it is available before
+any cluster or CNI exists. It uses zot's <code>sync</code> extension in <strong>on-demand</strong> mode:
+an image is mirrored from the upstream only when it is first requested, then
+cached in zot's local blob store.</p>
+<p>Each upstream is mirrored under its own destination prefix:</p>
+<div class="table-wrapper"><table><thead><tr><th>Upstream</th><th>zot destination</th><th>Endpoint</th></tr></thead><tbody>
+<tr><td><code>docker.io</code></td><td><code>/docker.io</code></td><td><code>https://registry-1.docker.io</code></td></tr>
+<tr><td><code>quay.io</code></td><td><code>/quay.io</code></td><td><code>https://quay.io</code></td></tr>
+<tr><td><code>ghcr.io</code></td><td><code>/ghcr.io</code></td><td><code>https://ghcr.io</code></td></tr>
+<tr><td><code>registry.k8s.io</code></td><td><code>/registry.k8s.io</code></td><td><code>https://registry.k8s.io</code></td></tr>
+<tr><td><code>registry.istio.io</code></td><td><code>/registry.istio.io</code></td><td><code>https://registry.istio.io</code></td></tr>
+<tr><td><code>ecr-public.aws.com</code></td><td><code>/ecr-public.aws.com</code></td><td><code>https://public.ecr.aws</code></td></tr>
+</tbody></table>
+</div>
+<p>The upstreams are defined in a single associative array (<code>REGISTRIES</code>) in
+<code>lib/common.sh</code>; add more by adding a row there.</p>
+<h2 id="how-the-clusters-use-it"><a class="header" href="#how-the-clusters-use-it">How the clusters use it</a></h2>
+<p>Each cluster's containerd is configured (via
+<code>/etc/containerd/certs.d/&lt;upstream&gt;/hosts.toml</code>) to mirror every upstream through
+its zot destination prefix, using <code>override_path = true</code> so the prefix becomes
+the registry API root:</p>
+<pre><code class="language-toml">server = "https://registry-1.docker.io"
+[host."http://zot:8080/v2/docker.io"]
+  capabilities = ["pull", "resolve"]
+  override_path = true
 </code></pre>
-<p>List tags for a given image:</p>
-<pre><code class="language-console">curl -s 127.0.0.1:5012/v2/argoproj/argocd/tags/list | jq
+<p>A pull of <code>docker.io/library/nginx</code> is therefore served from
+<code>http://zot:8080/v2/docker.io/library/nginx</code>. The <code>server</code> line keeps the real
+upstream as a fallback if zot is unreachable.</p>
+<p>By-digest pulls (<code>image@sha256:...</code>) keep working because zot is configured with
+<code>compat: ["docker2s2"]</code> and the sync <code>preserveDigest</code> option, so Docker media
+types and digests are preserved instead of being rewritten to OCI.</p>
+<h2 id="web-ui"><a class="header" href="#web-ui">Web UI</a></h2>
+<p>zot's web interface and <code>/v2</code> API are published on the host:</p>
+<ul>
+<li>URL: <a href="http://127.0.0.1:8086">http://127.0.0.1:8086</a></li>
+</ul>
+<p>The UI is part of the same zot binary (the bundled <code>ui</code> + <code>search</code> extensions) —
+no extra component is required.</p>
+<h2 id="api-examples"><a class="header" href="#api-examples">API examples</a></h2>
+<p>List all cached repositories:</p>
+<pre><code class="language-console">curl -s http://127.0.0.1:8086/v2/_catalog | jq
+</code></pre>
+<p>List tags for a cached image (note the destination prefix):</p>
+<pre><code class="language-console">curl -s http://127.0.0.1:8086/v2/quay.io/argoproj/argocd/tags/list | jq
 </code></pre>
 <p>Get the manifest for a given image and tag:</p>
-<pre><code class="language-console">curl -s http://127.0.0.1:5012/v2/argoproj/argocd/manifests/v2.4.7 | jq
+<pre><code class="language-console">curl -s http://127.0.0.1:8086/v2/quay.io/argoproj/argocd/manifests/v2.4.7 | jq
 </code></pre>
+<h2 id="lifecycle"><a class="header" href="#lifecycle">Lifecycle</a></h2>
+<ul>
+<li>
+<p>zot is installed and started by the <code>pull-through-cache</code> section of
+<code>bin/meshlab</code>, and the clusters are wired to it by the
+<code>add-registries-to-containerd</code> section.</p>
+</li>
+<li>
+<p>The rendered config lives in <code>./.tmp/zot-config.json</code> (gitignored). In this
+devcontainer the Docker CLI talks to the host daemon (Docker-out-of-Docker), so
+the config is bind-mounted read-only from its host path (the workspace is
+bind-mounted into the devcontainer), and the cached blobs are kept in the
+<code>zot-data</code> Docker <strong>named volume</strong>.</p>
+</li>
+<li>
+<p>The <code>zot</code> container is removed on <code>meshlab delete</code>, but the <code>zot-data</code> volume
+persists, so a subsequent <code>meshlab create</code> does not re-download every image.</p>
+</li>
+<li>
+<p>To remove zot and its cache entirely:</p>
+<pre><code class="language-console">docker rm -f zot
+docker volume rm zot-data
+</code></pre>
+</li>
+</ul>
 
                     </main>
 

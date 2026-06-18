@@ -22,7 +22,7 @@ spec:
     inputs:
       parameters:
       - name: argocd-version
-        value: v3.3.7
+        value: v3.4.3
       - name: application-name
         value: ""
       - name: revision

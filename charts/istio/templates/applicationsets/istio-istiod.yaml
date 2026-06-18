@@ -49,10 +49,11 @@ spec:
                 ISTIOD_CUSTOM_HOST: {{`'istiod.{{name}}'`}}
                 # Master switch for ambient cross-cluster endpoint
                 # discovery. Despite the name, this is required even in
-                # single-network mode (flat L3 via Cilium ClusterMesh) to
-                # let ztunnel see remote-cluster ambient workloads. With
-                # this off, ambient services are pinned to local-cluster
-                # endpoints regardless of remote-secret federation.
+                # single-network mode (flat L3 via kindnet + static
+                # inter-node routes) to let ztunnel see remote-cluster
+                # ambient workloads. With this off, ambient services are
+                # pinned to local-cluster endpoints regardless of
+                # remote-secret federation.
                 AMBIENT_ENABLE_MULTI_NETWORK: "true"
                 AMBIENT_ENABLE_BAGGAGE: "true"
             global:

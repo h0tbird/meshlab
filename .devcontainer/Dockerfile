@@ -96,11 +96,6 @@ RUN VERSION="v4.0.5" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL https://github.com/argoproj/argo-workflows/releases/download/${VERSION}/argo-linux-${ARCH}.gz | gunzip -c > /usr/local/bin/argo && \
     chmod +x /usr/local/bin/argo && echo "source <(argo completion zsh)" >> /etc/zsh/zshrc
 
-# Install cilium-cli (https://github.com/cilium/cilium-cli/releases)
-RUN VERSION="v0.19.4" && ARCH=$(archmap 'arm64' 'amd64') && \
-    $CURL https://github.com/cilium/cilium-cli/releases/download/${VERSION}/cilium-linux-${ARCH}.tar.gz | tar -xz -C /usr/local/bin/ && \
-    chmod +x /usr/local/bin/cilium && echo "source <(cilium completion zsh)" >> /etc/zsh/zshrc
-
 # Install istioctl (https://github.com/istio/istio/releases)
 RUN VERSION="1.30.1" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL -o /tmp/istio.tar.gz https://github.com/istio/istio/releases/download/${VERSION}/istio-${VERSION}-linux-${ARCH}.tar.gz && \

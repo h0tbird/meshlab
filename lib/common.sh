@@ -30,6 +30,22 @@ declare -A CELL_OF=(
   [pizza-1]=pizza [pizza-2]=pizza
 )
 
+# Per-cluster pod CIDRs; unique ranges keep the flat L3 network non-overlapping
+# shellcheck disable=SC2034 # used by bin/meshlab
+declare -A POD_CIDR=(
+  [${MNGR}]="10.41.0.0/16"
+  [pasta-1]="10.51.0.0/16" [pasta-2]="10.52.0.0/16"
+  [pizza-1]="10.61.0.0/16" [pizza-2]="10.62.0.0/16"
+)
+
+# Per-cluster service CIDRs; unique ranges keep the flat L3 network non-overlapping
+# shellcheck disable=SC2034 # used by bin/meshlab
+declare -A SVC_CIDR=(
+  [${MNGR}]="10.141.0.0/16"
+  [pasta-1]="10.151.0.0/16" [pasta-2]="10.152.0.0/16"
+  [pizza-1]="10.161.0.0/16" [pizza-2]="10.162.0.0/16"
+)
+
 # Map of known registries to their API endpoints
 # shellcheck disable=SC2034 # used by bin/meshlab
 declare -A REGISTRIES=(

@@ -660,11 +660,8 @@ bootstrap-dag() {
 	      - name: kiali-operator
 	        dependencies:
 	        - prometheus
-	        - grafana
+	        - istio-istiod
 	        - istio-cni
-	        - istio-ztunnel
-	        - istio-nsgw
-	        - istio-ewgw
 	        templateRef:
 	          name: argocd-sync-and-wait
 	          template: argocd-sync-and-wait

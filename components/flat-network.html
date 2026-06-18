@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Cilium - The MeshLab Book</title>
+        <title>Flat network - The MeshLab Book</title>
 
 
         <!-- Custom HTML head -->
@@ -152,26 +152,25 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="cilium"><a class="header" href="#cilium">Cilium</a></h1>
-<p><a href="https://cilium.io/">Cilium</a> is an open source, cloud native solution for providing, securing, and observing network connectivity between workloads, fueled by the revolutionary Kernel technology eBPF.</p>
-<p>Display status:</p>
-<pre><code class="language-console">cilium --context pasta-1 status
+                        <h1 id="flat-network"><a class="header" href="#flat-network">Flat network</a></h1>
+<p>Each cell is a flat L3 network. Clusters run the default kindnet CNI with
+kube-proxy enabled, and <code>setup-flat-network</code> adds static routes between the
+sibling clusters of a cell so their pod and service CIDRs are directly routable,
+providing cross-cluster pod-to-pod reachability.</p>
+<p>Each cluster is given a unique pod and service CIDR (see <code>POD_CIDR</code> / <code>SVC_CIDR</code>
+in <code>lib/common.sh</code>) so the ranges never overlap inside a cell.</p>
+<p>Show the routes installed on a cluster node:</p>
+<pre><code class="language-console">docker exec pasta-1-control-plane ip route
 </code></pre>
-<p>Show status of ClusterMesh:</p>
-<pre><code>cilium --context pasta-1 clustermesh status
+<p>Verify cross-cluster pod reachability (from a pod in <code>pasta-1</code> to a pod IP in
+<code>pasta-2</code>):</p>
+<pre><code class="language-console">k --context pasta-1 exec deploy/&lt;app&gt; -- curl -s &lt;pasta-2-pod-ip&gt;:&lt;port&gt;
 </code></pre>
-<p>Display status of daemon:</p>
-<pre><code class="language-console">k --context pasta-1 -n kube-system exec ds/cilium -c cilium-agent -- cilium-dbg status
-</code></pre>
-<p>Display full details:</p>
-<pre><code class="language-console">k --context pasta-1 -n kube-system exec ds/cilium -c cilium-agent -- cilium-dbg status --verbose
-</code></pre>
-<p>List services:</p>
-<pre><code class="language-console">k --context pasta-1 -n kube-system exec ds/cilium -c cilium-agent -- cilium-dbg service list
-</code></pre>
-<p>Troubleshoot connectivity towards remote clusters:</p>
-<pre><code class="language-console">k --context pasta-1 -n kube-system exec ds/cilium -c cilium-agent -- cilium-dbg troubleshoot clustermesh
-</code></pre>
+<blockquote>
+<p>Routes are added via <code>docker exec ... ip route replace</code> and live only in the
+node container's routing table. They are lost if a node container restarts;
+re-run <code>setup-flat-network</code> (<code>ml run setup-flat-network</code>) to reinstall them.</p>
+</blockquote>
 
                     </main>
 

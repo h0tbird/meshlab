@@ -1,6 +1,6 @@
 ---
 name: upgrade-components
-description: Upgrades meshlab component versions defined in bin/meshlab (Helm charts) and .devcontainer/Dockerfile (CLI tools) by checking ArtifactHub and GitHub releases for latest versions. Use this skill when asked to upgrade, update, or check versions of Cilium, Istio, Prometheus, Grafana, Vault, cert-manager, Argo CD, Kiali, kind, kubectl, helm, or other infrastructure components and CLI tools.
+description: Upgrades meshlab component versions defined in bin/meshlab (Helm charts) and .devcontainer/Dockerfile (CLI tools) by checking ArtifactHub and GitHub releases for latest versions. Use this skill when asked to upgrade, update, or check versions of Istio, Prometheus, Grafana, Vault, cert-manager, Argo CD, Kiali, kind, kubectl, helm, or other infrastructure components and CLI tools.
 ---
 
 # Meshlab Component Upgrade Skill
@@ -25,7 +25,6 @@ COMPONENT_VERSION='X.Y.Z'  # https://artifacthub.io/packages/helm/...
 | Variable | Component | Version Source |
 |----------|-----------|----------------|
 | `KINDCCM_VERSION` | cloud-provider-kind | https://github.com/kubernetes-sigs/cloud-provider-kind/releases |
-| `CILIUM_CHART_VERSION` | Cilium | https://artifacthub.io/packages/helm/cilium/cilium |
 | `K8S_GATEWAY_CHART_VERSION` | k8s-gateway | https://github.com/k8s-gateway/k8s_gateway |
 | `ARGOCD_CHART_VERSION` | Argo CD | https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd |
 | `ARGOWF_CHART_VERSION` | Argo Workflows | https://artifacthub.io/packages/helm/argo/argo-workflows |
@@ -60,7 +59,6 @@ RUN VERSION="X.Y.Z" && ARCH=$(archmap 'arm64' 'amd64') && \
 | yq | https://github.com/mikefarah/yq/releases |
 | argocd | https://github.com/argoproj/argo-cd/releases |
 | argo (workflows) | https://github.com/argoproj/argo-workflows/releases |
-| cilium-cli | https://github.com/cilium/cilium-cli/releases |
 | istioctl | https://github.com/istio/istio/releases |
 | step | https://github.com/smallstep/cli/releases |
 | gh | https://github.com/cli/cli/releases |
@@ -102,10 +100,10 @@ for repo in \
   argoproj/argo-cd argoproj/argo-workflows hashicorp/vault \
   cert-manager/cert-manager mittwald/kubernetes-replicator \
   kubernetes-sigs/metrics-server istio/istio kiali/kiali \
-  kubernetes-sigs/kind helm/helm mikefarah/yq cilium/cilium-cli \
+  kubernetes-sigs/kind helm/helm mikefarah/yq \
   smallstep/cli cli/cli rust-lang/mdBook h0tbird/k-swarm \
   aristocratos/btop tilt-dev/tilt google/go-containerregistry \
-  grafana/grafanactl sharkdp/bat cilium/cilium; do
+  grafana/grafanactl sharkdp/bat; do
   echo -n "$repo: "
   gh release list -R $repo -L 8 --json tagName,isLatest \
     -q "[.[] | select(.isLatest)] | .[0].tagName // \"(none)\"" 2>/dev/null
@@ -127,7 +125,6 @@ time — get them right the first time:**
 
 ```bash
 f='map(select(.version | test("(?i)-(rc|alpha|beta|pre|dev|snapshot)") | not)) | .[0].version'
-echo "cilium:                $(curl -sL https://helm.cilium.io/index.yaml                                  | yq ".entries.cilium | $f")"
 echo "k8s-gateway:           $(curl -sL https://k8s-gateway.github.io/k8s_gateway/index.yaml               | yq ".entries.\"k8s-gateway\" | $f")"
 echo "argo-cd:               $(curl -sL https://argoproj.github.io/argo-helm/index.yaml                    | yq ".entries.\"argo-cd\" | $f")"
 echo "argo-workflows:        $(curl -sL https://argoproj.github.io/argo-helm/index.yaml                    | yq ".entries.\"argo-workflows\" | $f")"
@@ -240,11 +237,10 @@ live-reload loop can consume them.
 ## Important Considerations
 
 - **Prefer stable releases** over pre-release/alpha/beta/RC versions for all components
-- **Stay on current stable series**: When the latest version of a component is a pre-release (RC/alpha/beta), stay on the current stable major.minor series and check for the latest patch version in that series (e.g., if latest Cilium is 1.19.0-rc.1, check for the latest 1.18.x stable release)
+- **Stay on current stable series**: When the latest version of a component is a pre-release (RC/alpha/beta), stay on the current stable major.minor series and check for the latest patch version in that series (e.g., if latest Istio is 1.31.0-rc.1, check for the latest 1.30.x stable release)
 - **`gh release list` shows pre-releases inline** — the `Latest` label marks the
-  newest stable release; do not blindly take the first row. As of 2026-04, both
-  Istio (`1.30.0-beta.0`) and Cilium (`1.20.0-pre.1`) had pre-releases newer
-  than the latest stable.
+  newest stable release; do not blindly take the first row. As of 2026-04,
+  Istio (`1.30.0-beta.0`) had a pre-release newer than the latest stable.
 - **Note major version upgrades** that may introduce breaking changes
 - **Dependencies**: Some components have compatibility requirements (e.g., Kiali version should be compatible with Istio version)
 
@@ -281,7 +277,7 @@ Provide a summary after upgrades:
 ### Helm Charts (bin/meshlab)
 | Component | Previous | Latest | Status |
 |-----------|----------|--------|--------|
-| Cilium | 1.18.6 | 1.19.0 | ✅ Upgraded |
+| Istio | 1.30.0 | 1.30.1 | ✅ Upgraded |
 
 ### CLI Tools (.devcontainer/Dockerfile)
 | Tool | Previous | Latest | Status |

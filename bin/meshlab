@@ -45,32 +45,23 @@ readonly ZOT_VERSION='2.1.17'                          # https://github.com/proj
 cleanup() {
   blue "───[ Cleanup ]──────────────────────────────────────────────────────────"
 
-  # Delete the ArgoCD context (if it exists)
+  # Delete the ArgoCD context
   argocd context --delete "${MNGR}" 2>/dev/null || true
 
-  # Only kill tilt instances we started (one per workload cluster)
-  for cluster in $(clusters); do
-    pkill -f "tilt up --context kind-${cluster}" 2>/dev/null || true
-  done
+  # Kill the tilt instances
+  pkill -f 'tilt up --context kind-' 2>/dev/null || true
 
-  # Only kill socat tunnels we started from publish()
+  # Kill the socat tunnels
   pkill -f 'socat TCP-LISTEN:[0-9]+,fork TCP:' 2>/dev/null || true
 
-  # Delete clusters first while cloud-provider-kind is still running, so it
-  # can reconcile LoadBalancer Service removals and tear down the per-LB
-  # envoy containers (kindccm-<hash>) it spawned.
   # shellcheck disable=SC2048,SC2086 # intentional word splitting
   kind --kubeconfig ~/.kube/config.host delete clusters "${MNGR}" ${CELLS[*]}
 
-  # Stop the controller and force-remove any straggler envoy LBs. Shell-side
-  # name matching since docker's `-f name=` is a substring match with no
-  # reliable regex anchors across versions.
-  docker ps -aq --filter name='^kindccm$' --filter name='^kindccm-' \
-  | xargs -r docker rm -f >/dev/null 2>&1
+  # Delete any kindccm containers
+  docker ps -aq --filter name='^kindccm$' --filter name='^kindccm-' |
+  xargs -r docker rm -f >/dev/null 2>&1
 
-  # Stop the zot pull-through cache. Its blob store lives in the zot-data
-  # named volume (left on disk), so a subsequent create does not re-download
-  # every image.
+  # Stop the zot pull-through cache
   docker rm -f "${ZOT_HOST}" >/dev/null 2>&1 || true
 
   # Remove the temporary directory
@@ -83,8 +74,7 @@ cleanup() {
 
 cloud-provider-kind() {
   blue "───[ cloud-provider-kind ]──────────────────────────────────────────────"
-  docker network ls | grep -q ' kind ' || \
-  docker network create kind
+  docker network ls | grep -q ' kind ' || docker network create kind
   docker ps --format '{{.Names}}' | grep -q '^kindccm$' || \
   docker run --rm -d \
     --name kindccm \

@@ -33,7 +33,7 @@ esac
 EOF
 
 # Install base packages.
-RUN apt-get update && \
+RUN apt-get -o Acquire::ForceIPv4=true update && \
     apt-get install -y --no-install-recommends \
     curl jq iputils-ping dnsutils neovim socat \
     netcat-openbsd apache2-utils shellcheck \

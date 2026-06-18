@@ -249,7 +249,6 @@ setup-kubeconfig() {
 
 helm-repositories() {
   blue "───[ Helm repos ]───────────────────────────────────────────────────────"
-
   retry helm repo add argo https://argoproj.github.io/argo-helm
   retry helm repo add k8s_gateway https://k8s-gateway.github.io/k8s_gateway/
   retry helm repo update
@@ -263,12 +262,8 @@ setup-flat-network() {
   blue "───[ Flat network ]─────────────────────────────────────────────────────"
   ensure_ips # Ensure cluster IPs are initialized
 
-  # Each cell is its own flat L3 network. kindnet provides in-cluster pod
-  # networking and kube-proxy the service VIPs, while static routes stitch the
-  # sibling clusters together so their pod and service CIDRs are directly
-  # routable across the cell (replacing Cilium ClusterMesh). The manager cluster
-  # is left out: it only needs API connectivity, which already exists on the
-  # kind docker network.
+  # Each cell is a flat L3 network: static routes make sibling clusters'
+  # pod and service CIDRs directly routable across the cell
   for cell in $(cells); do (
 
     # Get the clusters of the cell
@@ -299,7 +294,6 @@ setup-flat-network() {
 
 install-k8s-gateway() {
   blue "───[ k8s_gateway ]──────────────────────────────────────────────────────"
-
   for cluster in $(all_clusters); do (
     retry helm --kube-context "kind-${cluster}" \
       upgrade -i exdns k8s_gateway/k8s-gateway \

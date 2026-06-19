@@ -59,14 +59,9 @@ declare -A REGISTRIES=(
   [ecr-public.aws.com]="https://public.ecr.aws"
 )
 
-# Section dependency graph: each section maps to the sections that MUST finish
-# before it may start. Consumed by generate_dag_mk() to emit .tmp/dag.mk, which
-# `meshlab create` runs with `make -j` so independent sections execute in
-# parallel. setup-kubeconfig regenerates ~/.kube/config, so every section that
-# talks to a kind context depends on it. The cache edges (pull-through-cache,
-# add-registries-to-containerd) are kept so workload image pulls still hit the
-# local pull-through registries.
-# shellcheck disable=SC2034 # used by generate_dag_mk in bin/meshlab
+# Section dependency graph: maps each section to its prerequisites.
+# generate_dag_mk() turns this into .tmp/dag.mk, which `meshlab create` runs
+# with `make -j` to execute independent sections in parallel.
 declare -A DEPS=(
   [cloud-provider-kind]=""
   [pull-through-cache]="cloud-provider-kind"
@@ -84,8 +79,8 @@ declare -A DEPS=(
   [istio-endpoint-discovery]="bootstrap-dag"
   [grafana-git-sync]="bootstrap-dag"
   [kiali-multicluster]="bootstrap-dag"
-  [tilt-up]="create-clusters"
-  [deploy-workloads]="bootstrap-dag tilt-up"
+  [tilt-up]="bootstrap-dag"
+  [deploy-workloads]="bootstrap-dag"
   [publish-ports]="bootstrap-dag"
 )
 

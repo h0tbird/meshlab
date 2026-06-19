@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC2317  # section functions are dispatched indirectly via `make` -> `__run-section` -> `measure`, so ShellCheck cannot see them being called
 
 #------------------------------------------------------------------------------
 # [i] Initializations

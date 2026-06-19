@@ -456,8 +456,11 @@ setup-argowf() {
   && echo "ArgoWF already installed, skipping" \
   && return 0
 
-  # Install Argo Workflows
-  h0 upgrade --install -n argowf --create-namespace --wait --timeout 5m \
+  # Install Argo Workflows. Don't use helm --wait: it blocks on the full
+  # rollout (including the server UI), but bootstrap-dag only needs the
+  # workflow-controller to run workflows. We wait for the controller
+  # explicitly below so the server rollout stays off the critical path.
+  h0 upgrade --install -n argowf --create-namespace \
     argo-workflows --plain-http \
     "oci://${ZOT_LOCAL}/ghcr.io/argoproj/argo-helm/argo-workflows" \
     --version "${ARGOWF_CHART_VERSION}" \
@@ -471,12 +474,43 @@ setup-argowf() {
     --set-json 'workflow.rbac.rules=[{"apiGroups":["argoproj.io"],"resources":["applicationsets"],"verbs":["get","watch","patch"]}]' |
     grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
 
+  # Wait only for the workflow-controller (what bootstrap-dag depends on); the
+  # server UI keeps rolling out in the background while the DAG proceeds.
+  k0 -n argowf rollout status deploy/argo-workflows-workflow-controller --timeout=5m
+
   # Set argowf.${DOMAIN} as ext DNS name
   k0 -n argowf annotate svc argo-workflows-server coredns.io/hostname=argowf."${DOMAIN}"
 
   # Publish the ArgoWF port
   publish "${MNGR}" argowf argo-workflows-server 8081
 }; SECTIONS+=( setup-argowf )
+
+#------------------------------------------------------------------------------
+# [i] Kiali remote-cluster secrets
+#------------------------------------------------------------------------------
+
+# Created before bootstrap-dag so the kiali-operator's first reconcile already
+# mounts them, avoiding a second Kiali rollout.
+kiali-secrets() {
+  blue "───[ Kiali remote-cluster secrets ]─────────────────────────────────────"
+  ensure_ips # Ensure cluster IPs are initialized
+
+  # Secrets land in the manager's monitoring namespace; make sure it exists.
+  k0 create ns monitoring --dry-run=client -o yaml | k0 apply -f -
+
+  for cluster in $(clusters); do
+    retry kiali-prepare-remote-cluster.sh \
+      --kiali-cluster-context "kind-${MNGR}" \
+      --remote-cluster-context "kind-${cluster}" \
+      --view-only false \
+      --process-kiali-secret true \
+      --process-remote-resources true \
+      --kiali-cluster-namespace monitoring \
+      --remote-cluster-name "${cluster}" \
+      --remote-cluster-url "https://${IP[${cluster}]}:6443" |
+      grep -v '^INFO:'
+  done
+}; SECTIONS+=( kiali-secrets )
 
 #------------------------------------------------------------------------------
 # [i] Bootstrap DAG
@@ -622,6 +656,15 @@ bootstrap-dag() {
 	          parameters:
 	          - name: selectors
 	            value: name=istio-istiod
+	      - name: kiali-operator
+	        dependencies: [istio-istiod]
+	        templateRef:
+	          name: argocd-sync-and-wait
+	          template: argocd-sync-and-wait
+	        arguments:
+	          parameters:
+	          - name: selectors
+	            value: name=kiali-operator
 	      - name: istio-ztunnel
 	        dependencies: [istio-istiod]
 	        templateRef:
@@ -649,18 +692,6 @@ bootstrap-dag() {
 	          parameters:
 	          - name: selectors
 	            value: name=istio-ewgw
-	      - name: kiali-operator
-	        dependencies:
-	        - prometheus
-	        - istio-istiod
-	        - istio-cni
-	        templateRef:
-	          name: argocd-sync-and-wait
-	          template: argocd-sync-and-wait
-	        arguments:
-	          parameters:
-	          - name: selectors
-	            value: name=kiali-operator
 	EOF
 }; SECTIONS+=( bootstrap-dag )
 
@@ -743,30 +774,6 @@ grafana-git-sync() {
   # Push the repository resource using grafanactl
   grafanactl resources push --path "${repo_dir}"
 }; SECTIONS+=( grafana-git-sync )
-
-#------------------------------------------------------------------------------
-# [i] External kiali multi-cluster setup
-#------------------------------------------------------------------------------
-
-kiali-multicluster() {
-  blue "───[ External kiali multi-cluster setup ]───────────────────────────────"
-  ensure_ips # Ensure cluster IPs are initialized
-
-  for cluster in $(clusters); do
-    retry kiali-prepare-remote-cluster.sh \
-      --kiali-cluster-context "kind-${MNGR}" \
-      --remote-cluster-context "kind-${cluster}" \
-      --view-only false \
-      --process-kiali-secret true \
-      --process-remote-resources true \
-      --kiali-cluster-namespace monitoring \
-      --remote-cluster-name "${cluster}" \
-      --remote-cluster-url "https://${IP[${cluster}]}:6443" |
-      grep -v '^INFO:'
-  done
-
-  k0 -n monitoring annotate kiali kiali kiali.io/reconcile="$(date +%s)" --overwrite
-}; SECTIONS+=( kiali-multicluster )
 
 #------------------------------------------------------------------------------
 # [i] tilt up instances

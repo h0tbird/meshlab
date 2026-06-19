@@ -91,7 +91,6 @@ pull-through-cache() {
   blue "───[ Pull-through cache (zot) ]─────────────────────────────────────────"
 
   # Local variables
-  local ui_port=8086
   local volume="zot-data"
   local upstream
 
@@ -124,13 +123,13 @@ pull-through-cache() {
   docker run --rm -d \
     --name "${ZOT_HOST}" \
     --network kind \
-    -p "127.0.0.1:${ui_port}:8080" \
+    -p "127.0.0.1:${ZOT_LOCAL_PORT}:8080" \
     -v "${HOST_TMP}/zot-config.json:/etc/zot/config.json:ro" \
     -v "${volume}:/var/lib/registry" \
     "ghcr.io/project-zot/zot:v${ZOT_VERSION}" >/dev/null
 
   # Show the zot UI URL
-  echo "zot --> http://127.0.0.1:${ui_port}"
+  echo "zot --> http://${ZOT_LOCAL}"
 }; SECTIONS+=( pull-through-cache )
 
 #------------------------------------------------------------------------------
@@ -247,17 +246,6 @@ setup-kubeconfig() {
 }; SECTIONS+=( setup-kubeconfig )
 
 #------------------------------------------------------------------------------
-# [i] Helm repositories
-#------------------------------------------------------------------------------
-
-helm-repositories() {
-  blue "───[ Helm repos ]───────────────────────────────────────────────────────"
-  retry helm repo add argo https://argoproj.github.io/argo-helm
-  retry helm repo add k8s_gateway https://k8s-gateway.github.io/k8s_gateway/
-  retry helm repo update
-}; SECTIONS+=( helm-repositories )
-
-#------------------------------------------------------------------------------
 # [i] Setup the per-cell flat network
 #------------------------------------------------------------------------------
 
@@ -299,7 +287,8 @@ install-k8s-gateway() {
   blue "───[ k8s_gateway ]──────────────────────────────────────────────────────"
   for cluster in $(all_clusters); do (
     retry helm --kube-context "kind-${cluster}" \
-      upgrade -i exdns k8s_gateway/k8s-gateway \
+      upgrade -i exdns --plain-http \
+      "oci://${ZOT_LOCAL}/ghcr.io/k8s-gateway/charts/k8s-gateway" \
       --version "${K8S_GATEWAY_CHART_VERSION}" \
       --namespace kube-system \
       --set "domain=${DOMAIN}" |
@@ -376,7 +365,8 @@ setup-argocd() {
 
   # Install ArgoCD
   h0 upgrade --install -n argocd --create-namespace --wait --timeout 5m \
-  argocd argo/argo-cd --version "${ARGOCD_CHART_VERSION}" \
+  argocd --plain-http "oci://${ZOT_LOCAL}/ghcr.io/argoproj/argo-helm/argo-cd" \
+  --version "${ARGOCD_CHART_VERSION}" \
   --set 'server.service.type=LoadBalancer' \
   --set 'server.extraArgs={--insecure=true}' \
   --set configs.secret.argocdServerAdminPassword="$(htpasswd -nbBC 10 "" "${PASS}" | tr -d ':\n')" \
@@ -468,7 +458,9 @@ setup-argowf() {
 
   # Install Argo Workflows
   h0 upgrade --install -n argowf --create-namespace --wait --timeout 5m \
-    argo-workflows argo/argo-workflows --version "${ARGOWF_CHART_VERSION}" \
+    argo-workflows --plain-http \
+    "oci://${ZOT_LOCAL}/ghcr.io/argoproj/argo-helm/argo-workflows" \
+    --version "${ARGOWF_CHART_VERSION}" \
     --set 'server.serviceType=LoadBalancer' \
     --set 'server.authModes={server}' \
     --set 'server.servicePort=80' \

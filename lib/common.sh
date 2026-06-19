@@ -7,7 +7,12 @@
 export MNGR="mnger-1"
 export DOMAIN="demo.lab"
 export PASS='meshlab123'
-readonly MNGR DOMAIN PASS
+export ZOT_HOST="zot"
+export ZOT_PORT=8080
+export ZOT_LOCAL_PORT=8086
+export ZOT_LOCAL="127.0.0.1:${ZOT_LOCAL_PORT}"
+export HOST_TMP="${LOCAL_WORKSPACE_FOLDER}/.tmp"
+readonly MNGR DOMAIN PASS ZOT_HOST ZOT_PORT ZOT_LOCAL_PORT ZOT_LOCAL HOST_TMP
 export SECTIONS=()
 
 # Define workload cells and their clusters
@@ -25,6 +30,33 @@ declare -A CELL_OF=(
   [${MNGR}]=mngr
   [pasta-1]=pasta [pasta-2]=pasta
   [pizza-1]=pizza [pizza-2]=pizza
+)
+
+# Per-cluster pod CIDRs; unique ranges keep the flat L3 network non-overlapping
+# shellcheck disable=SC2034 # used by bin/meshlab
+declare -A POD_CIDR=(
+  [${MNGR}]="10.41.0.0/16"
+  [pasta-1]="10.51.0.0/16" [pasta-2]="10.52.0.0/16"
+  [pizza-1]="10.61.0.0/16" [pizza-2]="10.62.0.0/16"
+)
+
+# Per-cluster service CIDRs; unique ranges keep the flat L3 network non-overlapping
+# shellcheck disable=SC2034 # used by bin/meshlab
+declare -A SVC_CIDR=(
+  [${MNGR}]="10.141.0.0/16"
+  [pasta-1]="10.151.0.0/16" [pasta-2]="10.152.0.0/16"
+  [pizza-1]="10.161.0.0/16" [pizza-2]="10.162.0.0/16"
+)
+
+# Map of known registries to their API endpoints
+# shellcheck disable=SC2034 # used by bin/meshlab
+declare -A REGISTRIES=(
+  [docker.io]="https://registry-1.docker.io"
+  [quay.io]="https://quay.io"
+  [ghcr.io]="https://ghcr.io"
+  [registry.k8s.io]="https://registry.k8s.io"
+  [registry.istio.io]="https://registry.istio.io"
+  [ecr-public.aws.com]="https://public.ecr.aws"
 )
 
 # Section dependency graph: each section maps to the sections that MUST finish

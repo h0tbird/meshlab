@@ -23,15 +23,17 @@ ENV CURL="curl -fsSL --retry 8 --retry-all-errors --retry-max-time 120 --connect
 
 # Architecture helper: archmap <arm64_value> <amd64_value>
 # Exits non-zero on unsupported architectures so broken downloads fail loudly.
-RUN printf '#!/bin/sh\ncase "$(arch)" in aarch64) echo "$1";; x86_64) echo "$2";; *) echo "archmap: unsupported arch $(arch)" >&2; exit 1;; esac\n' > /usr/local/bin/archmap && \
-    chmod +x /usr/local/bin/archmap
+RUN cat > /usr/local/bin/archmap <<'EOF' && chmod +x /usr/local/bin/archmap
+#!/bin/sh
+case "$(arch)" in
+    aarch64) echo "$1" ;;
+    x86_64)  echo "$2" ;;
+    *) echo "archmap: unsupported arch $(arch)" >&2; exit 1 ;;
+esac
+EOF
 
 # Install base packages.
-# Configure apt to retry transient failures and time out on slow mirrors, so
-# flaky DNS in BuildKit's netns (e.g. ports.ubuntu.com on arm64) doesn't break
-# the build.
-RUN printf 'Acquire::Retries "8";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' > /etc/apt/apt.conf.d/80-retries && \
-    apt-get update && \
+RUN apt-get -o Acquire::ForceIPv4=true update && \
     apt-get install -y --no-install-recommends \
     curl jq iputils-ping dnsutils neovim socat \
     netcat-openbsd apache2-utils shellcheck \
@@ -53,8 +55,9 @@ RUN echo 'dind() { docker -H unix:///var/run/docker.sock "$@" }' >> /etc/zsh/zsh
     echo "source <(docker completion zsh)" >> /etc/zsh/zshrc && \
     echo "compdef _docker dind dood" >> /etc/zsh/zshrc
 
-# Enable zsh completion for the meshlab CLI (bin/meshlab)
-RUN echo "source <(meshlab completion zsh)" >> /etc/zsh/zshrc
+# Enable zsh completion for the meshlab CLI (bin/meshlab).
+RUN echo "source <(meshlab completion zsh)" >> /root/.zshrc && \
+    echo "source <(meshlab completion zsh)" >> /home/vscode/.zshrc
 
 # Install Go (https://go.dev/dl/)
 RUN VERSION="1.26.4" && ARCH=$(archmap 'arm64' 'amd64') && \
@@ -93,11 +96,6 @@ RUN VERSION="v3.4.3" && ARCH=$(archmap 'arm64' 'amd64') && \
 RUN VERSION="v4.0.5" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL https://github.com/argoproj/argo-workflows/releases/download/${VERSION}/argo-linux-${ARCH}.gz | gunzip -c > /usr/local/bin/argo && \
     chmod +x /usr/local/bin/argo && echo "source <(argo completion zsh)" >> /etc/zsh/zshrc
-
-# Install cilium-cli (https://github.com/cilium/cilium-cli/releases)
-RUN VERSION="v0.19.4" && ARCH=$(archmap 'arm64' 'amd64') && \
-    $CURL https://github.com/cilium/cilium-cli/releases/download/${VERSION}/cilium-linux-${ARCH}.tar.gz | tar -xz -C /usr/local/bin/ && \
-    chmod +x /usr/local/bin/cilium && echo "source <(cilium completion zsh)" >> /etc/zsh/zshrc
 
 # Install istioctl (https://github.com/istio/istio/releases)
 RUN VERSION="1.30.1" && ARCH=$(archmap 'arm64' 'amd64') && \

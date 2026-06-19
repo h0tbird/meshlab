@@ -11,6 +11,9 @@ set -euo pipefail
 # Change to the execution directory
 cd "$(dirname "$0")"/..
 
+# Ensure the temporary directory exists
+mkdir -p .tmp
+
 # shellcheck source=../lib/common.sh
 source ./lib/common.sh
 
@@ -22,7 +25,6 @@ NET_START=$(net_bytes)
 #------------------------------------------------------------------------------
 
 readonly KINDCCM_VERSION='0.10.0'                      # https://github.com/kubernetes-sigs/cloud-provider-kind/releases
-readonly CILIUM_CHART_VERSION='1.19.4'                 # https://artifacthub.io/packages/helm/cilium/cilium
 readonly K8S_GATEWAY_CHART_VERSION='3.7.1'             # https://github.com/k8s-gateway/k8s_gateway/blob/master/charts/k8s-gateway/Chart.yaml
 readonly ARGOCD_CHART_VERSION='9.5.20'                 # https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd
 readonly ARGOWF_CHART_VERSION='1.0.14'                 # https://artifacthub.io/packages/helm/argo/argo-workflows
@@ -35,6 +37,7 @@ readonly KUBERNETES_REPLICATOR_CHART_VERSION='2.12.3'  # https://artifacthub.io/
 readonly METRICS_SERVER_CHART_VERSION='3.13.0'         # https://artifacthub.io/packages/helm/metrics-server/metrics-server
 readonly ISTIO_CHART_VERSION='1.30.1'                  # https://artifacthub.io/packages/helm/istio-official/base
 readonly KIALI_CHART_VERSION='2.27.0'                  # https://artifacthub.io/packages/helm/kiali/kiali-operator
+readonly ZOT_VERSION='2.1.17'                          # https://github.com/project-zot/zot/releases
 
 #------------------------------------------------------------------------------
 # [i] Cleanup
@@ -43,29 +46,27 @@ readonly KIALI_CHART_VERSION='2.27.0'                  # https://artifacthub.io/
 cleanup() {
   blue "───[ Cleanup ]──────────────────────────────────────────────────────────"
 
+  # Delete the ArgoCD context
   argocd context --delete "${MNGR}" 2>/dev/null || true
 
-  # Only kill tilt instances we started (one per workload cluster)
-  for cluster in $(clusters); do
-    pkill -f "tilt up --context kind-${cluster}" 2>/dev/null || true
-  done
+  # Kill the tilt instances
+  pkill -f 'tilt up --context kind-' 2>/dev/null || true
 
-  # Only kill socat tunnels we started from publish()
+  # Kill the socat tunnels
   pkill -f 'socat TCP-LISTEN:[0-9]+,fork TCP:' 2>/dev/null || true
 
-  # Delete clusters first while cloud-provider-kind is still running, so it
-  # can reconcile LoadBalancer Service removals and tear down the per-LB
-  # envoy containers (kindccm-<hash>) it spawned.
   # shellcheck disable=SC2048,SC2086 # intentional word splitting
   kind --kubeconfig ~/.kube/config.host delete clusters "${MNGR}" ${CELLS[*]}
 
-  # Stop the controller and force-remove any straggler envoy LBs. Shell-side
-  # name matching since docker's `-f name=` is a substring match with no
-  # reliable regex anchors across versions.
-  docker ps -aq --filter name='^kindccm$' --filter name='^kindccm-' \
-  | xargs -r docker rm -f >/dev/null 2>&1
+  # Delete any kindccm containers
+  docker ps -aq --filter name='^kindccm$' --filter name='^kindccm-' |
+  xargs -r docker rm -f >/dev/null 2>&1
 
-  rm -rf ./tmp/*
+  # Stop the zot pull-through cache
+  docker rm -f "${ZOT_HOST}" >/dev/null 2>&1 || true
+
+  # Remove the temporary directory
+  rm -rf .tmp
 }
 
 #------------------------------------------------------------------------------
@@ -74,40 +75,62 @@ cleanup() {
 
 cloud-provider-kind() {
   blue "───[ cloud-provider-kind ]──────────────────────────────────────────────"
-
-  docker network ls | grep -q ' kind ' || \
-  docker network create kind
-
-  docker ps --format '{{.Names}}' | grep -q '^kindccm$' || {
-    docker run --rm -d \
-      --name kindccm \
-      --network kind \
-      --volume /var/run/docker.sock:/var/run/docker.sock \
-      "registry.k8s.io/cloud-provider-kind/cloud-controller-manager:v${KINDCCM_VERSION}"
-  }
+  docker network ls | grep -q ' kind ' || docker network create kind
+  docker ps --format '{{.Names}}' | grep -q '^kindccm$' || \
+  docker run --rm -d \
+    --name kindccm \
+    --network kind \
+    --volume /var/run/docker.sock:/var/run/docker.sock \
+    "registry.k8s.io/cloud-provider-kind/cloud-controller-manager:v${KINDCCM_VERSION}"
 }; SECTIONS+=( cloud-provider-kind )
 
 #------------------------------------------------------------------------------
-# [i] Pull-through image cache
+# [i] Pull-through image cache (zot)
 #------------------------------------------------------------------------------
 
 pull-through-cache() {
-  blue "───[ Pull-through registries ]──────────────────────────────────────────"
+  blue "───[ Pull-through cache (zot) ]─────────────────────────────────────────"
 
-  local -A registries=(
-    [docker.io]=https://registry-1.docker.io
-    [quay.io]=https://quay.io
-    [ghcr.io]=https://ghcr.io
-  )
+  # Local variables
+  local volume="zot-data"
+  local upstream
 
-  for name in "${!registries[@]}"; do
-    docker start "registry-${name}" 2>/dev/null || docker run -d \
-      -e REGISTRY_PROXY_REMOTEURL="${registries[${name}]}" \
-      --restart always \
-      --name "registry-${name}" \
-      --network kind \
-      registry:2
-  done
+  # Render config.json from the REGISTRIES map
+  for upstream in "${!REGISTRIES[@]}"; do
+    printf '%s\t%s\n' "${upstream}" "${REGISTRIES[${upstream}]}"
+  done | jq -R -s '{
+    distSpecVersion: "1.1.0",
+    storage: { rootDirectory: "/var/lib/registry", gc: true, dedupe: true },
+    http: { address: "0.0.0.0", port: "8080", compat: ["docker2s2"] },
+    log: { level: "info" },
+    extensions: {
+      sync: { enable: true, registries: (
+        split("\n") | map(select(length > 0) | split("\t") | {
+          urls: [.[1]],
+          onDemand: true,
+          tlsVerify: true,
+          preserveDigest: true,
+          content: [{ prefix: "**", destination: ("/" + .[0]) }]
+        })
+      ) },
+      search: { enable: true },
+      ui: { enable: true }
+    }
+  }' > .tmp/zot-config.json
+
+  # Create the blob store volume and run zot
+  docker volume create "${volume}" >/dev/null
+  docker ps --format '{{.Names}}' | grep -qx "${ZOT_HOST}" || \
+  docker run --rm -d \
+    --name "${ZOT_HOST}" \
+    --network kind \
+    -p "127.0.0.1:${ZOT_LOCAL_PORT}:8080" \
+    -v "${HOST_TMP}/zot-config.json:/etc/zot/config.json:ro" \
+    -v "${volume}:/var/lib/registry" \
+    "ghcr.io/project-zot/zot:v${ZOT_VERSION}" >/dev/null
+
+  # Show the zot UI URL
+  echo "zot --> http://${ZOT_LOCAL}"
 }; SECTIONS+=( pull-through-cache )
 
 #------------------------------------------------------------------------------
@@ -117,17 +140,17 @@ pull-through-cache() {
 create-clusters() {
   blue "───[ KinD clusters ]────────────────────────────────────────────────────"
 
-  # Create the temporary directory
-  [[ -d ./tmp ]] || mkdir -p ./tmp
-
-  # Configure kind
-  for cell in $(all_cells); do
-    cat <<- EOF > "./tmp/kind-${cell}.yaml"
+  # Configure kind. Default CNI (kindnet) and kube-proxy are left enabled; each
+  # cluster gets a unique pod/service CIDR so the sibling clusters of a cell can
+  # be stitched into a flat L3 network by `setup-flat-network`.
+  for cluster in $(all_clusters); do
+    local cell="${CELL_OF[${cluster}]}"
+    cat <<- EOF > ".tmp/kind-${cluster}.yaml"
 		kind: Cluster
 		apiVersion: kind.x-k8s.io/v1alpha4
 		networking:
-		  disableDefaultCNI: true
-		  kubeProxyMode: "none"
+		  podSubnet: "${POD_CIDR[${cluster}]}"
+		  serviceSubnet: "${SVC_CIDR[${cluster}]}"
 		kubeadmConfigPatches:
 		  - |-
 		    kind: ClusterConfiguration
@@ -146,7 +169,7 @@ create-clusters() {
   # Create the clusters
   for cluster in $(all_clusters); do (
     kind get clusters 2>/dev/null | grep -qx "${cluster}" || {
-      kind --kubeconfig ~/.kube/config.host create cluster --name "${cluster}" --config "./tmp/kind-${CELL_OF[${cluster}]}.yaml" -q
+      kind --kubeconfig ~/.kube/config.host create cluster --name "${cluster}" --config ".tmp/kind-${cluster}.yaml" -q
     }
   ) & done; join
 
@@ -164,34 +187,30 @@ create-clusters() {
 add-registries-to-containerd() {
   blue "───[ Configure containerd ]─────────────────────────────────────────────"
 
-  # Map registries to pull-through caches
-  echo "docker.io --> http://registry-docker.io:5000"
-  echo "quay.io   --> http://registry-quay.io:5000"
-  echo "ghcr.io   --> http://registry-ghcr.io:5000"
-
-  # Configure containerd in all clusters
+  # Route each upstream through its zot prefix. `override_path` treats that path
+  # as the registry API root (docker.io/library/nginx -> http://${ZOT_HOST}:
+  # ${ZOT_PORT}/v2/docker.io/library/nginx); `server` is the upstream fallback.
   for cluster in $(all_clusters); do (
-    docker exec -i "${cluster}-control-plane" bash -c '
-      mkdir -p /etc/containerd/certs.d/docker.io
-      cat <<- EOF > /etc/containerd/certs.d/docker.io/hosts.toml
-			server = "https://registry-1.docker.io"
-			[host."http://registry-docker.io:5000"]
-			  capabilities = ["pull", "resolve"]
-			EOF
-      mkdir -p /etc/containerd/certs.d/quay.io
-      cat <<- EOF > /etc/containerd/certs.d/quay.io/hosts.toml
-			server = "https://quay.io"
-			[host."http://registry-quay.io:5000"]
-			  capabilities = ["pull", "resolve"]
-			EOF
-      mkdir -p /etc/containerd/certs.d/ghcr.io
-      cat <<- EOF > /etc/containerd/certs.d/ghcr.io/hosts.toml
-			server = "https://ghcr.io"
-			[host."http://registry-ghcr.io:5000"]
-			  capabilities = ["pull", "resolve"]
-			EOF
-    '
+    local upstream url
+    for upstream in "${!REGISTRIES[@]}"; do
+      url="${REGISTRIES[${upstream}]}"
+      docker exec -i "${cluster}-control-plane" bash -c "
+        mkdir -p /etc/containerd/certs.d/${upstream}
+        printf '%s\n' \
+          'server = \"${url}\"' \
+          '[host.\"http://${ZOT_HOST}:${ZOT_PORT}/v2/${upstream}\"]' \
+          '  capabilities = [\"pull\", \"resolve\"]' \
+          '  override_path = true' \
+          > /etc/containerd/certs.d/${upstream}/hosts.toml
+      "
+    done
   ) & done; join
+
+  # Show the routing.
+  local upstream
+  for upstream in "${!REGISTRIES[@]}"; do
+    echo "${upstream} --> http://${ZOT_HOST}:${ZOT_PORT}/v2/${upstream}"
+  done
 }; SECTIONS+=( add-registries-to-containerd )
 
 #------------------------------------------------------------------------------
@@ -228,78 +247,38 @@ setup-kubeconfig() {
 }; SECTIONS+=( setup-kubeconfig )
 
 #------------------------------------------------------------------------------
-# [i] Helm repositories
+# [i] Setup the per-cell flat network
 #------------------------------------------------------------------------------
 
-helm-repositories() {
-  blue "───[ Helm repos ]───────────────────────────────────────────────────────"
-
-  retry helm repo add cilium https://helm.cilium.io/
-  retry helm repo add argo https://argoproj.github.io/argo-helm
-  retry helm repo add k8s_gateway https://k8s-gateway.github.io/k8s_gateway/
-  retry helm repo update
-}; SECTIONS+=( helm-repositories )
-
-#------------------------------------------------------------------------------
-# [i] Install the Cilium CNI
-#------------------------------------------------------------------------------
-
-install-cilium() {
-  blue "───[ Cilium CNI ]───────────────────────────────────────────────────────"
+setup-flat-network() {
+  blue "───[ Flat network ]─────────────────────────────────────────────────────"
   ensure_ips # Ensure cluster IPs are initialized
 
-  # Install the Cilium CNI
-  for cluster in $(all_clusters); do (
-
-    # Return early if already running
-    kubectl --context "kind-${cluster}" -n kube-system \
-      get deploy cilium-operator 2>/dev/null && exit 0
-
-    # Install (also installs Gateway API CRDs)
-    retry cilium install --context "kind-${cluster}" --wait \
-      --version "v${CILIUM_CHART_VERSION}" \
-      --values ./charts/cilium/values.yaml \
-      --values ./charts/cilium/values/"${cluster}".yaml \
-      --set k8sServiceHost="${IP[${cluster}]}"
-  ) & done; join
-}; SECTIONS+=( install-cilium )
-
-#------------------------------------------------------------------------------
-# [i] Install ClusterMesh
-#------------------------------------------------------------------------------
-
-install-clustermesh() {
-  blue "───[ ClusterMesh ]──────────────────────────────────────────────────────"
-
+  # Each cell is a flat L3 network: static routes make sibling clusters'
+  # pod and service CIDRs directly routable across the cell
   for cell in $(cells); do (
 
     # Get the clusters of the cell
     local clusters_arr
     IFS=" " read -r -a clusters_arr <<< "${CELLS[${cell}]}"
 
-    # Return early if already running
-    kubectl --context "kind-${clusters_arr[0]}" -n kube-system get deploy clustermesh-apiserver 2>/dev/null &&
-    kubectl --context "kind-${clusters_arr[1]}" -n kube-system get deploy clustermesh-apiserver 2>/dev/null &&
-    exit 0
-
-    # Shared certificate authority
-    kubectl --context "kind-${clusters_arr[0]}" -n kube-system get secret cilium-ca -o yaml |
-    kubectl --context "kind-${clusters_arr[1]}" -n kube-system replace --force -f -; echo
-
-    # Enable ClusterMesh
-    cilium clustermesh enable --context "kind-${clusters_arr[0]}" --service-type LoadBalancer &
-    cilium clustermesh enable --context "kind-${clusters_arr[1]}" --service-type LoadBalancer &
-    join
-
-    # Wait for ClusterMesh API server and TLS certs to be ready
-    cilium clustermesh status --context "kind-${clusters_arr[0]}" --wait 2>&1 | grep -v 'Trying\|Waiting\|^$' &
-    cilium clustermesh status --context "kind-${clusters_arr[1]}" --wait 2>&1 | grep -v 'Trying\|Waiting\|^$' &
-    join
-
-    # Connect
-    cilium clustermesh connect --context "kind-${clusters_arr[0]}" --destination-context "kind-${clusters_arr[1]}"
+    # Add bidirectional routes between every pair of clusters in the cell. The
+    # control-plane container is the only node, so routes added there cover all
+    # of that cluster's pods.
+    local i j src dst
+    for i in "${!clusters_arr[@]}"; do
+      for j in "${!clusters_arr[@]}"; do
+        [[ "${i}" == "${j}" ]] && continue
+        src="${clusters_arr[i]}"; dst="${clusters_arr[j]}"
+        docker exec "${src}-control-plane" \
+          ip route replace "${POD_CIDR[${dst}]}" via "${IP[${dst}]}"
+        docker exec "${src}-control-plane" \
+          ip route replace "${SVC_CIDR[${dst}]}" via "${IP[${dst}]}"
+        echo "${src} -> ${dst}: ${POD_CIDR[${dst}]}, ${SVC_CIDR[${dst}]} via ${IP[${dst}]}"
+      done
+    done
   ) & done; join
-}; SECTIONS+=( install-clustermesh )
+}; SECTIONS+=( setup-flat-network )
 
 #------------------------------------------------------------------------------
 # [i] Install k8s_gateway
@@ -307,10 +286,10 @@ install-clustermesh() {
 
 install-k8s-gateway() {
   blue "───[ k8s_gateway ]──────────────────────────────────────────────────────"
-
   for cluster in $(all_clusters); do (
     retry helm --kube-context "kind-${cluster}" \
-      upgrade -i exdns k8s_gateway/k8s-gateway \
+      upgrade -i exdns --plain-http \
+      "oci://${ZOT_LOCAL}/ghcr.io/k8s-gateway/charts/k8s-gateway" \
       --version "${K8S_GATEWAY_CHART_VERSION}" \
       --namespace kube-system \
       --set "domain=${DOMAIN}" |
@@ -387,7 +366,8 @@ setup-argocd() {
 
   # Install ArgoCD
   h0 upgrade --install -n argocd --create-namespace --wait --timeout 5m \
-  argocd argo/argo-cd --version "${ARGOCD_CHART_VERSION}" \
+  argocd --plain-http "oci://${ZOT_LOCAL}/ghcr.io/argoproj/argo-helm/argo-cd" \
+  --version "${ARGOCD_CHART_VERSION}" \
   --set 'server.service.type=LoadBalancer' \
   --set 'server.extraArgs={--insecure=true}' \
   --set configs.secret.argocdServerAdminPassword="$(htpasswd -nbBC 10 "" "${PASS}" | tr -d ':\n')" \
@@ -453,7 +433,6 @@ install-applicationsets() {
   # (e.g. "monitoring"), and parallel client-side applies race on create,
   # producing AlreadyExists errors. SSA converges safely under concurrency.
   local ssa=( apply --server-side --force-conflicts -f - )
-  helm template ./charts/cilium --set "chartVersion=${CILIUM_CHART_VERSION}" | k0 "${ssa[@]}" &
   helm template ./charts/prometheus --set "chartVersion=${PROMETHEUS_CHART_VERSION}" | k0 "${ssa[@]}" &
   helm template ./charts/grafana --set "chartVersion=${GRAFANA_CHART_VERSION}" | k0 "${ssa[@]}" &
   helm template ./charts/otel-collector --set "chartVersion=${OTEL_COLLECTOR_CHART_VERSION}" | k0 "${ssa[@]}" &
@@ -480,7 +459,9 @@ setup-argowf() {
 
   # Install Argo Workflows
   h0 upgrade --install -n argowf --create-namespace --wait --timeout 5m \
-    argo-workflows argo/argo-workflows --version "${ARGOWF_CHART_VERSION}" \
+    argo-workflows --plain-http \
+    "oci://${ZOT_LOCAL}/ghcr.io/argoproj/argo-helm/argo-workflows" \
+    --version "${ARGOWF_CHART_VERSION}" \
     --set 'server.serviceType=LoadBalancer' \
     --set 'server.authModes={server}' \
     --set 'server.servicePort=80' \
@@ -535,16 +516,7 @@ bootstrap-dag() {
 	  - name: stages
 	    dag:
 	      tasks:
-	      - name: cilium
-	        templateRef:
-	          name: argocd-sync-and-wait
-	          template: argocd-sync-and-wait
-	        arguments:
-	          parameters:
-	          - name: selectors
-	            value: name=cilium
 	      - name: prometheus
-	        dependencies: [cilium]
 	        templateRef:
 	          name: argocd-sync-and-wait
 	          template: argocd-sync-and-wait
@@ -580,7 +552,6 @@ bootstrap-dag() {
 	          - name: selectors
 	            value: name=otelco-cluster
 	      - name: vault
-	        dependencies: [cilium]
 	        templateRef:
 	          name: argocd-sync-and-wait
 	          template: argocd-sync-and-wait
@@ -589,7 +560,6 @@ bootstrap-dag() {
 	          - name: selectors
 	            value: name=vault
 	      - name: cert-manager
-	        dependencies: [cilium]
 	        templateRef:
 	          name: argocd-sync-and-wait
 	          template: argocd-sync-and-wait
@@ -598,7 +568,6 @@ bootstrap-dag() {
 	          - name: selectors
 	            value: name=cert-manager
 	      - name: kubernetes-replicator
-	        dependencies: [cilium]
 	        templateRef:
 	          name: argocd-sync-and-wait
 	          template: argocd-sync-and-wait
@@ -607,7 +576,6 @@ bootstrap-dag() {
 	          - name: selectors
 	            value: name=kubernetes-replicator
 	      - name: metrics-server
-	        dependencies: [cilium]
 	        templateRef:
 	          name: argocd-sync-and-wait
 	          template: argocd-sync-and-wait
@@ -630,7 +598,6 @@ bootstrap-dag() {
 	          - name: selectors
 	            value: name=istio-issuers
 	      - name: istio-base
-	        dependencies: [cilium]
 	        templateRef:
 	          name: argocd-sync-and-wait
 	          template: argocd-sync-and-wait
@@ -686,11 +653,8 @@ bootstrap-dag() {
 	      - name: kiali-operator
 	        dependencies:
 	        - prometheus
-	        - grafana
+	        - istio-istiod
 	        - istio-cni
-	        - istio-ztunnel
-	        - istio-nsgw
-	        - istio-ewgw
 	        templateRef:
 	          name: argocd-sync-and-wait
 	          template: argocd-sync-and-wait
@@ -831,7 +795,7 @@ tilt-up() {
       echo "tilt ${cluster} on port ${port} (running)"
     else
       setsid tilt up --context "kind-${cluster}" --port "${port}" \
-      &> "./tmp/tilt-${cluster}.log" &
+      &> ".tmp/tilt-${cluster}.log" &
       disown
       echo "tilt ${cluster} on port ${port} (started)"
     fi

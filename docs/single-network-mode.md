@@ -2,16 +2,17 @@
 
 This document captures the non-obvious bits of running meshlab with
 `--network-mode single` (a single flat L3 network across both `pasta-*`
-clusters, courtesy of Cilium ClusterMesh) instead of the default
-`--network-mode multi`.
+clusters, courtesy of kindnet plus the static inter-node routes wired by
+`setup-flat-network`) instead of the default `--network-mode multi`.
 
 ## TL;DR
 
 - Single-network mode means **every cluster reports the same `network`
   label** to istiod. Pod IPs are directly routable across clusters
-  (Cilium ClusterMesh provides the flat L3), so the East-West gateways
-  are bypassed for cross-cluster traffic — Envoy/ztunnel dial pod IPs
-  directly.
+  (kindnet provides in-cluster networking and `setup-flat-network` adds
+  the cross-cluster routes that make the cell a flat L3), so the
+  East-West gateways are bypassed for cross-cluster traffic — Envoy/ztunnel
+  dial pod IPs directly.
 - Despite the flat L3, **ambient cross-cluster endpoint discovery still
   has to be explicitly enabled** with `AMBIENT_ENABLE_MULTI_NETWORK=true`
   on istiod. The flag's name is misleading: it is actually the master

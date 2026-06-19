@@ -4,7 +4,9 @@
 	"build": {
 		"dockerfile": "Dockerfile",
 		"options": [
-			"--tag", "ghcr.io/h0tbird/meshlab/devcontainer:latest"
+			"--tag", "ghcr.io/h0tbird/meshlab/devcontainer:latest",
+			"--progress=plain",
+			"--network=host" // Workaround for possible MTU-related Docker networking issues.
 		]
 	},
 	"initializeCommand": {

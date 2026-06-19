@@ -919,15 +919,12 @@ EOF
 
 create() {
 
-  # The generated Makefile and the failure log live under .tmp; create-clusters
-  # also mkdirs it, but generate_dag_mk runs before make so do it here too.
-  mkdir -p .tmp
+  # Clear the failure log from any previous run.
   rm -f .tmp/failed
 
   # Emit the section DAG and let `make -j` schedule it. --output-sync=recurse
-  # buffers each section's output and flushes it as one contiguous block, so
-  # concurrent sections never interleave. -k (keep-going) lets a wave finish so
-  # every failure is reported instead of aborting on the first one.
+  # keeps each section's output contiguous; -k reports every failure instead of
+  # aborting on the first.
   generate_dag_mk .tmp/dag.mk
   local rc=0
   make -j -k --output-sync=recurse -f .tmp/dag.mk all || rc=$?
@@ -954,9 +951,8 @@ create() {
 # [i] Validate the command line arguments
 #------------------------------------------------------------------------------
 
-# Defaults for `create` flags. Use parameter expansion so child processes
-# spawned by `make` (via `__run-section`) inherit the values chosen on the
-# parent `create` invocation instead of resetting them to the defaults.
+# Defaults for `create` flags. Exported so make's `__run-section` children
+# inherit the parent's choices instead of resetting to defaults.
 export CELL_COUNT="${CELL_COUNT:-1}"
 export NETWORK_MODE="${NETWORK_MODE:-multi}"
 

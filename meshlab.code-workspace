@@ -4,5 +4,9 @@
 		{ "name": "istio", "path": "../istio" },
 		{ "name": "k-swarm", "path": "../k-swarm" }
 	],
-	"settings": {}
+	"settings": {
+		"remote.defaultExtensionsIfInstalledLocally": [
+			"GitHub.vscode-pull-request-github"
+		]
+	}
 }

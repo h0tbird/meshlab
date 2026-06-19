@@ -30,6 +30,14 @@ spec:
               spec:
                 deployment:
                   service_type: LoadBalancer
+                  # Kiali serves health within ~1.5s of container start. The
+                  # operator's default startup probe waits 30s before its first
+                  # check, which needlessly delays the pod becoming Ready.
+                  probes:
+                    startup:
+                      initial_delay_seconds: 5
+                      period_seconds: 5
+                      failure_threshold: 6
                 server:
                   port: 80
                 auth:

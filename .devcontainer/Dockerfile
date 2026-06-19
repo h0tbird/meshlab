@@ -55,8 +55,9 @@ RUN echo 'dind() { docker -H unix:///var/run/docker.sock "$@" }' >> /etc/zsh/zsh
     echo "source <(docker completion zsh)" >> /etc/zsh/zshrc && \
     echo "compdef _docker dind dood" >> /etc/zsh/zshrc
 
-# Enable zsh completion for the meshlab CLI (bin/meshlab)
-RUN echo "source <(meshlab completion zsh)" >> /etc/zsh/zshrc
+# Enable zsh completion for the meshlab CLI (bin/meshlab).
+RUN echo "source <(meshlab completion zsh)" >> /root/.zshrc && \
+    echo "source <(meshlab completion zsh)" >> /home/vscode/.zshrc
 
 # Install Go (https://go.dev/dl/)
 RUN VERSION="1.26.4" && ARCH=$(archmap 'arm64' 'amd64') && \

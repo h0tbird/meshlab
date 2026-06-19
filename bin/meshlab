@@ -913,18 +913,18 @@ EOF
 
 create() {
 
-  # The generated Makefile and the failure log live under ./tmp; create-clusters
+  # The generated Makefile and the failure log live under .tmp; create-clusters
   # also mkdirs it, but generate_dag_mk runs before make so do it here too.
-  mkdir -p ./tmp
-  rm -f ./tmp/failed
+  mkdir -p .tmp
+  rm -f .tmp/failed
 
   # Emit the section DAG and let `make -j` schedule it. --output-sync=recurse
   # buffers each section's output and flushes it as one contiguous block, so
   # concurrent sections never interleave. -k (keep-going) lets a wave finish so
   # every failure is reported instead of aborting on the first one.
-  generate_dag_mk ./tmp/dag.mk
+  generate_dag_mk .tmp/dag.mk
   local rc=0
-  make -j -k --output-sync=recurse -f ./tmp/dag.mk all || rc=$?
+  make -j -k --output-sync=recurse -f .tmp/dag.mk all || rc=$?
 
   # Print total execution time and network traffic.
   local summary pad
@@ -934,9 +934,9 @@ create() {
     "${CYAN}" "${RST}${DIM}" "${summary}" "${RST}" "${CYAN}" "${pad}" "${RST}"
 
   # Report any failed sections.
-  if [[ -s ./tmp/failed ]]; then
+  if [[ -s .tmp/failed ]]; then
     local failed
-    failed=$(sort -u ./tmp/failed | paste -sd', ' -)
+    failed=$(sort -u .tmp/failed | paste -sd', ' -)
     printf '%b───[ Failed: %s ]%b\n\n' "${CYAN}" "${failed}" "${RST}" >&2
     return "$(( rc == 0 ? 1 : rc ))"
   fi

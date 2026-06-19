@@ -60,7 +60,7 @@ declare -A REGISTRIES=(
 )
 
 # Section dependency graph: each section maps to the sections that MUST finish
-# before it may start. Consumed by generate_dag_mk() to emit tmp/dag.mk, which
+# before it may start. Consumed by generate_dag_mk() to emit .tmp/dag.mk, which
 # `meshlab create` runs with `make -j` so independent sections execute in
 # parallel. setup-kubeconfig regenerates ~/.kube/config, so every section that
 # talks to a kind context depends on it. The cache edges (pull-through-cache,
@@ -73,15 +73,13 @@ declare -A DEPS=(
   [create-clusters]="cloud-provider-kind"
   [add-registries-to-containerd]="create-clusters pull-through-cache"
   [setup-kubeconfig]="create-clusters"
-  [helm-repositories]=""
-  [install-cilium]="setup-kubeconfig helm-repositories add-registries-to-containerd"
-  [install-clustermesh]="install-cilium"
-  [install-k8s-gateway]="setup-kubeconfig helm-repositories"
+  [setup-flat-network]="create-clusters"
+  [install-k8s-gateway]="setup-kubeconfig"
   [setup-coredns]="install-k8s-gateway setup-kubeconfig"
-  [setup-argocd]="setup-kubeconfig helm-repositories"
+  [setup-argocd]="setup-kubeconfig"
   [register-argocd-clusters]="setup-argocd setup-kubeconfig"
   [install-applicationsets]="register-argocd-clusters"
-  [setup-argowf]="setup-kubeconfig helm-repositories"
+  [setup-argowf]="setup-kubeconfig"
   [bootstrap-dag]="install-applicationsets setup-argowf"
   [istio-endpoint-discovery]="bootstrap-dag"
   [grafana-git-sync]="bootstrap-dag"
@@ -272,7 +270,7 @@ ensure_ips() {
 # Emit a Makefile (arg 1) describing every registered section as a phony target
 # whose prerequisites come from the DEPS map. Each recipe re-invokes this script
 # with `__run-section <name>`, and on failure appends the section name to
-# ./tmp/failed so the caller can report every failure after a keep-going run.
+# .tmp/failed so the caller can report every failure after a keep-going run.
 generate_dag_mk() {
   local out="$1" meshlab section
   meshlab="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/bin/meshlab"
@@ -287,7 +285,7 @@ generate_dag_mk() {
       printf '%s:%s\n' "${section}" "${DEPS[${section}]:+ ${DEPS[${section}]}}"
       # $(MESHLAB) is a make variable reference, kept literal on purpose.
       # shellcheck disable=SC2016
-      printf '\t@"$(MESHLAB)" __run-section %s || { echo %s >> ./tmp/failed; false; }\n\n' \
+      printf '\t@"$(MESHLAB)" __run-section %s || { echo %s >> .tmp/failed; false; }\n\n' \
         "${section}" "${section}"
     done
   } > "${out}"

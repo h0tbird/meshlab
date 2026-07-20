@@ -60,7 +60,7 @@ RUN echo "source <(meshlab completion zsh)" >> /root/.zshrc && \
     echo "source <(meshlab completion zsh)" >> /home/vscode/.zshrc
 
 # Install Go (https://go.dev/dl/)
-RUN VERSION="1.26.4" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="1.26.5" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL https://go.dev/dl/go${VERSION}.linux-${ARCH}.tar.gz | tar -xzC /usr/local && \
     echo 'export PATH=$PATH:/usr/local/go/bin' >> /etc/zsh/zshenv && \
     echo 'export PATH=$PATH:$HOME/go/bin' >> /etc/zsh/zshenv
@@ -71,13 +71,13 @@ RUN VERSION="v0.32.0" && ARCH=$(archmap 'arm64' 'amd64') && \
     chmod +x /usr/local/bin/kind && echo "source <(kind completion zsh)" >> /etc/zsh/zshrc
 
 # Install kubectl (https://cdn.dl.k8s.io/release/stable.txt)
-RUN VERSION="v1.36.1" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="v1.36.2" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL -o /usr/local/bin/kubectl https://dl.k8s.io/release/${VERSION}/bin/linux/${ARCH}/kubectl && \
     chmod +x /usr/local/bin/kubectl && ln -s /usr/local/bin/kubectl /usr/local/bin/k && \
     echo "source <(kubectl completion zsh)" >> /etc/zsh/zshrc
 
 # Install helm (https://github.com/helm/helm/releases)
-RUN VERSION="v4.2.0" && \
+RUN VERSION="v4.2.3" && \
     $CURL -o /tmp/get_helm.sh https://raw.githubusercontent.com/helm/helm/${VERSION}/scripts/get-helm-4 && \
     chmod 700 /tmp/get_helm.sh && /tmp/get_helm.sh --version ${VERSION} && rm -f /tmp/get_helm.sh && \
     echo "source <(helm completion zsh)" >> /etc/zsh/zshrc
@@ -88,35 +88,35 @@ RUN VERSION="v4.53.3" && ARCH=$(archmap 'arm64' 'amd64') && \
     chmod +x /usr/local/bin/yq && echo "source <(yq completion zsh)" >> /etc/zsh/zshrc
 
 # Install argocd (https://github.com/argoproj/argo-cd/releases)
-RUN VERSION="v3.4.3" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="v3.4.5" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/download/${VERSION}/argocd-linux-${ARCH} && \
     chmod +x /usr/local/bin/argocd && echo "source <(argocd completion zsh)" >> /etc/zsh/zshrc
 
 # Install argo (https://github.com/argoproj/argo-workflows/releases)
-RUN VERSION="v4.0.5" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="v4.0.7" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL https://github.com/argoproj/argo-workflows/releases/download/${VERSION}/argo-linux-${ARCH}.gz | gunzip -c > /usr/local/bin/argo && \
     chmod +x /usr/local/bin/argo && echo "source <(argo completion zsh)" >> /etc/zsh/zshrc
 
 # Install istioctl (https://github.com/istio/istio/releases)
-RUN VERSION="1.30.1" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="1.30.3" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL -o /tmp/istio.tar.gz https://github.com/istio/istio/releases/download/${VERSION}/istio-${VERSION}-linux-${ARCH}.tar.gz && \
     tar -xC /usr/local/bin --strip-components 2 -f /tmp/istio.tar.gz istio-${VERSION}/bin/istioctl && rm -f /tmp/istio.tar.gz && \
     echo "source <(istioctl completion zsh)" >> /etc/zsh/zshrc
 
 # Install step (https://github.com/smallstep/cli/releases)
-RUN VERSION="0.30.2" && ARCH=$(archmap 'arm64' 'amd64') && cd /tmp && \
+RUN VERSION="0.30.6" && ARCH=$(archmap 'arm64' 'amd64') && cd /tmp && \
     $CURL -O https://dl.smallstep.com/gh-release/cli/gh-release-header/v${VERSION}/step-cli_${VERSION}-1_${ARCH}.deb && \
     dpkg -i step-cli_${VERSION}-1_${ARCH}.deb && rm -f step-cli_${VERSION}-1_${ARCH}.deb && \
     echo "source <(step completion zsh)" >> /etc/zsh/zshrc
 
 # Install gh (https://github.com/cli/cli/releases)
-RUN VERSION="2.93.0" && ARCH=$(archmap 'arm64' 'amd64') && cd /tmp && \
+RUN VERSION="2.96.0" && ARCH=$(archmap 'arm64' 'amd64') && cd /tmp && \
     $CURL -O https://github.com/cli/cli/releases/download/v${VERSION}/gh_${VERSION}_linux_${ARCH}.deb && \
     dpkg -i gh_${VERSION}_linux_${ARCH}.deb && rm -f gh_${VERSION}_linux_${ARCH}.deb && \
     echo "source <(gh completion -s zsh)" >> /etc/zsh/zshrc
 
 # Install mdbook (https://github.com/rust-lang/mdBook/releases)
-RUN VERSION="v0.5.3" && ARCH=$(archmap 'aarch64' 'x86_64') && \
+RUN VERSION="v0.5.4" && ARCH=$(archmap 'aarch64' 'x86_64') && \
     $CURL https://github.com/rust-lang/mdbook/releases/download/${VERSION}/mdbook-${VERSION}-${ARCH}-unknown-linux-musl.tar.gz | \
     tar -xzC /usr/local/bin mdbook && echo "source <(mdbook completions zsh)" >> /etc/zsh/zshrc
 
@@ -131,12 +131,12 @@ RUN VERSION="1.4.7" && ARCH=$(archmap 'aarch64' 'x86_64') && \
     tar -xzC /usr/local/bin --strip-components 3 -f - ./btop/bin/btop
 
 # Install tilt (https://github.com/tilt-dev/tilt/releases)
-RUN VERSION="0.37.3" && ARCH=$(archmap 'arm64' 'x86_64') && \
+RUN VERSION="0.37.5" && ARCH=$(archmap 'arm64' 'x86_64') && \
     $CURL https://github.com/tilt-dev/tilt/releases/download/v${VERSION}/tilt.${VERSION}.linux.${ARCH}.tar.gz | \
     tar -xzC /usr/local/bin tilt && echo "source <(tilt completion zsh)" >> /etc/zsh/zshrc
 
 # Install crane (https://github.com/google/go-containerregistry/releases)
-RUN VERSION="v0.21.6" && ARCH=$(archmap 'arm64' 'x86_64') && \
+RUN VERSION="v0.21.7" && ARCH=$(archmap 'arm64' 'x86_64') && \
     $CURL https://github.com/google/go-containerregistry/releases/download/${VERSION}/go-containerregistry_Linux_${ARCH}.tar.gz | \
     tar -xzC /usr/local/bin crane && echo "source <(crane completion zsh)" >> /etc/zsh/zshrc
 

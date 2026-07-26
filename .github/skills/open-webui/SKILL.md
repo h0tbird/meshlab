@@ -19,7 +19,7 @@ The VS Code setting `workbench.browser.enableChatTools` must be `true`.
 | Argo Workflows | http://127.0.0.1:8081 | admin / meshlab123 |
 | Vault | http://127.0.0.1:8082 | - |
 | Prometheus | http://127.0.0.1:8083 | - |
-| Grafana | http://127.0.0.1:8084 | admin / meshlab123 |
+| Grafana | http://127.0.0.1:8084 | - |
 | Kiali | http://127.0.0.1:8085 | - |
 | Zot | http://127.0.0.1:8086 | - |
 | Tilt pasta-1 | http://127.0.0.1:9091 | - |

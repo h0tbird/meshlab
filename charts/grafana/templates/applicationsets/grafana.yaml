@@ -36,11 +36,24 @@ spec:
                 path: /api/health
                 port: grafana
               periodSeconds: 2
+            # Keep every grafana.ini setting under this one key. These arrived in
+            # two unrelated commits a month apart, each adding its own
+            # `grafana.ini`, and the later one silently won: anonymous auth was
+            # configured but never rendered, so the UI asked for a login for
+            # months. feature_toggles backs the "Grafana git sync" step.
             grafana.ini:
               auth.anonymous:
                 enabled: true
-                org_name: MeshLab
+                # Must name an org that exists. This said "MeshLab", which is
+                # never created, so once the key clash above was fixed every
+                # anonymous request failed with "organization not found" and
+                # bounced back to /login. "Main Org." is Grafana's built-in
+                # default org.
+                org_name: Main Org.
                 org_role: Viewer
+              feature_toggles:
+                provisioning: true
+                kubernetesDashboards: true
             datasources:
               datasources.yaml:
                 apiVersion: 1
@@ -56,10 +69,6 @@ spec:
               port: 80
               annotations:
                   coredns.io/hostname: grafana.demo.lab
-            grafana.ini:
-              feature_toggles:
-                provisioning: true
-                kubernetesDashboards: true
       destination:
         server: {{`'{{server}}'`}}
         namespace: monitoring

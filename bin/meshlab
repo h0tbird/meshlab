@@ -468,6 +468,11 @@ setup-argowf() {
   # rollout (including the server UI), but bootstrap-dag only needs the
   # workflow-controller to run workflows. We wait for the controller
   # explicitly below so the server rollout stays off the critical path.
+  #
+  # DEFAULT_REQUEUE_TIME is the rate limiter of the controller's workflow
+  # queue, and at its 10s default every DAG edge costs ~10-12s. bootstrap-dag
+  # is four hops deep, so that alone was ~38s of the ~90s workflow. 1s cuts
+  # each hop to the ~3s a pod needs to schedule and start.
   h0 upgrade --install -n argowf --create-namespace \
     argo-workflows --plain-http \
     "oci://${ZOT_LOCAL}/ghcr.io/argoproj/argo-helm/argo-workflows" \
@@ -479,6 +484,7 @@ setup-argowf() {
     --set 'workflow.serviceAccount.name=argo-workflow' \
     --set 'workflow.rbac.create=true' \
     --set 'controller.workflowNamespaces={argocd}' \
+    --set-json 'controller.extraEnv=[{"name":"DEFAULT_REQUEUE_TIME","value":"1s"}]' \
     --set-json 'workflow.rbac.rules=[{"apiGroups":["argoproj.io"],"resources":["applicationsets"],"verbs":["get","watch","patch"]}]' |
     grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
 

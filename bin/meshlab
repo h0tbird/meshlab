@@ -186,27 +186,35 @@ create-clusters() {
 add-registries-to-containerd() {
   blue "───[ Configure containerd ]─────────────────────────────────────────────"
 
+  # Flatten the REGISTRIES map into an `upstream url upstream url ...` argument
+  # list so every cluster is configured with a single `docker exec` instead of
+  # one round-trip per registry.
+  local args=() upstream
+  for upstream in "${!REGISTRIES[@]}"; do
+    args+=( "${upstream}" "${REGISTRIES[${upstream}]}" )
+  done
+
   # Route each upstream through its zot prefix. `override_path` treats that path
   # as the registry API root (docker.io/library/nginx -> http://${ZOT_HOST}:
   # ${ZOT_PORT}/v2/docker.io/library/nginx); `server` is the upstream fallback.
   for cluster in $(all_clusters); do (
-    local upstream url
-    for upstream in "${!REGISTRIES[@]}"; do
-      url="${REGISTRIES[${upstream}]}"
-      docker exec -i "${cluster}-control-plane" bash -c "
-        mkdir -p /etc/containerd/certs.d/${upstream}
-        printf '%s\n' \
-          'server = \"${url}\"' \
-          '[host.\"http://${ZOT_HOST}:${ZOT_PORT}/v2/${upstream}\"]' \
-          '  capabilities = [\"pull\", \"resolve\"]' \
-          '  override_path = true' \
-          > /etc/containerd/certs.d/${upstream}/hosts.toml
-      "
-    done
+    docker exec "${cluster}-control-plane" bash -c '
+      zot="$1"; shift
+      while (( $# )); do
+        dir="/etc/containerd/certs.d/$1"
+        mkdir -p "${dir}"
+        printf "%s\n" \
+          "server = \"$2\"" \
+          "[host.\"http://${zot}/v2/$1\"]" \
+          "  capabilities = [\"pull\", \"resolve\"]" \
+          "  override_path = true" \
+          > "${dir}/hosts.toml"
+        shift 2
+      done
+    ' _ "${ZOT_HOST}:${ZOT_PORT}" "${args[@]}"
   ) & done; join
 
   # Show the routing.
-  local upstream
   for upstream in "${!REGISTRIES[@]}"; do
     echo "${upstream} --> http://${ZOT_HOST}:${ZOT_PORT}/v2/${upstream}"
   done
@@ -498,7 +506,10 @@ kiali-secrets() {
   # Secrets land in the manager's monitoring namespace; make sure it exists.
   k0 create ns monitoring --dry-run=client -o yaml | k0 apply -f -
 
-  for cluster in $(clusters); do
+  # Each invocation only touches its own remote cluster and a secret named after
+  # it, so they can all run at once instead of queueing behind each other's
+  # wait-for-SA-token loop.
+  for cluster in $(clusters); do (
     retry kiali-prepare-remote-cluster.sh \
       --kiali-cluster-context "kind-${MNGR}" \
       --remote-cluster-context "kind-${cluster}" \
@@ -509,7 +520,7 @@ kiali-secrets() {
       --remote-cluster-name "${cluster}" \
       --remote-cluster-url "https://${IP[${cluster}]}:6443" |
       grep -v '^INFO:'
-  done
+  ) & done; join
 }; SECTIONS+=( kiali-secrets )
 
 #------------------------------------------------------------------------------
@@ -656,8 +667,11 @@ bootstrap-dag() {
 	          parameters:
 	          - name: selectors
 	            value: name=istio-istiod
+	      # Kiali is the slowest app to go healthy (~45s, mostly the operator's
+	      # 30s startup probe delay), so keep it off the istiod critical path.
+	      # It discovers control planes on a timer, no need to wait for istiod.
 	      - name: kiali-operator
-	        dependencies: [istio-istiod]
+	        dependencies: [istio-base]
 	        templateRef:
 	          name: argocd-sync-and-wait
 	          template: argocd-sync-and-wait

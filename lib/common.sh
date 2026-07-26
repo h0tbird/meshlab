@@ -141,13 +141,11 @@ grey() {
 #------------------------------------------------------------------------------
 
 get_ext_ip() {
-  local ip='null'
-  until [[ -n "${ip}" && "${ip}" != 'null' ]]; do
-    ip=$(kubectl --context="kind-${1}" -n "${2}" get svc "${3}" -o yaml 2>/dev/null | \
-      yq '.status.loadBalancer.ingress[0].ip')
-    [[ -n "${ip}" && "${ip}" != 'null' ]] || sleep 1
-  done
-  echo "${ip}"
+  kubectl --context="kind-${1}" -n "${2}" wait "svc/${3}" \
+    --for=create --for=jsonpath='{.status.loadBalancer.ingress[0].ip}' \
+    --timeout=10m >/dev/null
+  kubectl --context="kind-${1}" -n "${2}" get svc "${3}" \
+    -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
 }
 
 #------------------------------------------------------------------------------
@@ -251,11 +249,16 @@ declare -gxA IP; IP_INIT=false
 
 ensure_ips() {
   [[ "${IP_INIT}" == true ]] && return 0
-  local cluster
-  for cluster in $(all_clusters); do
-    IP[${cluster}]=$(docker inspect "${cluster}-control-plane" |
-      jq -r '.[].NetworkSettings.Networks.kind.IPAddress')
-  done; IP_INIT=true
+  local cluster nodes=() ip
+  for cluster in $(all_clusters); do nodes+=( "${cluster}-control-plane" ); done
+  # A single `docker inspect` for every node beats one round-trip per cluster.
+  while IFS=$'\t' read -r cluster ip; do
+    IP[${cluster}]="${ip}"
+  done < <(docker inspect "${nodes[@]}" | jq -r '.[] | [
+    (.Name | ltrimstr("/") | rtrimstr("-control-plane")),
+    .NetworkSettings.Networks.kind.IPAddress
+  ] | @tsv')
+  IP_INIT=true
 }
 
 #------------------------------------------------------------------------------

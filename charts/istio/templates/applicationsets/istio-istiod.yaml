@@ -69,6 +69,15 @@ spec:
               # actual cluster DNS suffix.
               proxy:
                 clusterDomain: {{`'{{metadata.labels.cell}}.local'`}}
+                # Injected proxies get readinessInitialDelaySeconds: 0 and
+                # readinessPeriodSeconds: 15 by default, so the very first
+                # probe always races Envoy coming up and usually loses with
+                # "connection refused". Losing it costs a full 15s: the nsgw
+                # pod on one cluster started at 10:58:58 and only went Ready
+                # at 10:59:13, on the next tick, while its peer that happened
+                # to win the race was Ready in 3s. Probing every 2s bounds
+                # that miss to ~2s instead.
+                readinessPeriodSeconds: 2
 {{- if eq .Values.networkMode "multi" }}
               network: {{`'{{name}}'`}}
 {{- else if eq .Values.networkMode "single" }}

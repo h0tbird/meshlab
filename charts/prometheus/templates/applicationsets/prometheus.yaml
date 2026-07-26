@@ -33,6 +33,13 @@ spec:
             prometheus-pushgateway:
               enabled: false
             server:
+              # The chart defaults this to 30, which was almost the whole task:
+              # the server logs "Start listening for connections" on :9090 56ms
+              # after the container starts and has its TSDB up a further 5ms
+              # later, yet the pod stayed NotReady until the first probe fired
+              # 30s in. Prometheus gates grafana in bootstrap-dag, so that delay
+              # was paid twice over on the critical path.
+              readinessProbeInitialDelay: 2
               service:
                 type: LoadBalancer
                 servicePort: 80

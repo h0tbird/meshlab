@@ -26,6 +26,16 @@ spec:
           valuesObject:
             adminPassword: meshlab123
             adminUser: admin
+            # The chart ships no initialDelaySeconds and periodSeconds defaults
+            # to 10, so the first probe races Grafana's HTTP listener and losing
+            # it costs a full 10s of idle NotReady, which is exactly what was
+            # observed (container start 11:23:59 -> Ready 11:24:09, to the
+            # second). Poll every 2s to bound the miss.
+            readinessProbe:
+              httpGet:
+                path: /api/health
+                port: grafana
+              periodSeconds: 2
             grafana.ini:
               auth.anonymous:
                 enabled: true

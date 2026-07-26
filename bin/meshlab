@@ -667,8 +667,11 @@ bootstrap-dag() {
 	          parameters:
 	          - name: selectors
 	            value: name=istio-istiod
+	      # Kiali is the slowest app to go healthy (~45s, mostly the operator's
+	      # 30s startup probe delay), so keep it off the istiod critical path.
+	      # It discovers control planes on a timer, no need to wait for istiod.
 	      - name: kiali-operator
-	        dependencies: [istio-istiod]
+	        dependencies: [istio-base]
 	        templateRef:
 	          name: argocd-sync-and-wait
 	          template: argocd-sync-and-wait

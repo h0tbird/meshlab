@@ -52,6 +52,15 @@ spec:
                     external_url: http://127.0.0.1:8084
                   prometheus:
                     url: http://prometheus-server.monitoring
+                  istio:
+                    # Control plane discovery only re-runs when this poller
+                    # finds the mesh cache expired, so both knobs have to drop
+                    # together. Defaults are 20s each, which lets a new istiod
+                    # go unnoticed for ~40s.
+                    istiod_polling_interval_seconds: 10
+                kiali_internal:
+                  cache_expiration:
+                    mesh: 10s
       destination:
         server: {{`'{{server}}'`}}
         namespace: monitoring

@@ -371,12 +371,23 @@ setup-argocd() {
   && echo "ArgoCD already installed, skipping" \
   && return 0
 
+  # The chart provisions redis' auth Secret from a `redis-secret-init` pre-install
+  # hook Job, and helm blocks on that Job before it creates anything else: 13s
+  # measured from the release starting to the Secret appearing. All the Job does
+  # is write a random password, so do it here instead — same Secret, same `auth`
+  # key, no Job and no image pull. Redis stays authenticated.
+  k0 create ns argocd --dry-run=client -o yaml | k0 apply -f -
+  k0 -n argocd create secret generic argocd-redis \
+    --from-literal=auth="$(openssl rand -base64 32)" \
+    --dry-run=client -o yaml | k0 apply -f -
+
   # Install ArgoCD
   h0 upgrade --install -n argocd --create-namespace --wait --timeout 5m \
   argocd --plain-http "oci://${ZOT_LOCAL}/ghcr.io/argoproj/argo-helm/argo-cd" \
   --version "${ARGOCD_CHART_VERSION}" \
   --set 'server.service.type=LoadBalancer' \
   --set 'server.extraArgs={--insecure=true}' \
+  --set 'redisSecretInit.enabled=false' \
   --set configs.secret.argocdServerAdminPassword="$(htpasswd -nbBC 10 "" "${PASS}" | tr -d ':\n')" \
   -f - <<- EOF | grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
 		# ArgoCD is the longest pole of the serial spine: --wait gates every
@@ -490,6 +501,15 @@ setup-argowf() {
   # queue, and at its 10s default every DAG edge costs ~10-12s. bootstrap-dag
   # is four hops deep, so that alone was ~38s of the ~90s workflow. 1s cuts
   # each hop to the ~3s a pod needs to schedule and start.
+  #
+  # crds.full=true (the chart default) does not render the CRDs with the rest
+  # of the chart: it defers them to a pre-install hook Job that pulls
+  # registry.k8s.io/kubectl and downloads the full CRD YAMLs from GitHub before
+  # server-side applying them. helm blocks on that Job, and it measured 21s of
+  # this section's 31s. The minified CRDs are plain templates that apply with
+  # everything else; they swap the OpenAPI schema for
+  # x-kubernetes-preserve-unknown-fields, so the controller still validates
+  # workflows, the API server just stops re-checking the schema.
   h0 upgrade --install -n argowf --create-namespace \
     argo-workflows --plain-http \
     "oci://${ZOT_LOCAL}/ghcr.io/argoproj/argo-helm/argo-workflows" \
@@ -501,6 +521,7 @@ setup-argowf() {
     --set 'workflow.serviceAccount.name=argo-workflow' \
     --set 'workflow.rbac.create=true' \
     --set 'controller.workflowNamespaces={argocd}' \
+    --set 'crds.full=false' \
     --set-json 'controller.extraEnv=[{"name":"DEFAULT_REQUEUE_TIME","value":"1s"}]' \
     --set-json 'workflow.rbac.rules=[{"apiGroups":["argoproj.io"],"resources":["applicationsets"],"verbs":["get","watch","patch"]}]' |
     grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'

@@ -379,6 +379,23 @@ setup-argocd() {
   --set 'server.extraArgs={--insecure=true}' \
   --set configs.secret.argocdServerAdminPassword="$(htpasswd -nbBC 10 "" "${PASS}" | tr -d ':\n')" \
   -f - <<- EOF | grep -E '^NAME|^LAST|^STATUS|^REVISION|^TEST'
+		# ArgoCD is the longest pole of the serial spine: --wait gates every
+		# section that follows. The chart ships initialDelaySeconds: 10 with
+		# periodSeconds: 10 on these three, but their logs show them serving
+		# within the same second the container starts, so the very first probe
+		# passes and the whole 10s is dead air on the critical path.
+		controller:
+		  readinessProbe:
+		    initialDelaySeconds: 2
+		    periodSeconds: 2
+		server:
+		  readinessProbe:
+		    initialDelaySeconds: 2
+		    periodSeconds: 2
+		repoServer:
+		  readinessProbe:
+		    initialDelaySeconds: 2
+		    periodSeconds: 2
 		configs:
 		  cm:
 		    resource.customizations.ignoreDifferences.admissionregistration.k8s.io_MutatingWebhookConfiguration: |

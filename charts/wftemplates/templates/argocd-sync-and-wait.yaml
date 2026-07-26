@@ -73,10 +73,28 @@ spec:
           yes | argocd login "${ARGOCD_SERVER}" --username="${ARGOCD_USERNAME}" --password="${ARGOCD_PASSWORD}"
         fi
 
+        # A selector usually matches one Application per cluster, and a blocking
+        # "argocd app sync" walks them strictly one at a time: the second cluster
+        # only starts once the first is done. Since every cluster does the same
+        # independent work, that turns a parallel step into a serial one and the
+        # task ends up costing the sum instead of the max. --async just registers
+        # the operations and returns, so the controller drives them concurrently;
+        # the waits below are what actually block.
         for i in $(seq 1 3); do
-          argocd app sync {{`{{inputs.parameters.application-name}}`}} $(selectors) --retry-limit 3 && break
+          argocd app sync {{`{{inputs.parameters.application-name}}`}} $(selectors) --retry-limit 3 --async && break
           echo "Sync attempt ${i} failed, retrying in 10s..."
           sleep 10
         done
 
+        # The wait is split in two on purpose. "argocd app wait --health" aborts
+        # if it ever observes a resource go from a known state to Degraded, and
+        # newly created resources routinely dip through Degraded before their
+        # controller reconciles them. A blocking sync used to hide that, because
+        # the health watch only started once everything was applied. With --async
+        # the watch would otherwise start while resources are still appearing and
+        # catch the dip: kiali went Missing -> Degraded and failed the step with
+        # "health state has transitioned from Missing to Degraded". Waiting for
+        # the operation first (without --health, so the check is inactive)
+        # restores the original ordering while keeping the syncs parallel.
+        argocd app wait {{`{{inputs.parameters.application-name}}`}} --operation $(selectors)
         argocd app wait {{`{{inputs.parameters.application-name}}`}} --health $(selectors)

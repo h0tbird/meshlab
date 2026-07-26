@@ -23,6 +23,17 @@ spec:
         chart: kubernetes-replicator
         helm:
           releaseName: kubernetes-replicator
+          valuesObject:
+            # The chart defaults both probes to initialDelaySeconds: 60, which
+            # was the entire cost of this task: the container logs "starting
+            # liveness monitor at :9102" ~3ms after start, yet the pod stayed
+            # NotReady for another 60s purely waiting on the first probe. Poll
+            # early instead of guessing at a startup time that is already over.
+            readinessProbe:
+              initialDelaySeconds: 2
+              periodSeconds: 5
+            livenessProbe:
+              initialDelaySeconds: 5
       destination:
         server: {{`'{{server}}'`}}
         namespace: kube-system

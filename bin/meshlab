@@ -506,7 +506,10 @@ kiali-secrets() {
   # Secrets land in the manager's monitoring namespace; make sure it exists.
   k0 create ns monitoring --dry-run=client -o yaml | k0 apply -f -
 
-  for cluster in $(clusters); do
+  # Each invocation only touches its own remote cluster and a secret named after
+  # it, so they can all run at once instead of queueing behind each other's
+  # wait-for-SA-token loop.
+  for cluster in $(clusters); do (
     retry kiali-prepare-remote-cluster.sh \
       --kiali-cluster-context "kind-${MNGR}" \
       --remote-cluster-context "kind-${cluster}" \
@@ -517,7 +520,7 @@ kiali-secrets() {
       --remote-cluster-name "${cluster}" \
       --remote-cluster-url "https://${IP[${cluster}]}:6443" |
       grep -v '^INFO:'
-  done
+  ) & done; join
 }; SECTIONS+=( kiali-secrets )
 
 #------------------------------------------------------------------------------

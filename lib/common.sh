@@ -141,13 +141,11 @@ grey() {
 #------------------------------------------------------------------------------
 
 get_ext_ip() {
-  local ip='null'
-  until [[ -n "${ip}" && "${ip}" != 'null' ]]; do
-    ip=$(kubectl --context="kind-${1}" -n "${2}" get svc "${3}" -o yaml 2>/dev/null | \
-      yq '.status.loadBalancer.ingress[0].ip')
-    [[ -n "${ip}" && "${ip}" != 'null' ]] || sleep 1
-  done
-  echo "${ip}"
+  kubectl --context="kind-${1}" -n "${2}" wait "svc/${3}" \
+    --for=create --for=jsonpath='{.status.loadBalancer.ingress[0].ip}' \
+    --timeout=10m >/dev/null
+  kubectl --context="kind-${1}" -n "${2}" get svc "${3}" \
+    -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
 }
 
 #------------------------------------------------------------------------------

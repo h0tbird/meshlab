@@ -18,11 +18,11 @@ clusters, courtesy of kindnet plus the static inter-node routes wired by
   on istiod. The flag's name is misleading: it is actually the master
   switch for ambient *cross-cluster* endpoint discovery, regardless of
   whether the clusters share a network or not.
-- ztunnel applies a strong **same-cluster locality preference** that is
-  not influenced by `DestinationRule.trafficPolicy.loadBalancer.localityLbSetting`.
-  Cross-cluster ambient traffic therefore only flows on local-endpoint
-  failure (or when steered through the destination waypoint, where the
-  DR is honored).
+- ztunnel is an **L4 proxy: it selects an upstream endpoint once per TCP
+  connection**, not per HTTP request. A client that reuses an HTTP
+  keep-alive connection therefore pins *every* request to whichever
+  endpoint the first connection landed on. This is the dominant effect on
+  ambient traffic distribution — not locality.
 
 ## Chart wiring
 
@@ -75,24 +75,53 @@ flag to `"true"` unconditionally.
 
 ## Locality preference (ambient)
 
-Even with discovery working, `ztunnel`'s built-in locality logic
-**always prefers same-cluster endpoints** when they are healthy. It
-does not honor the same `DestinationRule` knobs that Envoy does, in
-particular:
+By default there is **none**. `constructService` in
+`pilot/pkg/serviceregistry/ambient/services.go` only emits a
+`workloadapi.LoadBalancing` when the Service sets
+`internalTrafficPolicy: Local` or a `trafficDistribution` value. The
+`peer` Services set neither, so `LoadBalancing` is `nil` and ztunnel
+falls back to plain random selection over *all* endpoints — local and
+remote clusters are equally likely. Measured over the 16
+`(ambient src, service)` pairs in the cell, the split is roughly even,
+confirming there is no same-cluster bias.
+
+`DestinationRule` knobs are ignored by ztunnel regardless:
 
 ```yaml
 trafficPolicy:
   loadBalancer:
     localityLbSetting:
       enabled: false
-    failoverPriority: [topology.istio.io/cluster]
+      failoverPriority: [topology.istio.io/cluster]
 ```
 
 …has no effect on the source ztunnel. The DR *is* honored at the
-destination waypoint, so if you need active cross-cluster distribution
-you must steer traffic through the destination waypoint (e.g. with a
-`use-waypoint` annotation that targets a non-local waypoint, or via an
-explicit per-route `Route` to a `ServiceEntry`/waypoint).
+destination waypoint.
+
+If you *want* same-cluster preference, set `trafficDistribution:
+PreferClose` on the Service — that maps to
+`RoutingPreference: [NETWORK, REGION, ZONE]` with `FAILOVER` mode.
+
+## Connection reuse dominates ambient traffic spread
+
+Because ztunnel load balances per connection, an HTTP client with
+keep-alives enabled will hit exactly **one** endpoint per service for its
+entire lifetime. Demonstrated from an ambient pod, 20 requests each:
+
+| | `peer.swarm-ambient-n2` | `peer.swarm-sidecar-n1` |
+| --- | --- | --- |
+| new connection per request | 16× pasta-1, 4× pasta-2 | 9× pasta-1, 11× pasta-2 |
+| one reused keep-alive connection | 20× pasta-2 | 20× pasta-2 |
+
+A destination waypoint does **not** rescue this: the waypointed service
+is still fully pinned on a reused connection.
+
+This is why the k-swarm peer is deployed with `--disable-keepalives`
+(see [bin/meshlab](../bin/meshlab), `deploy-workloads`), which sets
+`Transport.DisableKeepAlives` on the worker's HTTP client. Without it the
+connectivity matrix shows ambient sources reaching only one cluster per
+destination service — an artifact of connection pinning, not a
+reachability problem.
 
 To validate cross-cluster reachability without changing routing, just
 scale the local backend to zero — ztunnel will failover to the remote
@@ -117,9 +146,13 @@ With the chart fix in place:
 | Direction                    | Status |
 | ---------------------------- | ------ |
 | sidecar ↔ sidecar (in-cell)  | ✅ active LB across clusters via DR |
-| ambient ↔ ambient (in-cell)  | ✅ discovery works; **failover only**, no active LB |
-| ambient → sidecar (in-cell)  | ✅ as same-cluster; cross-cluster on failover |
-| sidecar → ambient (in-cell)  | ✅ as same-cluster; cross-cluster on failover |
+| ambient ↔ ambient (in-cell)  | ✅ random per-connection LB across clusters |
+| ambient → sidecar (in-cell)  | ✅ random per-connection LB across clusters |
+| sidecar → ambient (in-cell)  | ✅ active LB across clusters via DR |
+
+Note that all four ambient directions require the client to open fresh
+connections (see above) for traffic to actually reach both clusters;
+otherwise each source pins to a single endpoint per service.
 
 Compare with [docs/issue-1.md](./issue-1.md) for the equivalent
 multi-network results, where the two ambient↔sidecar cross-cluster

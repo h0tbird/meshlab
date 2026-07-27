@@ -63,7 +63,7 @@ artifact, not a connectivity problem — re-run unsandboxed.
 ## What it does
 
 1. For each peer (`pasta-{1,2}` × `swarm-{ambient,sidecar}-n{1,2}`), tails the
-   `peer` container logs of the first pod with `app=peer`.
+   `manager` container logs of the first pod with `app=peer`.
 2. Greps each `hop` JSON line for `src.cluster`, `src.namespace`,
    `dst.cluster`, `dst.namespace`, `http.status`.
 3. Marks each `(src peer, dst peer)` intersection ✅ iff at least one observed

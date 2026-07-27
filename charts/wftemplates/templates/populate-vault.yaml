@@ -24,7 +24,18 @@ spec:
       source: |
         set -x
 
-        while ! vault status &>/dev/null; do sleep 1; done
+        # This task is a DAG root and races the `vault` Argo CD sync, so the
+        # server (and even its Service) may not exist yet. Bounded so a Vault
+        # that never comes up fails the task instead of hanging the workflow.
+        i=0
+        while ! vault status >/dev/null 2>&1; do
+          i=$((i + 1))
+          if [ "${i}" -gt 300 ]; then
+            echo "vault did not become ready after 300s" >&2
+            exit 1
+          fi
+          sleep 1
+        done
 
         # One root CA for all the cells
         vault secrets list | grep -q "mesh" || {

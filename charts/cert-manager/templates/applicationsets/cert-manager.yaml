@@ -26,6 +26,27 @@ spec:
           valuesObject:
             installCRDs: true
             clusterResourceNamespace: istio-system
+            # cert-manager is the first link of the bootstrap DAG's critical
+            # chain (cert-manager -> istio-issuers -> istio-istiod -> gateways),
+            # so everything it waits for is paid by the whole mesh.
+            startupapicheck:
+              # A PostSync hook Job that issues a throwaway self-signed
+              # Certificate to prove the webhook answers. Argo CD only runs it
+              # once every Deployment is already Ready, so it lands ~5s of Job
+              # round trip at the head of the chain to re-check something
+              # readiness has established: cainjector patches the caBundle into
+              # the webhook configs 1.4s after it starts, six seconds before the
+              # webhook Pod itself reports Ready. Nothing here consumes the
+              # check's exit code either — istio-issuers already retries.
+              enabled: false
+            webhook:
+              # Ready at exactly +5s after the container starts, i.e. the first
+              # probe passed and the whole initialDelay was dead air. It is the
+              # last of the three Deployments to go Ready, so it alone decides
+              # when Argo CD calls the app Healthy.
+              readinessProbe:
+                initialDelaySeconds: 2
+                periodSeconds: 2
       destination:
         server: {{`'{{server}}'`}}
         namespace: cert-manager

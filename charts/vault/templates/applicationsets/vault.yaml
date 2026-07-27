@@ -24,7 +24,22 @@ spec:
         helm:
           releaseName: vault
           valuesObject:
+            # Dead weight: nothing in this repo carries a
+            # vault.hashicorp.com/agent-inject annotation — cert-manager talks to
+            # Vault directly. It was also this task's long pole (Ready at 14:54:21
+            # vs vault-0 at 14:54:19) and it registers the cluster's only
+            # MutatingWebhookConfiguration, scoped to every pod CREATE with an
+            # empty namespaceSelector, which the whole bootstrap DAG then pays for.
+            injector:
+              enabled: false
             server:
+              # vault-0 logs "post-unseal setup complete" 0.4s after the container
+              # starts, but initialDelaySeconds: 5 keeps it NotReady until the
+              # first probe at +5s. This task heads the bootstrap DAG's critical
+              # chain, so the dead air propagates to everything behind it.
+              readinessProbe:
+                initialDelaySeconds: 2
+                periodSeconds: 2
               dev:
                 enabled: true
                 devRootToken: meshlab123

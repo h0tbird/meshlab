@@ -156,7 +156,7 @@ for ctx in kind-pasta-1 kind-pasta-2; do
     pod=$(kubectl --context $ctx -n $ns get pod -l app=peer -o name | head -1)
     [ -z "$pod" ] && continue
     echo "=== $ctx/$ns/$pod ==="
-    kubectl --context $ctx -n $ns logs $pod -c peer --tail=300 2>/dev/null \
+    kubectl --context $ctx -n $ns logs $pod -c manager --tail=300 2>/dev/null \
       || kubectl --context $ctx -n $ns logs $pod --tail=300
   done
 done > /tmp/hops/all.log 2>&1

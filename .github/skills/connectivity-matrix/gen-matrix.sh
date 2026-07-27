@@ -51,7 +51,7 @@ PYEOF
     for ns in "${NSS[@]}"; do
       pod=$(kubectl --context "$ctx" -n "$ns" get pod -l app=peer -o name 2>/dev/null | head -1)
       [ -z "$pod" ] && continue
-      kubectl --context "$ctx" -n "$ns" logs "$pod" -c peer --tail="$TAIL" 2>/dev/null \
+      kubectl --context "$ctx" -n "$ns" logs "$pod" -c manager --tail="$TAIL" 2>/dev/null \
         || kubectl --context "$ctx" -n "$ns" logs "$pod" --tail="$TAIL" 2>/dev/null || true
     done
   done

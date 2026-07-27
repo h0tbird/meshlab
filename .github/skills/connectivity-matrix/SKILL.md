@@ -38,6 +38,28 @@ Optional: increase log window per pod (default 500 lines):
 TAIL=2000 .github/skills/connectivity-matrix/gen-matrix.sh
 ```
 
+> **Run it OUTSIDE the command sandbox.** This script shells out to `kubectl`
+> against the kind clusters, which needs two things the sandbox denies:
+> `~/.kube/config` (hidden by the sandbox's `$HOME` privacy protection) and
+> network to the API servers on `127.0.0.1:<published ports>` (blocked). Invoke
+> with `requestUnsandboxedExecution=true` (full filesystem **and** network are
+> both required). Use an absolute path, since the sandbox wrapper may strip a
+> leading `cd`.
+
+## An all-❌ matrix is almost always a false negative
+
+The script swallows kubectl errors (`2>/dev/null || true`), so if kubectl can't
+reach the clusters it emits **zero** hop lines and every intersection renders as
+❌ — indistinguishable from a real total outage. Before reporting an all-❌
+matrix as a real failure:
+
+1. Confirm the run was unsandboxed (see above).
+2. Sanity-check the clusters:
+   `kubectl --context kind-pasta-1 -n swarm-ambient-n1 get pods -l app=peer`.
+
+If the pods are `Running` but the matrix is all ❌, it's a sandbox/access
+artifact, not a connectivity problem — re-run unsandboxed.
+
 ## What it does
 
 1. For each peer (`pasta-{1,2}` × `swarm-{ambient,sidecar}-n{1,2}`), tails the

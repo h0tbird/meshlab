@@ -1,32 +1,50 @@
 # cert-manager
 
-Cert-manager is an open-source software that helps automate the management and
-issuance of TLS/SSL certificates in Kubernetes clusters. It integrates with
-various certificate authorities (CAs) and can automatically renew certificates
-before they expire, ensuring secure communication between services running in
-the cluster.
+[cert-manager](https://cert-manager.io) automates the issuance and renewal of
+X.509 certificates. In this lab it is deployed to **every** cluster and it is
+the bridge between [Vault](./vault.md) and Istio: it turns the single `mesh`
+root CA into one intermediate CA per cluster.
 
-Print the cert-manager CLI version and the deployed cert-manager version:
-```
-cmctl --context pasta-1 version
-```
+## The issuers
 
-This check attempts to perform a dry-run create of a cert-manager v1alpha2
-`Certificate` resource in order to verify that CRDs are installed and all the
-required webhooks are reachable by the K8S API server. We use v1alpha2 API to
-ensure that the API server has also connected to the cert-manager conversion
-webhook:
+`charts/issuers` is synced into `istio-system` (as the `istio-issuers`
+application) and contains:
+
+| Resource | Kind | Purpose |
+| -------- | ---- | ------- |
+| `vault-ica-approle` | `Secret` | The AppRole `secretId` created by `populate-vault`. |
+| `vault-ica` | `Issuer` | Vault issuer authenticating with that AppRole against `mesh/`. |
+| `istio-cluster-ica` | `Certificate` | The cluster's intermediate CA (`isCA: true`, CN = cluster name, 5-year duration, renewed 1 year before expiry, key rotated on every renewal). It writes the `cacerts` secret that istiod consumes. |
+| `ingress-ca` | `Issuer` / `ClusterIssuer` | CA issuer backed by `cacerts`, used for ingress/workload leaf certificates. |
+
+istiod runs with `AUTO_RELOAD_PLUGIN_CERTS: true`, so a renewal of `cacerts` is
+picked up without restarting the control plane.
+
+## Everyday commands
+
+The `cmctl` CLI is not installed in the dev container; use `kubectl`.
+
+Check the intermediate CA of a cluster:
 ```console
-cmctl check api --context pasta-1
+k --context kind-pasta-1 -n istio-system get certificate istio-cluster-ica
+k --context kind-pasta-1 -n istio-system describe certificate istio-cluster-ica
 ```
 
-Get details about the current status of a cert-manager Certificate resource,
-including information on related resources like `CertificateRequest` or `Order`:
+Follow the request chain when issuance is stuck:
 ```console
-cmctl --context pasta-1 --namespace istio-system status certificate istio-cluster-ica
+k --context kind-pasta-1 -n istio-system get certificaterequests
+k --context kind-pasta-1 -n cert-manager logs -l app=cert-manager --tail 50
 ```
 
-Mark cert-manager `Certificate` resources for manual renewal:
+Inspect the resulting CA bundle:
 ```console
-cmctl renew --context pasta-1 --namespace istio-system istio-cluster-ica
+k --context kind-pasta-1 -n istio-system get secret cacerts \
+  -o jsonpath='{.data.tls\.crt}' | base64 -d | step certificate inspect --bundle
+```
+
+Force a reissue (there is no `cmctl` here, so delete the secret and let the
+`Certificate` controller re-create it):
+```console
+k --context kind-pasta-1 -n istio-system delete secret cacerts
+k --context kind-pasta-1 -n istio-system get certificate istio-cluster-ica -w
 ```

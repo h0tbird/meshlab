@@ -16,7 +16,8 @@ docker exec pasta-1-control-plane ip route
 Verify cross-cluster pod reachability (from a pod in `pasta-1` to a pod IP in
 `pasta-2`):
 ```console
-k --context pasta-1 exec deploy/<app> -- curl -s <pasta-2-pod-ip>:<port>
+k --context kind-pasta-1 -n swarm-ambient-n1 exec deploy/peer -c manager -- \
+  curl -s <pasta-2-pod-ip>:8080
 ```
 
 > Routes are added via `docker exec ... ip route replace` and live only in the

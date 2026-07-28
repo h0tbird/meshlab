@@ -1,29 +1,56 @@
 # Certificates
 
+The trust chain of the lab is: a single `mesh` root CA in
+[Vault](./components/vault.md) → one intermediate CA per cluster, issued by
+[cert-manager](./components/cert-manager.md) into the `cacerts` secret → the
+workload certificates istiod mints, with a per-cell trust domain
+(`spiffe://pasta.local/...`).
+
 Find below a collection of commands to troubleshoot certificate issues.
 
-Connect to the externally exposed `istiod` service and inspect the certificate bundle it presents:
+Inspect the root CA:
 ```console
-step certificate inspect --bundle --servername istiod-1-19-6.istio-system.svc https://192.168.65.3:15012 --roots /path/to/root-ca.pem
-step certificate inspect --bundle --servername istiod-1-19-6.istio-system.svc https://192.168.65.3:15012 --insecure
+curl -s http://127.0.0.1:8082/v1/mesh/ca/pem | step certificate inspect
 ```
 
-Inspect the certificate chain provided by a given workload:
+Inspect a cluster's intermediate CA bundle:
 ```console
-istioctl --context pasta-1 pc secret httpbin-xxxxxxxxxx-yyyyy.httpbin -o json | jq -r '.dynamicActiveSecrets[] | select(.name=="default") | .secret.tlsCertificate.certificateChain.inlineBytes' | base64 -d | step certificate inspect --bundle
+k --context kind-pasta-1 -n istio-system get secret cacerts \
+  -o jsonpath='{.data.tls\.crt}' | base64 -d | step certificate inspect --bundle
 ```
 
-Inspect the certificate root CA present in a given workload:
+Connect to `istiod` and inspect the certificate bundle it presents (`15012` is
+the mTLS xDS/CA port):
 ```console
-istioctl --context pasta-1 pc secret sleep-xxxxxxxxxx-yyyyy.httpbin -o json | jq -r '.dynamicActiveSecrets[] | select(.name=="ROOTCA") | .secret.validationContext.trustedCa.inlineBytes' | base64 -d | step certificate inspect --bundle
+k --context kind-pasta-1 -n istio-system port-forward svc/istiod-1-30-3 15012:15012 &
+step certificate inspect --bundle --insecure \
+  --servername istiod-1-30-3.istio-system.svc https://127.0.0.1:15012
 ```
 
-Similar as above but this time as a client:
+Inspect the certificate chain of a given workload:
 ```console
-k --context pasta-1 -n httpbin exec -it deployment/sleep -c istio-proxy -- openssl s_client -showcerts httpbin:80
+istioctl --context kind-pasta-1 pc secret deploy/peer.swarm-sidecar-n1 -o json |
+  jq -r '.dynamicActiveSecrets[] | select(.name=="default") |
+         .secret.tlsCertificate.certificateChain.inlineBytes' |
+  base64 -d | step certificate inspect --bundle
 ```
 
-Get details about the status of a cert-manager managed certificate:
+Inspect the root CA a workload trusts:
 ```console
-cmctl --context pasta-1 --namespace applab-blau status certificate blau
+istioctl --context kind-pasta-1 pc secret deploy/peer.swarm-sidecar-n1 -o json |
+  jq -r '.dynamicActiveSecrets[] | select(.name=="ROOTCA") |
+         .secret.validationContext.trustedCa.inlineBytes' |
+  base64 -d | step certificate inspect --bundle
+```
+
+Same, but as a client from inside the proxy:
+```console
+k --context kind-pasta-1 -n swarm-sidecar-n1 exec -it deploy/peer -c istio-proxy -- \
+  openssl s_client -showcerts peer.swarm-ambient-n1.svc.pasta.local:80
+```
+
+Follow a cert-manager issuance:
+```console
+k --context kind-pasta-1 -n istio-system get certificate,certificaterequest
+k --context kind-pasta-1 -n istio-system describe certificate istio-cluster-ica
 ```

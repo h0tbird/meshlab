@@ -81,6 +81,12 @@ RUN VERSION="X.Y.Z" && ARCH=$(archmap 'arm64' 'amd64') && \
 6. **If the user asked for a PR**: create a branch, commit, push, and open a PR
    (see "Creating the PR" below)
 
+> When bumping **mdbook**, also update `mdbook-version` in
+> `.github/workflows/book.yaml` to the same version. The book ships a
+> `docs/book/theme/index.hbs` override that is tied to the mdBook template API,
+> so CI and the dev container must run the same mdBook release. Regenerate the
+> override with `mdbook init --theme` if the upstream template changed.
+
 ## Fetching Latest Versions — Tips
 
 Two copy-paste blocks below check **every** component in one shot. Run them

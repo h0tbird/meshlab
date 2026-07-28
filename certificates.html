@@ -153,22 +153,44 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="certificates"><a class="header" href="#certificates">Certificates</a></h1>
+<p>The trust chain of the lab is: a single <code>mesh</code> root CA in
+<a href="./components/vault.html">Vault</a> → one intermediate CA per cluster, issued by
+<a href="./components/cert-manager.html">cert-manager</a> into the <code>cacerts</code> secret → the
+workload certificates istiod mints, with a per-cell trust domain
+(<code>spiffe://pasta.local/...</code>).</p>
 <p>Find below a collection of commands to troubleshoot certificate issues.</p>
-<p>Connect to the externally exposed <code>istiod</code> service and inspect the certificate bundle it presents:</p>
-<pre><code class="language-console">step certificate inspect --bundle --servername istiod-1-19-6.istio-system.svc https://192.168.65.3:15012 --roots /path/to/root-ca.pem
-step certificate inspect --bundle --servername istiod-1-19-6.istio-system.svc https://192.168.65.3:15012 --insecure
+<p>Inspect the root CA:</p>
+<pre><code class="language-console">curl -s http://127.0.0.1:8082/v1/mesh/ca/pem | step certificate inspect
 </code></pre>
-<p>Inspect the certificate chain provided by a given workload:</p>
-<pre><code class="language-console">istioctl --context pasta-1 pc secret httpbin-xxxxxxxxxx-yyyyy.httpbin -o json | jq -r '.dynamicActiveSecrets[] | select(.name=="default") | .secret.tlsCertificate.certificateChain.inlineBytes' | base64 -d | step certificate inspect --bundle
+<p>Inspect a cluster's intermediate CA bundle:</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n istio-system get secret cacerts \
+  -o jsonpath='{.data.tls\.crt}' | base64 -d | step certificate inspect --bundle
 </code></pre>
-<p>Inspect the certificate root CA present in a given workload:</p>
-<pre><code class="language-console">istioctl --context pasta-1 pc secret sleep-xxxxxxxxxx-yyyyy.httpbin -o json | jq -r '.dynamicActiveSecrets[] | select(.name=="ROOTCA") | .secret.validationContext.trustedCa.inlineBytes' | base64 -d | step certificate inspect --bundle
+<p>Connect to <code>istiod</code> and inspect the certificate bundle it presents (<code>15012</code> is
+the mTLS xDS/CA port):</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n istio-system port-forward svc/istiod-1-30-3 15012:15012 &amp;
+step certificate inspect --bundle --insecure \
+  --servername istiod-1-30-3.istio-system.svc https://127.0.0.1:15012
 </code></pre>
-<p>Similar as above but this time as a client:</p>
-<pre><code class="language-console">k --context pasta-1 -n httpbin exec -it deployment/sleep -c istio-proxy -- openssl s_client -showcerts httpbin:80
+<p>Inspect the certificate chain of a given workload:</p>
+<pre><code class="language-console">istioctl --context kind-pasta-1 pc secret deploy/peer.swarm-sidecar-n1 -o json |
+  jq -r '.dynamicActiveSecrets[] | select(.name=="default") |
+         .secret.tlsCertificate.certificateChain.inlineBytes' |
+  base64 -d | step certificate inspect --bundle
 </code></pre>
-<p>Get details about the status of a cert-manager managed certificate:</p>
-<pre><code class="language-console">cmctl --context pasta-1 --namespace applab-blau status certificate blau
+<p>Inspect the root CA a workload trusts:</p>
+<pre><code class="language-console">istioctl --context kind-pasta-1 pc secret deploy/peer.swarm-sidecar-n1 -o json |
+  jq -r '.dynamicActiveSecrets[] | select(.name=="ROOTCA") |
+         .secret.validationContext.trustedCa.inlineBytes' |
+  base64 -d | step certificate inspect --bundle
+</code></pre>
+<p>Same, but as a client from inside the proxy:</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n swarm-sidecar-n1 exec -it deploy/peer -c istio-proxy -- \
+  openssl s_client -showcerts peer.swarm-ambient-n1.svc.pasta.local:80
+</code></pre>
+<p>Follow a cert-manager issuance:</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n istio-system get certificate,certificaterequest
+k --context kind-pasta-1 -n istio-system describe certificate istio-cluster-ica
 </code></pre>
 
                     </main>

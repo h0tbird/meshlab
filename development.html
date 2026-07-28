@@ -153,10 +153,47 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="development"><a class="header" href="#development">Development</a></h1>
-<p>Provision only one VM:</p>
-<pre><code class="language-console">source ./lib/misc.sh &amp;&amp; launch_k8s mnger-1
-source ./lib/misc.sh &amp;&amp; launch_vms virt-01
+<p>The lab is designed to iterate on Istio itself. The workspace
+(<code>meshlab.code-workspace</code>) mounts three repositories side by side:
+<code>/workspaces/meshlab</code>, <code>/workspaces/istio</code> and <code>/workspaces/k-swarm</code>.</p>
+<h2 id="partial-labs"><a class="header" href="#partial-labs">Partial labs</a></h2>
+<p><code>meshlab create</code> is a graph of idempotent sections, so you rarely need a full
+rebuild:</p>
+<pre><code class="language-console">meshlab list                      # all sections
+meshlab run &lt;section&gt;             # run one, honouring --cell-count
+meshlab create --cell-count 1     # manager + pasta only (the default)
 </code></pre>
+<h2 id="live-reloading-istiod-with-tilt"><a class="header" href="#live-reloading-istiod-with-tilt">Live-reloading istiod with Tilt</a></h2>
+<p>The <code>tilt-up</code> section starts one <a href="https://tilt.dev">Tilt</a> instance per workload
+cluster (ports 9091…9094). Tilt watches the <code>pilot-discovery</code> binary built from
+<code>/workspaces/istio</code> and, on every rebuild, syncs it into the running istiod pod
+and restarts the process — no image push, no Argo CD sync.</p>
+<p>Rebuild the binary and watch Tilt pick it up:</p>
+<pre><code class="language-console">make istio-binaries          # runs `make build-linux` in /workspaces/istio
+</code></pre>
+<p>The Tilt UI for <code>pasta-1</code> is at <a href="http://127.0.0.1:9091">http://127.0.0.1:9091</a>. The YAML Tilt applies
+mirrors what Argo CD applies for the istiod deployment, so the injected live
+sync shows up as a diff in the Argo CD UI.</p>
+<h2 id="building-images-and-charts"><a class="header" href="#building-images-and-charts">Building images and charts</a></h2>
+<pre><code class="language-console">make help                                                     # list the targets
+make toolbox    REGISTRY=ghcr.io/&lt;you&gt;                        # image used by the Vault WorkflowTemplate
+make istio-images ISTIO_HUB=ghcr.io/&lt;you&gt; ISTIO_TAG=&lt;tag&gt;     # push patched Istio images
+make istio-charts HUB=ghcr.io/&lt;you&gt; VERSION=&lt;version&gt;
+make istio-labels
+</code></pre>
+<p>To actually run a custom build, point the istiod <code>ApplicationSet</code> at it: the
+<code>hub</code>/<code>tag</code> and <code>pilot.image</code> overrides are already present (commented out) in
+<code>charts/istio/templates/applicationsets/istio-istiod.yaml</code>.</p>
+<h2 id="building-this-book"><a class="header" href="#building-this-book">Building this book</a></h2>
+<pre><code class="language-console">mdbook serve docs/book        # live preview
+mdbook build docs/book
+</code></pre>
+<h2 id="upgrading-components"><a class="header" href="#upgrading-components">Upgrading components</a></h2>
+<p>Component versions are the <code>readonly *_VERSION</code> / <code>*_CHART_VERSION</code> constants at
+the top of <code>bin/meshlab</code>, and CLI tool versions live in
+<code>.devcontainer/Dockerfile</code>. The <code>upgrade-components</code> skill
+(<code>.github/skills/upgrade-components/</code>) checks ArtifactHub and GitHub releases
+and bumps them.</p>
 
                     </main>
 

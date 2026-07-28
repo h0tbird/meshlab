@@ -159,17 +159,29 @@ and maximizes availability. It routes traffic to the closest available instance
 of the service, reducing network hops and improving performance, while also
 providing fault tolerance and resilience. LLB is important for managing
 microservices architectures.</p>
-<p>From the perspective of <code>istio-nsgw</code>: get the endpoints, priority, and weight of <code>service-1</code>:</p>
-<pre><code class="language-console"># Get a running pod name
-POD=$(k --context pasta-1 -n istio-system get po -l istio=nsgw --no-headers | awk 'NR==1{print $1}')
+<blockquote>
+<p><strong>In this lab, locality is not configured out of the box.</strong> kind nodes carry
+no <code>topology.kubernetes.io/*</code> labels, so every endpoint ends up in the same
+(empty) locality. See <a href="./debug.html">Debug</a> for how to label the nodes or the
+workloads before experimenting.</p>
+<p>LLB is also a <strong>sidecar/waypoint</strong> feature. ztunnel ignores
+<code>DestinationRule.trafficPolicy.loadBalancer</code> entirely and picks an endpoint at
+random, per TCP connection; the way to express same-cluster preference for
+ambient is <code>trafficDistribution: PreferClose</code> on the <code>Service</code>. The details
+are written up in <code>docs/single-network-mode.md</code>.</p>
+</blockquote>
+<p>From the perspective of <code>istio-nsgw</code>: get the endpoints, priority, and weight of
+the <code>peer</code> service:</p>
+<pre><code class="language-console"># Get a running gateway pod name
+POD=$(k --context kind-pasta-1 -n istio-system get po -l istio=nsgw --no-headers | awk 'NR==1{print $1}')
 
 # Add an ephemeral container to the running pod
-k --context pasta-1 -n istio-system debug -it \
+k --context kind-pasta-1 -n istio-system debug -it \
 --attach=false --image=istio/base --target=istio-proxy --container=debugger \
 ${POD} -- bash
 
-# Watch for the endpoints
-watch "istioctl --context pasta-1 -n istio-system pc endpoint deploy/istio-nsgw | grep -E '^END|service-1'; echo; k --context pasta-1 -n istio-system exec -it ${POD} -c debugger -- curl -X POST localhost:15000/clusters | grep '^outbound.*service-1' | grep -E 'zone|region|::priority|::weight' | sort | sed -e '/:zone:/s/$/\n/'"
+# Watch the endpoints
+watch "istioctl --context kind-pasta-1 -n istio-system pc endpoint deploy/istio-nsgw | grep -E '^END|peer'; echo; k --context kind-pasta-1 -n istio-system exec -it ${POD} -c debugger -- curl -X POST localhost:15000/clusters | grep '^outbound.*peer' | grep -E 'zone|region|::priority|::weight' | sort | sed -e '/:zone:/s/$/\n/'"
 </code></pre>
 
                     </main>

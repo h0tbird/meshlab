@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Hypervisor - The MeshLab Book</title>
+        <title>Observability - The MeshLab Book</title>
 
 
         <!-- Custom HTML head -->
@@ -152,36 +152,79 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="hypervisorframework"><a class="header" href="#hypervisorframework">Hypervisor.framework</a></h1>
-<p>The drivers utilized on MacOS, specifically <a href="https://github.com/moby/hyperkit">HyperKit</a> and <a href="https://www.qemu.org">QEMU</a>, rely on MacOS' <a href="https://developer.apple.com/documentation/hypervisor">Hypervisor.framework</a> to manage the networking stack for the instances. When an instance is created, the <code>Hypervisor.framework</code> on the host employs MacOS' <em>'Internet Sharing'</em> mechanism to establish a virtual switch. Each instance is then connected to this switch with a subnet address from:</p>
-<pre><code class="language-console">$ sudo cat /Library/preferences/SystemConfiguration/com.apple.vmnet.plist | grep -A1 Shared_Net_Address
-Password:
-	&lt;key&gt;Shared_Net_Address&lt;/key&gt;
-	&lt;string&gt;192.168.65.1&lt;/string&gt;
+                        <h1 id="observability"><a class="header" href="#observability">Observability</a></h1>
+<p>The observability stack is centralised on the manager cluster: metrics are
+collected in every cluster by the OpenTelemetry Collector and shipped to a
+single Prometheus, which Grafana and Kiali read from.</p>
+<div class="table-wrapper"><table><thead><tr><th>Component</th><th>Where</th><th>Namespace</th><th>URL</th></tr></thead><tbody>
+<tr><td>Prometheus</td><td><code>mnger-1</code></td><td><code>monitoring</code></td><td><a href="http://127.0.0.1:8083">http://127.0.0.1:8083</a></td></tr>
+<tr><td>Grafana</td><td><code>mnger-1</code></td><td><code>monitoring</code></td><td><a href="http://127.0.0.1:8084">http://127.0.0.1:8084</a></td></tr>
+<tr><td>Kiali (operator + CR)</td><td><code>mnger-1</code></td><td><code>monitoring</code></td><td><a href="http://127.0.0.1:8085">http://127.0.0.1:8085</a></td></tr>
+<tr><td><code>otelco-node</code> collector</td><td>every cluster</td><td><code>monitoring</code></td><td>—</td></tr>
+<tr><td><code>otelco-cluster</code> collector</td><td>every cluster</td><td><code>monitoring</code></td><td>—</td></tr>
+<tr><td>metrics-server</td><td>every cluster</td><td><code>monitoring</code></td><td>—</td></tr>
+</tbody></table>
+</div>
+<h2 id="opentelemetry-collector"><a class="header" href="#opentelemetry-collector">OpenTelemetry Collector</a></h2>
+<p>Two releases are deployed per cluster from <code>charts/otel-collector</code>:</p>
+<ul>
+<li><code>otelco-node</code> — a <strong>DaemonSet</strong> that scrapes, on its own node only, the Envoy
+admin <code>/stats/prometheus</code> endpoint of every pod exposing a <code>*-envoy-prom</code>
+port (sidecars and gateways), the ztunnel pods (<code>ztunnel-stats</code> port), and the
+kubelet via the <code>kubeletstats</code> receiver.</li>
+<li><code>otelco-cluster</code> — a <strong>Deployment</strong> that scrapes istiod on port 15014 and
+collects cluster-level metrics through the <code>k8sclusterreceiver</code> preset.</li>
+</ul>
+<p>Both remote-write to the manager's Prometheus at
+<code>http://prometheus.demo.lab/api/v1/write</code> (resolved via
+<a href="./coredns.html">CoreDNS + k8s_gateway</a>), and a <code>resource</code> processor stamps every
+series with the <code>k8s.cluster.name</code> label — which is what makes the multi-cluster
+dashboards possible.</p>
+<p>Because the scrape configuration lives in the collectors, Prometheus itself
+ships with an almost empty <code>scrape_configs</code>. That is expected, not a
+misconfiguration.</p>
+<blockquote>
+<p>istiod is configured with an <code>otel-tracing</code> extension provider pointing at
+<code>otelco-cluster-opentelemetry-collector.monitoring.svc:4318</code>, but no
+<code>Telemetry</code> resource selects it and the collector's <code>traces</code> pipeline is
+disabled. Distributed tracing is therefore <strong>wired but not collected</strong> today;
+enabling it needs a <code>Telemetry</code> resource plus a <code>traces</code> pipeline in
+<code>charts/otel-collector</code>.</p>
+</blockquote>
+<h2 id="prometheus"><a class="header" href="#prometheus">Prometheus</a></h2>
+<p>Query the remote-written series:</p>
+<pre><code class="language-console">curl -s 'http://127.0.0.1:8083/api/v1/label/k8s_cluster_name/values' | jq
+curl -sG http://127.0.0.1:8083/api/v1/query --data-urlencode 'query=istio_requests_total' | jq
 </code></pre>
-<p>Furthermore, the host provides DHCP and DNS resolution services on this switch through the IP address 192.168.65.1, facilitated by the <code>bootpd</code> and <code>mDNSResponder</code> services running on the host machine. It is worth noting that attempting to manually edit the configuration file <code>/etc/bootpd.plist</code> is futile, as MacOS will regenerate it according to its own preferences.</p>
-<p>Is the <code>bootpd</code> DHCP server alive?</p>
-<pre><code class="language-console">sudo lsof -iUDP:67 -n -P
+<h2 id="grafana"><a class="header" href="#grafana">Grafana</a></h2>
+<p>Anonymous access is enabled with the <code>Viewer</code> role, so the UI opens without a
+login; <code>admin</code> / <code>meshlab123</code> still works for editing.</p>
+<p>Dashboards are <strong>not</strong> provisioned by default. The <code>grafana-git-sync</code> section
+only runs when <code>GITHUB_TOKEN</code> is set, in which case Grafana syncs the dashboards
+under <code>grafana/</code> in this repository. Without a token, an empty dashboard list is
+the expected state.</p>
+<h2 id="kiali"><a class="header" href="#kiali">Kiali</a></h2>
+<p>Kiali is installed via its operator on the manager cluster and configured with
+<code>auth.strategy: anonymous</code>, so the login page just needs the <code>Log In</code> button.
+It reaches the workload clusters through the remote-cluster secrets created by
+the <code>kiali-secrets</code> section (using upstream's
+<code>kiali-prepare-remote-cluster.sh</code>), and it is configured to ignore its own home
+cluster — there is no mesh on <code>mnger-1</code>.</p>
+<p>If a cluster is missing from the Kiali mesh view, re-create the secrets and let
+the operator reconcile:</p>
+<pre><code class="language-console">meshlab run kiali-secrets
+k --context kind-mnger-1 -n monitoring get secrets
 </code></pre>
-<p>Start it:</p>
-<pre><code class="language-console">sudo launchctl load -w /System/Library/LaunchDaemons/bootps.plist
-</code></pre>
-<p>Flush all DHCP leases:</p>
-<pre><code class="language-console">sudo launchctl stop com.apple.bootpd
-sudo rm -f /var/db/dhcpd_leases
-sudo launchctl start com.apple.bootpd
-</code></pre>
-<p>It appears that at a certain juncture, <code>docker</code> and <code>multipass</code> ceased to share the same network bridge. Whichever starts first will occupy <code>bridge100</code> with the IP address <code>192.168.64.1</code>, while the subsequent one will take <code>bridge101</code> with the IP address <code>192.168.65.1</code>. Upon repeatedly stopping and starting these services, you will notice a sequential increment in the third octet of the <code>Shared_Net_Address</code>.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../components/multipass.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../components/envoy.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../components/cloud-init.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../components/workloads.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -191,11 +234,11 @@ sudo launchctl start com.apple.bootpd
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../components/multipass.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../components/envoy.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../components/cloud-init.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../components/workloads.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

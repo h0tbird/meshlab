@@ -153,23 +153,67 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="introduction"><a class="header" href="#introduction">Introduction</a></h1>
-<p>Welcome to the MeshLab repository! In this lab, you will find a setup to validate Istio configurations in a cell-based architecture. Each cell is an architecture block representing a unit of isolation and scalability. The lab defines two cells, named <code>pasta</code> and <code>pizza</code>, each composed of two clusters. Each cluster is configured with a multi-primary Istio control-plane for high availability and resilience.</p>
-<p>Although the cells share the same root CA for their cryptographic material, each one uses a different SPIFFE trustDomain and each cluster within a cell has its own intermediate CA. Locality failover is possible within the clusters of a cell, and all mTLS cross-cluster traffic flows through east-west Istio gateways because pod networks have non-routable CIDRs.</p>
-<p>The purpose of this lab is to test and validate different Istio configurations in a realistic environment.</p>
-<p>Helm is used to deploy:</p>
+<p>Welcome to the MeshLab repository! In this lab, you will find a setup to
+validate Istio configurations in a cell-based architecture. A <strong>cell</strong> is an
+architecture block representing a unit of isolation and scalability. The lab
+defines two workload cells, named <code>pasta</code> and <code>pizza</code>, each composed of two
+clusters, plus a <strong>manager</strong> cluster (<code>mnger-1</code>) that hosts the control tooling.
+Every workload cluster runs its own Istio control plane (multi-primary).</p>
+<p>By default only the <code>pasta</code> cell is created; pass <code>--cell-count 2</code> to also
+create <code>pizza</code>.</p>
+<div class="table-wrapper"><table><thead><tr><th>Cell</th><th>Clusters</th><th>Trust domain</th><th>Pod CIDRs</th></tr></thead><tbody>
+<tr><td><code>mngr</code></td><td><code>mnger-1</code></td><td>n/a</td><td><code>10.41.0.0/16</code></td></tr>
+<tr><td><code>pasta</code></td><td><code>pasta-1</code> <code>pasta-2</code></td><td><code>pasta.local</code></td><td><code>10.51.0.0/16</code> <code>10.52.0.0/16</code></td></tr>
+<tr><td><code>pizza</code></td><td><code>pizza-1</code> <code>pizza-2</code></td><td><code>pizza.local</code></td><td><code>10.61.0.0/16</code> <code>10.62.0.0/16</code></td></tr>
+</tbody></table>
+</div>
+<p>Although the cells share the same root CA for their cryptographic material,
+each one uses a different SPIFFE trust domain and each cluster within a cell
+gets its own intermediate CA. The kind clusters are also created with the
+kubeadm DNS domain set to <code>&lt;cell&gt;.local</code>, so in-cluster FQDNs look like
+<code>peer.swarm-ambient-n1.svc.pasta.local</code> instead of the usual <code>cluster.local</code>.</p>
+<p>Clusters run on <a href="./components/kind.html">kind</a>, all attached to the same Docker
+<code>kind</code> network. Every cluster gets non-overlapping pod and service CIDRs and
+<code>setup-flat-network</code> installs static routes between the sibling clusters of a
+cell, so a cell is a <a href="./components/flat-network.html">flat L3 network</a>. On top of
+that, the Istio network topology is selectable:</p>
 <ul>
-<li><a href="https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd">ArgoCD</a></li>
-<li><a href="https://artifacthub.io/packages/helm/argo/argo-workflows">Argo Workflows</a></li>
+<li><code>--network-mode multi</code> (default): one Istio network <strong>per cluster</strong>, so
+cross-cluster mTLS traffic is routed through the east-west gateways.</li>
+<li><code>--network-mode single</code>: one Istio network <strong>per cell</strong>, so Envoy and ztunnel
+dial remote pod IPs directly and the east-west gateways are not deployed.</li>
 </ul>
-<p>Argo Workflows and ArgoCD are used to deploy:</p>
+<h2 id="what-deploys-what"><a class="header" href="#what-deploys-what">What deploys what</a></h2>
+<p>Helm, driven directly by <code>bin/meshlab</code>, installs the bootstrap layer:</p>
+<ul>
+<li><a href="https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd">Argo CD</a> (manager
+cluster)</li>
+<li><a href="https://artifacthub.io/packages/helm/argo/argo-workflows">Argo Workflows</a>
+(manager cluster)</li>
+<li><a href="https://github.com/k8s-gateway/k8s_gateway">k8s_gateway</a> (every cluster, for
+<code>demo.lab</code> resolution)</li>
+</ul>
+<p>Everything else is described as Argo CD <code>ApplicationSet</code>s (rendered from
+<code>charts/*/templates/applicationsets/</code>) and synced in dependency order by a
+single Argo Workflows DAG:</p>
 <ul>
 <li><a href="https://artifacthub.io/packages/helm/hashicorp/vault">Vault</a></li>
 <li><a href="https://artifacthub.io/packages/helm/cert-manager/cert-manager">cert-manager</a></li>
+<li><a href="https://artifacthub.io/packages/helm/kubernetes-replicator/kubernetes-replicator">kubernetes-replicator</a></li>
+<li><a href="https://artifacthub.io/packages/helm/metrics-server/metrics-server">metrics-server</a></li>
 <li><a href="https://artifacthub.io/packages/helm/prometheus-community/prometheus">Prometheus</a></li>
 <li><a href="https://artifacthub.io/packages/helm/grafana/grafana">Grafana</a></li>
-<li><a href="https://artifacthub.io/packages/helm/opentelemetry-helm/opentelemetry-collector">OTEL Collector</a></li>
-<li><a href="https://artifacthub.io/packages/helm/istio-official/base">Istio</a></li>
+<li><a href="https://artifacthub.io/packages/helm/opentelemetry-helm/opentelemetry-collector">OpenTelemetry Collector</a></li>
+<li><a href="https://artifacthub.io/packages/helm/kiali/kiali-operator">Kiali</a></li>
+<li><a href="https://artifacthub.io/packages/helm/istio-official/base">Istio</a>: <code>base</code>,
+<code>cni</code>, <code>istiod</code>, <code>ztunnel</code>, the north-south gateway, and — in <code>multi</code> network
+mode — the east-west gateways</li>
 </ul>
+<p>Finally, <a href="https://github.com/h0tbird/k-swarm">k-swarm</a> workloads are deployed
+into <code>swarm-ambient-*</code> and <code>swarm-sidecar-*</code> namespaces so there is real mesh
+traffic to observe.</p>
+<p>The purpose of this lab is to test and validate different Istio configurations
+in a realistic environment.</p>
 
                     </main>
 

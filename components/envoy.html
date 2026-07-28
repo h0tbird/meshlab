@@ -153,54 +153,70 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="envoy"><a class="header" href="#envoy">Envoy</a></h1>
-<p>Envoy is an open-source proxy server designed for modern microservices
-architectures, providing features such as load balancing, traffic management,
-and service discovery. It runs standalone or integrated with a service mesh,
-making it a powerful tool for microservices communication.</p>
-<p>Inspect the <code>config_dump</code> of a VM:</p>
-<pre><code class="language-console">multipass exec virt-01 -- curl -s localhost:15000/config_dump | istioctl pc listeners --file -
-multipass exec virt-01 -- curl -s localhost:15000/config_dump | istioctl pc routes --file -
-multipass exec virt-01 -- curl -s localhost:15000/config_dump | istioctl pc clusters --file -
-multipass exec virt-01 -- curl -s localhost:15000/config_dump | istioctl pc secret --file -
+<p>Envoy is the proxy behind Istio's sidecars and gateways. In this lab you will
+find it in three shapes: as a sidecar in the <code>swarm-sidecar-*</code> namespaces, as
+the north-south gateway (<code>istio-nsgw</code>) and, in <code>--network-mode multi</code>, as the
+east-west gateways. Ambient namespaces (<code>swarm-ambient-*</code>) have <strong>no</strong> Envoy
+sidecar — ztunnel handles L4 there, and Envoy only appears if a waypoint is
+deployed.</p>
+<p>istiod is installed with <code>global.variant: "debug"</code>, so the proxy images include
+<code>curl</code>, <code>tcpdump</code> and friends.</p>
+<h2 id="config-dumps"><a class="header" href="#config-dumps">Config dumps</a></h2>
+<pre><code class="language-console">istioctl --context kind-pasta-1 pc listeners deploy/peer.swarm-sidecar-n1
+istioctl --context kind-pasta-1 pc routes    deploy/peer.swarm-sidecar-n1
+istioctl --context kind-pasta-1 pc clusters  deploy/peer.swarm-sidecar-n1
+istioctl --context kind-pasta-1 pc endpoint  deploy/peer.swarm-sidecar-n1
+istioctl --context kind-pasta-1 pc secret    deploy/peer.swarm-sidecar-n1
 </code></pre>
-<p>Set debug log level on a given proxy:</p>
-<pre><code class="language-console">istioctl pc log sleep-xxx.httpbin --level debug
-k --context pasta-1 -n httpbin logs -f sleep-xxx -c istio-proxy
+<p>Dump the raw config of a gateway:</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n istio-system exec deploy/istio-nsgw -- \
+  curl -s localhost:15000/config_dump | istioctl pc listeners --file -
 </code></pre>
-<p>Access the WebUI of a given envoy proxy:</p>
-<pre><code class="language-console">istioctl dashboard envoy sleep-xxx.httpbin
+<h2 id="log-levels"><a class="header" href="#log-levels">Log levels</a></h2>
+<pre><code class="language-console">istioctl --context kind-pasta-1 pc log deploy/peer.swarm-sidecar-n1 --level debug
+k --context kind-pasta-1 -n swarm-sidecar-n1 logs -f deploy/peer -c istio-proxy
 </code></pre>
-<p>Dump the envoy config of an eastweast gateway:</p>
-<pre><code class="language-console">k --context pasta-1 -n istio-system exec -it deployment/istio-eastwestgateway -- curl -s localhost:15000/config_dump
+<h2 id="admin-interface"><a class="header" href="#admin-interface">Admin interface</a></h2>
+<pre><code class="language-console">istioctl --context kind-pasta-1 dashboard envoy deploy/peer.swarm-sidecar-n1
 </code></pre>
-<p>Dump the <code>common_tls_context</code> for a given envoy cluster:</p>
-<pre><code class="language-console">k --context pasta-1 -n httpbin exec -i sleep-xxx -- \
+<p>Dump the <code>common_tls_context</code> of a given cluster (note the <code>&lt;cell&gt;.local</code>
+suffix instead of <code>cluster.local</code>):</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n swarm-sidecar-n1 exec deploy/peer -c istio-proxy -- \
 curl -s localhost:15000/config_dump | jq '
   .configs[] |
   select(."@type"=="type.googleapis.com/envoy.admin.v3.ClustersConfigDump") |
   .dynamic_active_clusters[] |
-  select(.cluster.name=="outbound|80||httpbin.httpbin.svc.cluster.local") |
+  select(.cluster.name=="outbound|80||peer.swarm-sidecar-n1.svc.pasta.local") |
   .cluster.transport_socket_matches[] |
   select(.name=="tlsMode-istio") |
   .transport_socket.typed_config.common_tls_context
 '
 </code></pre>
-<p>List <code>LISTEN</code> ports:</p>
-<pre><code class="language-console">k --context pasta-1 -n istio-system exec istio-eastwestgateway-xxx -- netstat -tuanp | grep LISTEN | sort -u
+<p>Drain every TCP connection (useful to force new TLS handshakes):</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n swarm-sidecar-n1 exec deploy/peer -c istio-proxy -- \
+  curl -X POST localhost:15000/quitquitquit
 </code></pre>
-<p>Check the status-port:</p>
-<pre><code class="language-console">curl -o /dev/null -Isw "%{http_code}" http://10.0.16.124:31123/healthz/ready
+<p>List the listening ports of a gateway:</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n istio-system exec deploy/istio-nsgw -- \
+  netstat -tuanp | grep LISTEN | sort -u
+</code></pre>
+<h2 id="metrics"><a class="header" href="#metrics">Metrics</a></h2>
+<p>The <code>otelco-node</code> collector scrapes <code>/stats/prometheus</code> on every pod exposing a
+<code>*-envoy-prom</code> port, so the same data is available in Prometheus. To look at it
+raw:</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n swarm-sidecar-n1 exec deploy/peer -c istio-proxy -- \
+  curl -s localhost:15000/stats/prometheus | head
 </code></pre>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../components/klipper-lb.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../components/istio.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../testing.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../components/observability.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -210,11 +226,11 @@ curl -s localhost:15000/config_dump | jq '
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../components/klipper-lb.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../components/istio.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../testing.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../components/observability.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

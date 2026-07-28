@@ -153,21 +153,64 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="testing"><a class="header" href="#testing">Testing</a></h1>
-<p>Send requests to <code>service-1</code> from an unauthenticated out-of-cluster workstation via the north-south Istio ingress gateway:</p>
-<pre><code class="language-console">IP=$(multipass list | awk '/pasta-1/ {print $3}')
-curl -sk --resolve service-1.demo.lab:443:${IP} https://service-1.demo.lab/data | jq -r '.podName'
+<p>The lab generates its own traffic: the <a href="./components/workloads.html">k-swarm peers</a>
+continuously call each other, both within a cluster and across the clusters of a
+cell. Testing is therefore mostly a matter of <em>reading</em> what is already
+happening.</p>
+<p>Note that the peers are deployed with <code>--ingress-mode none</code>, so no
+<code>Gateway</code>/<code>HTTPRoute</code> is attached to the north-south gateway by default. The
+<code>istio-nsgw</code> deployment exists (with the custom bootstrap from <code>conf/istio</code>) but
+serves nothing until you add routes yourself.</p>
+<h2 id="intra-cell-connectivity-matrix"><a class="header" href="#intra-cell-connectivity-matrix">Intra-cell connectivity matrix</a></h2>
+<p>The fastest end-to-end check is the 8×8 matrix built from the peers' <code>hop</code>
+logs:</p>
+<pre><code class="language-console">.github/skills/connectivity-matrix/gen-matrix.sh
 </code></pre>
-<p>Same as above but with certificate validation:</p>
-<pre><code class="language-console">IP=$(multipass list | awk '/pasta-1/ {print $3}')
-k --context pasta-1 -n istio-system get secret cacerts -o json | jq -r '.data."ca.crt"' | base64 -d &gt; /tmp/ca.crt
-curl -s --cacert /tmp/ca.crt --resolve service-1.demo.lab:443:${IP} https://service-1.demo.lab/data | jq -r '.podName'
+<p>Each axis label is a <code>(cluster, namespace)</code> peer — <code>p1/am1</code> is
+<code>pasta-1</code>/<code>swarm-ambient-n1</code> — and an intersection is ✅ when at least one
+observed hop returned a <code>2xx</code>/<code>3xx</code>.</p>
+<h2 id="ad-hoc-requests"><a class="header" href="#ad-hoc-requests">Ad-hoc requests</a></h2>
+<p>From a sidecar peer to a peer in the other namespace (note the <code>pasta.local</code>
+DNS suffix):</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n swarm-sidecar-n1 exec deploy/peer -c manager -- \
+  curl -s peer.swarm-ambient-n1.svc.pasta.local/data
 </code></pre>
+<p>Repeat it enough times to see the cross-cluster spread. Because ztunnel load
+balances per <strong>connection</strong>, use a fresh connection each time or you will pin
+every request to a single endpoint:</p>
+<pre><code class="language-console">for i in $(seq 20); do
+  k --context kind-pasta-1 -n swarm-ambient-n1 exec deploy/peer -c manager -- \
+    curl -s --no-keepalive peer.swarm-sidecar-n1.svc.pasta.local/data
+done | jq -r '"\(.cluster)/\(.pod)"' | sort | uniq -c
+</code></pre>
+<h2 id="verify-the-federation"><a class="header" href="#verify-the-federation">Verify the federation</a></h2>
+<pre><code class="language-console">istioctl --context kind-pasta-1 remote-clusters
+istioctl --context kind-pasta-1 proxy-status
+</code></pre>
+<p>Endpoints of a service as seen by a sidecar (should list pods from both
+clusters of the cell):</p>
+<pre><code class="language-console">istioctl --context kind-pasta-1 pc endpoint deploy/peer.swarm-sidecar-n1 | grep peer
+</code></pre>
+<p>Same for ambient — this is what breaks first when cross-cluster ambient
+discovery is off:</p>
+<pre><code class="language-console">istioctl --context kind-pasta-1 ztunnel-config service | grep swarm-ambient
+istioctl --context kind-pasta-1 ztunnel-config workload | grep pasta-2
+</code></pre>
+<h2 id="verify-mtls-identities"><a class="header" href="#verify-mtls-identities">Verify mTLS identities</a></h2>
+<pre><code class="language-console">istioctl --context kind-pasta-1 pc secret deploy/peer.swarm-sidecar-n1 -o json |
+  jq -r '.dynamicActiveSecrets[] | select(.name=="default") |
+         .secret.tlsCertificate.certificateChain.inlineBytes' |
+  base64 -d | step certificate inspect --bundle
+</code></pre>
+<p>The SAN should be
+<code>spiffe://pasta.local/ns/swarm-sidecar-n1/sa/&lt;serviceaccount&gt;</code> — per-cell trust
+domain, per-cluster intermediate CA, shared <code>mesh</code> root.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="components/envoy.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="components/workloads.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
@@ -181,7 +224,7 @@ curl -s --cacert /tmp/ca.crt --resolve service-1.demo.lab:443:${IP} https://serv
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="components/envoy.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="components/workloads.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 

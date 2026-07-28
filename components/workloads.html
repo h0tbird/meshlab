@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Cloud-init - The MeshLab Book</title>
+        <title>Workloads - The MeshLab Book</title>
 
 
         <!-- Custom HTML head -->
@@ -152,29 +152,68 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="cloud-init"><a class="header" href="#cloud-init">Cloud-init</a></h1>
-<p><a href="https://cloudinit.readthedocs.io/en/latest">cloud-init</a> is a tool used to configure virtual machine instances in the cloud during their first boot. It simplifies the provisioning process, enabling quick setup of new environments with desired configurations. The following commands provide examples for monitoring and inspecting the cloud-init process on various nodes in the system, including logs and scripts run during the instance's first boot.</p>
-<p>Tail the <code>cloud-init</code> logs:</p>
-<pre><code class="language-console">multipass exec mnger-1 -- tail -f /var/log/cloud-init-output.log
-multipass exec pasta-1 -- tail -f /var/log/cloud-init-output.log
-multipass exec pasta-2 -- tail -f /var/log/cloud-init-output.log
+                        <h1 id="workloads"><a class="header" href="#workloads">Workloads</a></h1>
+<p>The lab does not deploy the usual <code>httpbin</code>/<code>sleep</code> samples. Instead, the
+<code>deploy-workloads</code> section uses <a href="https://github.com/h0tbird/k-swarm">k-swarm</a>'s
+<code>swarmctl</code> CLI to fill the mesh with synthetic peers that continuously call each
+other, so there is always real east-west traffic to observe.</p>
+<h2 id="what-gets-deployed"><a class="header" href="#what-gets-deployed">What gets deployed</a></h2>
+<p>On every workload cluster (<code>pasta-*</code>, and <code>pizza-*</code> with <code>--cell-count 2</code>):</p>
+<div class="table-wrapper"><table><thead><tr><th>Namespace</th><th>Contents</th></tr></thead><tbody>
+<tr><td><code>swarm-informer</code></td><td>The informer that tells the peers about each other.</td></tr>
+<tr><td><code>swarm-ambient-n1</code></td><td>A <code>peer</code> Deployment (2 replicas) + Service, ambient data plane.</td></tr>
+<tr><td><code>swarm-ambient-n2</code></td><td>Same, ambient.</td></tr>
+<tr><td><code>swarm-sidecar-n1</code></td><td>Same, sidecar data plane.</td></tr>
+<tr><td><code>swarm-sidecar-n2</code></td><td>Same, sidecar.</td></tr>
+</tbody></table>
+</div>
+<p>Namespaces follow <code>swarm-&lt;dataplane-mode&gt;-n&lt;index&gt;</code>; every workload pod is the
+<code>peer</code> app (<code>app=peer</code>), so it is a full 8-peer mesh per cell (2 clusters × 2
+modes × 2 namespaces).</p>
+<p>The exact invocations live in <code>bin/meshlab</code> (<code>deploy-workloads</code>) and boil down
+to:</p>
+<pre><code class="language-console">swarmctl --context 'pasta-*|pizza-*' i --istio-revision stable --dataplane-mode ambient --ingress-mode none --multi-cluster
+swarmctl --context 'pasta-*|pizza-*' w 1:2 --istio-revision stable --dataplane-mode ambient --ingress-mode none --multi-cluster --log-responses --disable-keepalives
+swarmctl --context 'pasta-*|pizza-*' w 1:2 --istio-revision stable --dataplane-mode sidecar --ingress-mode none --multi-cluster --log-responses --disable-keepalives
 </code></pre>
-<p>Inspect the rendered <code>runcmd</code>:</p>
-<pre><code class="language-console">multipass exec mnger-1 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
-multipass exec pasta-1 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
-multipass exec pasta-2 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
-multipass exec virt-01 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
+<p>Two flags are worth calling out:</p>
+<ul>
+<li><code>--multi-cluster</code> makes the peers target their counterparts in the sibling
+cluster, which is what actually exercises the east-west path.</li>
+<li><code>--disable-keepalives</code> is <strong>load bearing</strong>. ztunnel is an L4 proxy: it picks
+an upstream endpoint once per TCP connection, so a client reusing a
+keep-alive connection pins every request to a single endpoint and the traffic
+spread becomes meaningless. See <code>docs/single-network-mode.md</code>.</li>
+</ul>
+<h2 id="inspecting-the-peers"><a class="header" href="#inspecting-the-peers">Inspecting the peers</a></h2>
+<pre><code class="language-console">k --context kind-pasta-1 get ns | grep swarm
+k --context kind-pasta-1 -n swarm-ambient-n1 get pods -l app=peer
 </code></pre>
+<p>Each peer logs one JSON <code>hop</code> line per request, with <code>src.cluster</code>,
+<code>src.namespace</code>, <code>dst.cluster</code>, <code>dst.namespace</code> and <code>http.status</code>:</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n swarm-ambient-n1 logs -l app=peer -c manager --tail 20
+</code></pre>
+<h2 id="connectivity-matrix"><a class="header" href="#connectivity-matrix">Connectivity matrix</a></h2>
+<p>Those <code>hop</code> lines are what the <code>connectivity-matrix</code> skill aggregates into an
+8×8 table of which <code>(src peer, dst peer)</code> pairs are succeeding inside a cell:</p>
+<pre><code class="language-console">.github/skills/connectivity-matrix/gen-matrix.sh
+</code></pre>
+<blockquote>
+<p>The script swallows <code>kubectl</code> errors, so an all-❌ matrix usually means it
+could not reach the clusters (for example when run in a sandbox that hides
+<code>~/.kube/config</code>) rather than a real outage. Sanity check with
+<code>k --context kind-pasta-1 -n swarm-ambient-n1 get pods -l app=peer</code> first.</p>
+</blockquote>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../components/hypervisor.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../components/observability.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../components/k3s.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../testing.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -184,11 +223,11 @@ multipass exec virt-01 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../components/hypervisor.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../components/observability.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../components/k3s.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../testing.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

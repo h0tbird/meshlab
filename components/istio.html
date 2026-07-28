@@ -153,17 +153,78 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="istio"><a class="header" href="#istio">Istio</a></h1>
-<p>Istio is an open-source service mesh platform that provides traffic management,
-policy enforcement, and telemetry collection for microservices applications. It
-helps in improving the reliability, security, and observability of
-service-to-service communication in a cloud-native environment. By integrating
-with popular platforms such as Kubernetes, Istio makes it easier to manage the
-complexities of microservices architecture.</p>
-<p>Lists the remote clusters each <code>istiod</code> instance is connected to:</p>
-<pre><code class="language-console">istioctl --context pasta-1 remote-clusters
+<p>Istio is the reason this lab exists. Every workload cluster runs its own
+control plane (<strong>multi-primary</strong>), and the clusters of a cell federate with each
+other through remote secrets.</p>
+<h2 id="what-is-installed"><a class="header" href="#what-is-installed">What is installed</a></h2>
+<p>All from the official charts at
+<code>https://istio-release.storage.googleapis.com/charts</code>, pinned by
+<code>ISTIO_CHART_VERSION</code> in <code>bin/meshlab</code>:</p>
+<div class="table-wrapper"><table><thead><tr><th>Argo CD app</th><th>Chart</th><th>Notes</th></tr></thead><tbody>
+<tr><td><code>istio-base</code></td><td><code>base</code></td><td>CRDs and cluster roles.</td></tr>
+<tr><td><code>istio-cni</code></td><td><code>cni</code></td><td>Required by ambient.</td></tr>
+<tr><td><code>istio-istiod</code></td><td><code>istiod</code></td><td><code>profile: ambient</code>, revisioned.</td></tr>
+<tr><td><code>istio-ztunnel</code></td><td><code>ztunnel</code></td><td>The ambient L4 node proxy.</td></tr>
+<tr><td><code>istio-nsgw</code></td><td><code>gateway</code></td><td>North-south (ingress) gateway, with a custom bootstrap from <code>conf/istio</code>.</td></tr>
+<tr><td><code>istio-ewgw</code></td><td><code>charts/ewgw</code> (local)</td><td>East-west gateways, <strong><code>--network-mode multi</code> only</strong>.</td></tr>
+<tr><td><code>istio-issuers</code></td><td><code>charts/issuers</code> (local)</td><td>See <a href="./cert-manager.html">cert-manager</a>.</td></tr>
+</tbody></table>
+</div>
+<p>istiod is deployed with the revision derived from the version (dots replaced by
+dashes, e.g. <code>1-30-3</code>) and the revision tags <code>stable</code>, <code>canary</code> and <code>default</code>.
+Workloads therefore opt in with <code>istio.io/rev: stable</code> rather than a raw
+revision.</p>
+<h2 id="per-cell--per-cluster-settings"><a class="header" href="#per-cell--per-cluster-settings">Per-cell / per-cluster settings</a></h2>
+<p>The <code>ApplicationSet</code> generator injects <code>{{name}}</code> (cluster) and
+<code>{{metadata.labels.cell}}</code> (cell) into the istiod values:</p>
+<div class="table-wrapper"><table><thead><tr><th>Setting</th><th>Value</th></tr></thead><tbody>
+<tr><td><code>global.multiCluster.clusterName</code></td><td>cluster name</td></tr>
+<tr><td><code>meshConfig.trustDomain</code></td><td><code>&lt;cell&gt;.local</code></td></tr>
+<tr><td><code>global.proxy.clusterDomain</code></td><td><code>&lt;cell&gt;.local</code> (matches the kubeadm DNS domain)</td></tr>
+<tr><td><code>global.meshID</code></td><td>cell name</td></tr>
+<tr><td><code>global.network</code></td><td>cluster name in <code>multi</code> mode, cell name in <code>single</code> mode</td></tr>
+</tbody></table>
+</div>
+<p>A few notable <code>pilot.env</code> settings:</p>
+<ul>
+<li><code>AMBIENT_ENABLE_MULTI_NETWORK: "true"</code> — despite the name, this is the master
+switch for ambient <strong>cross-cluster</strong> endpoint discovery, so it is on in both
+network modes. See <code>docs/single-network-mode.md</code>.</li>
+<li><code>ENABLE_NATIVE_SIDECARS: "true"</code> — inject the sidecar as a Kubernetes native
+sidecar (sidecar mode only).</li>
+<li><code>PILOT_ENABLE_ALPHA_GATEWAY_API: "true"</code> — needed for the <code>TLS</code>/PASSTHROUGH
+listener of the sidecar east-west gateway.</li>
+<li><code>AUTO_RELOAD_PLUGIN_CERTS: true</code> — pick up <code>cacerts</code> renewals without a
+restart.</li>
+</ul>
+<h2 id="gateways"><a class="header" href="#gateways">Gateways</a></h2>
+<p><code>charts/ewgw</code> renders two Gateway API objects per cluster, both labelled with
+<code>topology.istio.io/network</code>:</p>
+<ul>
+<li><strong>ambient</strong>: port <code>15008</code>, <code>HBONE</code> protocol, TLS <code>Terminate</code> with
+<code>ISTIO_MUTUAL</code>.</li>
+<li><strong>sidecar</strong>: port <code>15443</code>, <code>TLS</code> protocol, <code>Passthrough</code> mode (SNI
+auto-passthrough).</li>
+</ul>
+<p>In <code>--network-mode single</code> neither is deployed: the cell is a flat L3 network,
+so proxies dial remote pod IPs directly.</p>
+<h2 id="everyday-commands"><a class="header" href="#everyday-commands">Everyday commands</a></h2>
+<p>List the remote clusters each <code>istiod</code> is connected to:</p>
+<pre><code class="language-console">istioctl --context kind-pasta-1 remote-clusters
 </code></pre>
-<p>Access the <code>istiod</code> WebUI:</p>
-<pre><code class="language-console">istioctl --context pasta-1 dashboard controlz deployment/istiod-1-22-2.istio-system
+<p>Re-exchange the remote secrets if federation breaks:</p>
+<pre><code class="language-console">meshlab run istio-endpoint-discovery
+</code></pre>
+<p>Check what a proxy or ztunnel actually sees:</p>
+<pre><code class="language-console">istioctl --context kind-pasta-1 proxy-status
+istioctl --context kind-pasta-1 ztunnel-config workload
+istioctl --context kind-pasta-1 ztunnel-config service
+</code></pre>
+<p>Analyse the config of a namespace:</p>
+<pre><code class="language-console">istioctl --context kind-pasta-1 analyze -n swarm-sidecar-n1
+</code></pre>
+<p>Access the <code>istiod</code> ControlZ UI (note the revisioned deployment name):</p>
+<pre><code class="language-console">istioctl --context kind-pasta-1 dashboard controlz deployment/istiod-1-30-3.istio-system
 </code></pre>
 
                     </main>
@@ -174,7 +235,7 @@ complexities of microservices architecture.</p>
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../components/klipper-lb.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../components/envoy.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -188,7 +249,7 @@ complexities of microservices architecture.</p>
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../components/klipper-lb.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../components/envoy.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

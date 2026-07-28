@@ -153,35 +153,64 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="debug"><a class="header" href="#debug">Debug</a></h1>
-<p>Add locality info:</p>
-<pre><code class="language-console">k --context pasta-1 -n httpbin patch workloadentries httpbin-192.168.65.5-vm-network --type merge -p '{"spec":{"locality":"milky-way/solar-system/virt-01"}}'
-k --context pasta-1 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"labels":{"istio-locality":"milky-way.solar-system.pasta-1"}}}}}'
-k --context pasta-1 -n httpbin label pod sleep-xxxx topology.istio.io/subzone=pasta-1 topology.kubernetes.io/region=milky-way topology.kubernetes.io/zone=solar-system
+<h2 id="cluster-overview"><a class="header" href="#cluster-overview">Cluster overview</a></h2>
+<pre><code class="language-console">ml            # pods + LoadBalancer services on every cluster
+ml short      # only mnger-1 and pasta-1
+meshlab watch # `ml short` on a loop
 </code></pre>
-<pre><code class="language-console">k --context pasta-1 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"labels":{
-  "topology.kubernetes.io/region":"milky-way",
-  "topology.kubernetes.io/zone":"solar-system",
-  "topology.istio.io/subzone":"pasta-1"
-}}}}}'
+<h2 id="failed-sections"><a class="header" href="#failed-sections">Failed sections</a></h2>
+<p><code>meshlab create</code> runs with <code>make -k</code>, so it keeps going after a failure and
+records the offenders in <code>.tmp/failed</code>. Re-run just those:</p>
+<pre><code class="language-console">cat .tmp/failed
+meshlab run &lt;section&gt;
 </code></pre>
-<p>Delete locality info:</p>
-<pre><code class="language-console">k --context pasta-1 -n httpbin patch workloadentries httpbin-192.168.65.5-vm-network --type json -p '[{"op": "remove", "path": "/spec/locality"}]'
-k --context pasta-1 -n httpbin patch deployment sleep --type json -p '[{"op": "remove", "path": "/spec/template/metadata/labels/istio-locality"}]'
-k --context pasta-1 -n httpbin label pod sleep-xxxx topology.istio.io/subzone- topology.kubernetes.io/region- topology.kubernetes.io/zone-
+<p>Section logs that run detached are also under <code>.tmp/</code> (for example
+<code>.tmp/tilt-pasta-1.log</code>).</p>
+<h2 id="locality-labels"><a class="header" href="#locality-labels">Locality labels</a></h2>
+<p>Locality is derived from the node's <code>topology.kubernetes.io/*</code> labels, which
+kind does not set. Add them manually to experiment with
+<a href="./locality-lb.html">locality load balancing</a>:</p>
+<pre><code class="language-console">k --context kind-pasta-1 label node pasta-1-control-plane \
+  topology.kubernetes.io/region=milky-way \
+  topology.kubernetes.io/zone=solar-system \
+  topology.istio.io/subzone=pasta-1
 </code></pre>
-<p>Set debug images:</p>
-<pre><code class="language-console">k --context pasta-1 -n istio-system set image deployment/istiod-1-19-6 discovery=docker.io/h0tbird/pilot:1.19.6
-k --context pasta-1 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"docker.io/h0tbird/proxyv2:1.19.6"}}}}}'
+<p>Or override it per workload with the <code>istio-locality</code> pod label
+(<code>&lt;region&gt;/&lt;zone&gt;/&lt;subzone&gt;</code>, dots instead of slashes in the label value):</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n swarm-sidecar-n1 patch deployment peer --type merge -p \
+  '{"spec":{"template":{"metadata":{"labels":{"istio-locality":"milky-way.solar-system.pasta-1"}}}}}'
 </code></pre>
-<p>Unset debug images:</p>
-<pre><code class="language-console">k --context pasta-1 -n istio-system set image deployment/istiod-1-19-6 discovery=docker.io/istio/pilot:1.19.6
-k --context pasta-1 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"docker.io/istio/proxyv2:1.19.6"}}}}}'
+<p>Remove it again:</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n swarm-sidecar-n1 patch deployment peer --type json -p \
+  '[{"op":"remove","path":"/spec/template/metadata/labels/istio-locality"}]'
+k --context kind-pasta-1 label node pasta-1-control-plane \
+  topology.kubernetes.io/region- topology.kubernetes.io/zone- topology.istio.io/subzone-
 </code></pre>
-<p>Debug:</p>
-<pre><code class="language-console">k --context pasta-1 -n httpbin exec -it deployments/sleep -c istio-proxy -- sudo bash -c 'echo 0 &gt; /proc/sys/kernel/yama/ptrace_scope'
-k --context pasta-1 -n istio-system exec -it deployments/istiod-1-19-6 -- dlv dap --listen=:40000 --log=true
-k --context pasta-1 -n istio-system port-forward deployments/istiod-1-19-6 40000:40000
+<h2 id="custom-istiod--proxy-images"><a class="header" href="#custom-istiod--proxy-images">Custom istiod / proxy images</a></h2>
+<p>For a one-off image swap (for a persistent change, edit the istiod
+<code>ApplicationSet</code> — otherwise Argo CD will revert it):</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n istio-system set image deployment/istiod-1-30-3 \
+  discovery=ghcr.io/h0tbird/pilot:1.30.3-dev
+
+k --context kind-pasta-1 -n swarm-sidecar-n1 patch deployment peer --type merge -p \
+  '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"ghcr.io/h0tbird/proxyv2:1.30.3-dev"}}}}}'
 </code></pre>
+<p>For iterating on <code>pilot-discovery</code> itself, prefer Tilt — see
+<a href="./development.html">Development</a>.</p>
+<h2 id="attaching-a-debugger-to-istiod"><a class="header" href="#attaching-a-debugger-to-istiod">Attaching a debugger to istiod</a></h2>
+<p><code>hack/launch.json</code> holds the matching VS Code launch configuration.</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n istio-system exec -it deployment/istiod-1-30-3 -- \
+  dlv dap --listen=:40000 --log=true
+k --context kind-pasta-1 -n istio-system port-forward deployment/istiod-1-30-3 40000:40000
+</code></pre>
+<p>To attach to a proxy, first relax <code>ptrace_scope</code> in the debug-variant proxy
+container:</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n swarm-sidecar-n1 exec -it deploy/peer -c istio-proxy -- \
+  sudo bash -c 'echo 0 &gt; /proc/sys/kernel/yama/ptrace_scope'
+</code></pre>
+<h2 id="more"><a class="header" href="#more">More</a></h2>
+<p><code>docs/troubleshooting.md</code> in this repository collects issue-specific
+write-ups that are too narrow for the book.</p>
 
                     </main>
 

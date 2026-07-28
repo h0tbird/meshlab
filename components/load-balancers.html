@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>k3s - The MeshLab Book</title>
+        <title>Load balancers - The MeshLab Book</title>
 
 
         <!-- Custom HTML head -->
@@ -152,22 +152,52 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="k3s"><a class="header" href="#k3s">k3s</a></h1>
-<p><a href="https://k3s.io">k3s</a> is a lightweight version of Kubernetes designed for resource-constrained environments like IoT devices and edge computing. It requires fewer resources and has additional features such as simplified installation and compatibility with ARM architectures.</p>
-<p>Run config check:</p>
-<pre><code class="language-console">multipass exec pasta-1 -- bash -c "sudo k3s check-config"
-multipass exec pasta-2 -- bash -c "sudo k3s check-config"
+                        <h1 id="load-balancers"><a class="header" href="#load-balancers">Load balancers</a></h1>
+<p>kind has no cloud controller, so <code>Service</code> objects of type <code>LoadBalancer</code> would
+stay <code>&lt;pending&gt;</code> forever. The lab runs
+<a href="https://github.com/kubernetes-sigs/cloud-provider-kind">cloud-provider-kind</a>
+instead: a single <code>kindccm</code> container, started by the <code>cloud-provider-kind</code>
+section of <code>bin/meshlab</code> and attached to the Docker <code>kind</code> network. It watches
+every kind cluster, assigns an IP from that network to each <code>LoadBalancer</code>
+service, and runs an Envoy container to proxy that IP to the backing pods.</p>
+<p>(The lab previously ran on k3s and its <code>klipper-lb</code>; neither is used any more.)</p>
+<p>List the assigned IPs across all clusters:</p>
+<pre><code class="language-console">ml    # prints pods and LoadBalancer services per cluster
+</code></pre>
+<p>Or per cluster:</p>
+<pre><code class="language-console">k --context kind-mnger-1 get svc -A --field-selector=spec.type=LoadBalancer
+k --context kind-pasta-1 get svc -A --field-selector=spec.type=LoadBalancer
+</code></pre>
+<p>See the controller container and its logs:</p>
+<pre><code class="language-console">docker ps --filter name=kindccm
+docker logs -f kindccm
+</code></pre>
+<h2 id="reaching-the-services-from-the-host"><a class="header" href="#reaching-the-services-from-the-host">Reaching the services from the host</a></h2>
+<p>The assigned IPs live on the Docker <code>kind</code> network and are reachable from the
+dev container, but not necessarily from the host browser. The <code>publish-ports</code>
+section therefore runs a <code>socat</code> forwarder per UI:</p>
+<div class="table-wrapper"><table><thead><tr><th>Service</th><th>Cluster / namespace</th><th>Local port</th></tr></thead><tbody>
+<tr><td>Argo CD</td><td><code>mnger-1</code> / <code>argocd</code></td><td>8080</td></tr>
+<tr><td>Argo Workflows</td><td><code>mnger-1</code> / <code>argowf</code></td><td>8081</td></tr>
+<tr><td>Vault</td><td><code>mnger-1</code> / <code>vault</code></td><td>8082</td></tr>
+<tr><td>Prometheus</td><td><code>mnger-1</code> / <code>monitoring</code></td><td>8083</td></tr>
+<tr><td>Grafana</td><td><code>mnger-1</code> / <code>monitoring</code></td><td>8084</td></tr>
+<tr><td>Kiali</td><td><code>mnger-1</code> / <code>monitoring</code></td><td>8085</td></tr>
+</tbody></table>
+</div>
+<p>Re-publish them after a restart:</p>
+<pre><code class="language-console">meshlab run publish-ports
 </code></pre>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../components/cloud-init.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../components/flat-network.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../components/flat-network.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../components/coredns.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -177,11 +207,11 @@ multipass exec pasta-2 -- bash -c "sudo k3s check-config"
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../components/cloud-init.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../components/flat-network.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../components/flat-network.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../components/coredns.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

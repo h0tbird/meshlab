@@ -164,7 +164,8 @@ in <code>lib/common.sh</code>) so the ranges never overlap inside a cell.</p>
 </code></pre>
 <p>Verify cross-cluster pod reachability (from a pod in <code>pasta-1</code> to a pod IP in
 <code>pasta-2</code>):</p>
-<pre><code class="language-console">k --context pasta-1 exec deploy/&lt;app&gt; -- curl -s &lt;pasta-2-pod-ip&gt;:&lt;port&gt;
+<pre><code class="language-console">k --context kind-pasta-1 -n swarm-ambient-n1 exec deploy/peer -c manager -- \
+  curl -s &lt;pasta-2-pod-ip&gt;:8080
 </code></pre>
 <blockquote>
 <p>Routes are added via <code>docker exec ... ip route replace</code> and live only in the
@@ -176,11 +177,11 @@ re-run <code>setup-flat-network</code> (<code>ml run setup-flat-network</code>) 
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../components/k3s.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../components/kind.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../components/argocd.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../components/load-balancers.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -190,11 +191,11 @@ re-run <code>setup-flat-network</code> (<code>ml run setup-flat-network</code>) 
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../components/k3s.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../components/kind.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../components/argocd.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../components/load-balancers.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

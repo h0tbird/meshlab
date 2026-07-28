@@ -154,30 +154,152 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="introduction"><a class="header" href="#introduction">Introduction</a></h1>
-<p>Welcome to the MeshLab repository! In this lab, you will find a setup to validate Istio configurations in a cell-based architecture. Each cell is an architecture block representing a unit of isolation and scalability. The lab defines two cells, named <code>pasta</code> and <code>pizza</code>, each composed of two clusters. Each cluster is configured with a multi-primary Istio control-plane for high availability and resilience.</p>
-<p>Although the cells share the same root CA for their cryptographic material, each one uses a different SPIFFE trustDomain and each cluster within a cell has its own intermediate CA. Locality failover is possible within the clusters of a cell, and all mTLS cross-cluster traffic flows through east-west Istio gateways because pod networks have non-routable CIDRs.</p>
-<p>The purpose of this lab is to test and validate different Istio configurations in a realistic environment.</p>
-<p>Helm is used to deploy:</p>
+<p>Welcome to the MeshLab repository! In this lab, you will find a setup to
+validate Istio configurations in a cell-based architecture. A <strong>cell</strong> is an
+architecture block representing a unit of isolation and scalability. The lab
+defines two workload cells, named <code>pasta</code> and <code>pizza</code>, each composed of two
+clusters, plus a <strong>manager</strong> cluster (<code>mnger-1</code>) that hosts the control tooling.
+Every workload cluster runs its own Istio control plane (multi-primary).</p>
+<p>By default only the <code>pasta</code> cell is created; pass <code>--cell-count 2</code> to also
+create <code>pizza</code>.</p>
+<div class="table-wrapper"><table><thead><tr><th>Cell</th><th>Clusters</th><th>Trust domain</th><th>Pod CIDRs</th></tr></thead><tbody>
+<tr><td><code>mngr</code></td><td><code>mnger-1</code></td><td>n/a</td><td><code>10.41.0.0/16</code></td></tr>
+<tr><td><code>pasta</code></td><td><code>pasta-1</code> <code>pasta-2</code></td><td><code>pasta.local</code></td><td><code>10.51.0.0/16</code> <code>10.52.0.0/16</code></td></tr>
+<tr><td><code>pizza</code></td><td><code>pizza-1</code> <code>pizza-2</code></td><td><code>pizza.local</code></td><td><code>10.61.0.0/16</code> <code>10.62.0.0/16</code></td></tr>
+</tbody></table>
+</div>
+<p>Although the cells share the same root CA for their cryptographic material,
+each one uses a different SPIFFE trust domain and each cluster within a cell
+gets its own intermediate CA. The kind clusters are also created with the
+kubeadm DNS domain set to <code>&lt;cell&gt;.local</code>, so in-cluster FQDNs look like
+<code>peer.swarm-ambient-n1.svc.pasta.local</code> instead of the usual <code>cluster.local</code>.</p>
+<p>Clusters run on <a href="./components/kind.html">kind</a>, all attached to the same Docker
+<code>kind</code> network. Every cluster gets non-overlapping pod and service CIDRs and
+<code>setup-flat-network</code> installs static routes between the sibling clusters of a
+cell, so a cell is a <a href="./components/flat-network.html">flat L3 network</a>. On top of
+that, the Istio network topology is selectable:</p>
 <ul>
-<li><a href="https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd">ArgoCD</a></li>
-<li><a href="https://artifacthub.io/packages/helm/argo/argo-workflows">Argo Workflows</a></li>
+<li><code>--network-mode multi</code> (default): one Istio network <strong>per cluster</strong>, so
+cross-cluster mTLS traffic is routed through the east-west gateways.</li>
+<li><code>--network-mode single</code>: one Istio network <strong>per cell</strong>, so Envoy and ztunnel
+dial remote pod IPs directly and the east-west gateways are not deployed.</li>
 </ul>
-<p>Argo Workflows and ArgoCD are used to deploy:</p>
+<h2 id="what-deploys-what"><a class="header" href="#what-deploys-what">What deploys what</a></h2>
+<p>Helm, driven directly by <code>bin/meshlab</code>, installs the bootstrap layer:</p>
+<ul>
+<li><a href="https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd">Argo CD</a> (manager
+cluster)</li>
+<li><a href="https://artifacthub.io/packages/helm/argo/argo-workflows">Argo Workflows</a>
+(manager cluster)</li>
+<li><a href="https://github.com/k8s-gateway/k8s_gateway">k8s_gateway</a> (every cluster, for
+<code>demo.lab</code> resolution)</li>
+</ul>
+<p>Everything else is described as Argo CD <code>ApplicationSet</code>s (rendered from
+<code>charts/*/templates/applicationsets/</code>) and synced in dependency order by a
+single Argo Workflows DAG:</p>
 <ul>
 <li><a href="https://artifacthub.io/packages/helm/hashicorp/vault">Vault</a></li>
 <li><a href="https://artifacthub.io/packages/helm/cert-manager/cert-manager">cert-manager</a></li>
+<li><a href="https://artifacthub.io/packages/helm/kubernetes-replicator/kubernetes-replicator">kubernetes-replicator</a></li>
+<li><a href="https://artifacthub.io/packages/helm/metrics-server/metrics-server">metrics-server</a></li>
 <li><a href="https://artifacthub.io/packages/helm/prometheus-community/prometheus">Prometheus</a></li>
 <li><a href="https://artifacthub.io/packages/helm/grafana/grafana">Grafana</a></li>
-<li><a href="https://artifacthub.io/packages/helm/opentelemetry-helm/opentelemetry-collector">OTEL Collector</a></li>
-<li><a href="https://artifacthub.io/packages/helm/istio-official/base">Istio</a></li>
+<li><a href="https://artifacthub.io/packages/helm/opentelemetry-helm/opentelemetry-collector">OpenTelemetry Collector</a></li>
+<li><a href="https://artifacthub.io/packages/helm/kiali/kiali-operator">Kiali</a></li>
+<li><a href="https://artifacthub.io/packages/helm/istio-official/base">Istio</a>: <code>base</code>,
+<code>cni</code>, <code>istiod</code>, <code>ztunnel</code>, the north-south gateway, and — in <code>multi</code> network
+mode — the east-west gateways</li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="quick-start"><a class="header" href="#quick-start">Quick Start</a></h1>
-<p>To quickly get started with the MeshLab repository, follow these simple steps:</p>
-<pre><code class="language-bash">./bin/meshlab-multipass create
-./bin/meshlab-multipass suspend
-./bin/meshlab-multipass delete
+<p>Finally, <a href="https://github.com/h0tbird/k-swarm">k-swarm</a> workloads are deployed
+into <code>swarm-ambient-*</code> and <code>swarm-sidecar-*</code> namespaces so there is real mesh
+traffic to observe.</p>
+<p>The purpose of this lab is to test and validate different Istio configurations
+in a realistic environment.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="quick-start"><a class="header" href="#quick-start">Quick start</a></h1>
+<p>Everything runs inside the repository's dev container, which already ships
+<code>kind</code>, <code>kubectl</code> (aliased to <code>k</code>), <code>helm</code>, <code>istioctl</code>, <code>argocd</code>, <code>argo</code>,
+<code>swarmctl</code>, <code>tilt</code> and friends. Open the repo in VS Code and run
+<code>Dev Containers: Reopen in Container</code> (see the README for the other options),
+then open a terminal inside the container.</p>
+<h2 id="create-the-lab"><a class="header" href="#create-the-lab">Create the lab</a></h2>
+<pre><code class="language-console">meshlab create
 </code></pre>
+<p>This creates the manager cluster plus the <code>pasta</code> cell and runs every section
+of the bootstrap graph. Useful flags:</p>
+<pre><code class="language-console">meshlab create --cell-count 2          # also create the pizza cell
+meshlab create --network-mode single   # one Istio network per cell (no east-west gateways)
+</code></pre>
+<p>Watch the clusters converge from a second terminal:</p>
+<pre><code class="language-console">meshlab watch     # loops `ml short`
+ml                # one-shot, all clusters
+</code></pre>
+<h2 id="services"><a class="header" href="#services">Services</a></h2>
+<p>As the lab starts up, these become available on the host:</p>
+<div class="table-wrapper"><table><thead><tr><th>Service</th><th>URL</th><th>Credentials</th></tr></thead><tbody>
+<tr><td>Argo CD</td><td><a href="http://127.0.0.1:8080">http://127.0.0.1:8080</a></td><td><code>admin</code>/<code>meshlab123</code></td></tr>
+<tr><td>Argo Workflows</td><td><a href="http://127.0.0.1:8081">http://127.0.0.1:8081</a></td><td><code>admin</code>/<code>meshlab123</code></td></tr>
+<tr><td>Vault</td><td><a href="http://127.0.0.1:8082">http://127.0.0.1:8082</a></td><td>token <code>meshlab123</code></td></tr>
+<tr><td>Prometheus</td><td><a href="http://127.0.0.1:8083">http://127.0.0.1:8083</a></td><td>none</td></tr>
+<tr><td>Grafana</td><td><a href="http://127.0.0.1:8084">http://127.0.0.1:8084</a></td><td>anonymous viewer, or <code>admin</code>/<code>meshlab123</code></td></tr>
+<tr><td>Kiali</td><td><a href="http://127.0.0.1:8085">http://127.0.0.1:8085</a></td><td>none (anonymous)</td></tr>
+<tr><td>zot</td><td><a href="http://127.0.0.1:8086">http://127.0.0.1:8086</a></td><td>none</td></tr>
+<tr><td>Tilt <code>pasta-1</code></td><td><a href="http://127.0.0.1:9091">http://127.0.0.1:9091</a></td><td>none</td></tr>
+<tr><td>Tilt <code>pasta-2</code></td><td><a href="http://127.0.0.1:9092">http://127.0.0.1:9092</a></td><td>none</td></tr>
+</tbody></table>
+</div>
+<p>With <code>--cell-count 2</code>, Tilt for <code>pizza-1</code> and <code>pizza-2</code> is published on 9093
+and 9094.</p>
+<h2 id="talk-to-the-clusters"><a class="header" href="#talk-to-the-clusters">Talk to the clusters</a></h2>
+<p>kubeconfig contexts are named after the kind clusters, so they carry a <code>kind-</code>
+prefix:</p>
+<pre><code class="language-console">k --context kind-mnger-1 get nodes
+k --context kind-pasta-1 -n istio-system get pods
+istioctl --context kind-pasta-1 remote-clusters
+</code></pre>
+<h2 id="re-run-a-single-section"><a class="header" href="#re-run-a-single-section">Re-run a single section</a></h2>
+<p><code>meshlab create</code> is a dependency graph of idempotent sections executed with
+<code>make -j</code>. Any of them can be re-run on its own:</p>
+<pre><code class="language-console">meshlab list                       # list the sections
+meshlab run setup-flat-network     # re-run just one
+</code></pre>
+<h2 id="tear-it-down"><a class="header" href="#tear-it-down">Tear it down</a></h2>
+<pre><code class="language-console">meshlab delete
+</code></pre>
+<p>This removes the kind clusters, the <code>kindccm</code> load-balancer containers, the zot
+container, the Tilt and <code>socat</code> processes, and <code>./.tmp</code>. The <code>zot-data</code> Docker
+volume is kept so the next <code>meshlab create</code> does not re-download every image.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="components"><a class="header" href="#components">Components</a></h1>
+<p><code>meshlab create</code> is a dependency graph of idempotent <strong>sections</strong> defined in
+<code>bin/meshlab</code> (<code>meshlab list</code> prints them). The graph itself lives in the <code>DEPS</code>
+associative array in <code>lib/common.sh</code> and is executed with <code>make -j</code>, so
+independent sections run in parallel.</p>
+<div class="table-wrapper"><table><thead><tr><th>Section</th><th>What it does</th></tr></thead><tbody>
+<tr><td><code>cloud-provider-kind</code></td><td>Creates the Docker <code>kind</code> network and starts the <code>kindccm</code> containers that hand out <code>LoadBalancer</code> IPs.</td></tr>
+<tr><td><code>pull-through-cache</code></td><td>Starts the <a href="./components/pull-through.html">zot</a> registry used as an on-demand pull-through cache.</td></tr>
+<tr><td><code>create-clusters</code></td><td>Creates the <a href="./components/kind.html">kind</a> clusters with per-cluster pod/service CIDRs and a <code>&lt;cell&gt;.local</code> DNS domain.</td></tr>
+<tr><td><code>add-registries-to-containerd</code></td><td>Points each cluster's containerd at zot.</td></tr>
+<tr><td><code>setup-kubeconfig</code></td><td>Rebuilds the in-container kubeconfig with only the <code>kind-*</code> contexts, plus an in-cluster variant.</td></tr>
+<tr><td><code>setup-flat-network</code></td><td>Adds the static routes that make each cell a <a href="./components/flat-network.html">flat L3 network</a>.</td></tr>
+<tr><td><code>install-k8s-gateway</code></td><td>Installs <code>k8s_gateway</code> so <code>demo.lab</code> names resolve to <code>LoadBalancer</code> IPs.</td></tr>
+<tr><td><code>setup-coredns</code></td><td>Rewrites the <a href="./components/coredns.html">CoreDNS</a> Corefile for the <code>&lt;cell&gt;.local</code> zone and forwards <code>demo.lab</code>.</td></tr>
+<tr><td><code>setup-argocd</code></td><td>Installs <a href="./components/argocd.html">Argo CD</a> on the manager cluster.</td></tr>
+<tr><td><code>register-argocd-clusters</code></td><td>Registers every cluster in Argo CD with <code>name</code> and <code>cell</code> labels used by the <code>ApplicationSet</code> generators.</td></tr>
+<tr><td><code>install-applicationsets</code></td><td>Renders <code>charts/*</code> and applies the <code>ApplicationSet</code>s and <code>WorkflowTemplate</code>s.</td></tr>
+<tr><td><code>setup-argowf</code></td><td>Installs <a href="./components/argo-workflows.html">Argo Workflows</a> on the manager cluster.</td></tr>
+<tr><td><code>kiali-secrets</code></td><td>Creates the Kiali remote-cluster secrets.</td></tr>
+<tr><td><code>bootstrap-dag</code></td><td>Submits the Workflow that syncs every <code>ApplicationSet</code> in dependency order.</td></tr>
+<tr><td><code>istio-endpoint-discovery</code></td><td>Exchanges <code>istioctl create-remote-secret</code> credentials between the clusters of a cell.</td></tr>
+<tr><td><code>grafana-git-sync</code></td><td>Optional; wires Grafana to the dashboards in the repo (needs <code>GITHUB_TOKEN</code>).</td></tr>
+<tr><td><code>tilt-up</code></td><td>Starts one <a href="./development.html">Tilt</a> instance per workload cluster.</td></tr>
+<tr><td><code>deploy-workloads</code></td><td>Deploys the <a href="./components/workloads.html">k-swarm workloads</a>.</td></tr>
+<tr><td><code>publish-ports</code></td><td><code>socat</code> forwards the <code>LoadBalancer</code> services to <code>127.0.0.1</code>.</td></tr>
+</tbody></table>
+</div>
+<h2 id="pinned-versions"><a class="header" href="#pinned-versions">Pinned versions</a></h2>
+<p>All component versions are <code>readonly</code> constants at the top of <code>bin/meshlab</code>,
+each with a link to where the latest version can be checked. The
+<code>upgrade-components</code> skill (<code>.github/skills/upgrade-components/</code>) automates
+bumping them.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="pull-through-cache-zot"><a class="header" href="#pull-through-cache-zot">Pull-through cache (zot)</a></h1>
 <p>A pull-through cache is a proxy that sits between the clusters and the remote
 container registries. The first time an image is pulled it is fetched from the
@@ -259,71 +381,52 @@ docker volume rm zot-data
 </code></pre>
 </li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="multipass"><a class="header" href="#multipass">Multipass</a></h1>
-<p><a href="https://multipass.run/">Multipass</a> from Canonical is a tool for launching, managing, and orchestrating Linux virtual machines on local computers, simplifying the process for development, testing, and other purposes. It provides a user-friendly command-line interface and integrates with other tools for automation and customization.</p>
-<p>Stop/start multipassd:</p>
-<pre><code class="language-console">sudo launchctl unload /Library/LaunchDaemons/com.canonical.multipassd.plist
-sudo launchctl load -w /Library/LaunchDaemons/com.canonical.multipassd.plist
+<div style="break-before: page; page-break-before: always;"></div><h1 id="kind"><a class="header" href="#kind">kind</a></h1>
+<p><a href="https://kind.sigs.k8s.io">kind</a> runs Kubernetes clusters as Docker containers.
+The lab used to provision VMs; today every cluster is a single-node kind
+cluster and there is no VM, hypervisor or cloud-init layer left.</p>
+<p>Clusters are created by the <code>create-clusters</code> section of <code>bin/meshlab</code>. Which
+ones exist depends on <code>--cell-count</code>:</p>
+<div class="table-wrapper"><table><thead><tr><th>Cluster</th><th>Cell</th><th>Pod CIDR</th><th>Service CIDR</th><th>DNS domain</th></tr></thead><tbody>
+<tr><td><code>mnger-1</code></td><td><code>mngr</code></td><td><code>10.41.0.0/16</code></td><td><code>10.141.0.0/16</code></td><td><code>mngr.local</code></td></tr>
+<tr><td><code>pasta-1</code></td><td><code>pasta</code></td><td><code>10.51.0.0/16</code></td><td><code>10.151.0.0/16</code></td><td><code>pasta.local</code></td></tr>
+<tr><td><code>pasta-2</code></td><td><code>pasta</code></td><td><code>10.52.0.0/16</code></td><td><code>10.152.0.0/16</code></td><td><code>pasta.local</code></td></tr>
+<tr><td><code>pizza-1</code></td><td><code>pizza</code></td><td><code>10.61.0.0/16</code></td><td><code>10.161.0.0/16</code></td><td><code>pizza.local</code></td></tr>
+<tr><td><code>pizza-2</code></td><td><code>pizza</code></td><td><code>10.62.0.0/16</code></td><td><code>10.162.0.0/16</code></td><td><code>pizza.local</code></td></tr>
+</tbody></table>
+</div>
+<p>The CIDRs come from the <code>POD_CIDR</code> and <code>SVC_CIDR</code> maps in <code>lib/common.sh</code>; they
+never overlap so the clusters of a cell can be wired into a
+<a href="components/./flat-network.html">flat L3 network</a>. The kubeadm <code>networking.dnsDomain</code> is set
+to <code>&lt;cell&gt;.local</code>, which is why istiod is configured with a matching
+<code>global.proxy.clusterDomain</code>.</p>
+<p>All node containers are attached to the Docker <code>kind</code> network, together with
+the <a href="components/./pull-through.html">zot</a> cache and the <code>kindccm</code>
+<a href="components/./load-balancers.html">load balancer</a> containers.</p>
+<h2 id="everyday-commands"><a class="header" href="#everyday-commands">Everyday commands</a></h2>
+<p>List the clusters:</p>
+<pre><code class="language-console">kind get clusters
 </code></pre>
-<p>Restart multipassd:</p>
-<pre><code class="language-console">sudo launchctl kickstart -k system/com.canonical.multipassd
+<p>Note that kubeconfig contexts carry the <code>kind-</code> prefix:</p>
+<pre><code class="language-console">k config get-contexts
+k --context kind-pasta-1 get nodes -o wide
 </code></pre>
-<p>Directories of interest:</p>
-<pre><code class="language-console">sudo tree /var/root/Library/Caches/multipassd
-sudo tree /var/root/Library/Application\ Support/multipassd
-sudo tree /Library/Application\ Support/com.canonical.multipass
+<p>Get a shell on a node (each cluster has a single <code>&lt;cluster&gt;-control-plane</code>
+container):</p>
+<pre><code class="language-console">docker exec -it pasta-1-control-plane bash
 </code></pre>
-<p>List all available instances:</p>
-<pre><code class="language-console">multipass list
+<p>Inspect the Docker network the clusters share:</p>
+<pre><code class="language-console">docker network inspect kind | jq -r '.[].Containers[].Name'
 </code></pre>
-<p>Display information about all instances:</p>
-<pre><code class="language-console">multipass info
+<p>Delete everything (also stops zot, <code>kindccm</code>, Tilt and the <code>socat</code> forwards):</p>
+<pre><code class="language-console">meshlab delete
 </code></pre>
-<p>Open a shell on a running instance:</p>
-<pre><code>multipass shell pasta-1
-</code></pre>
-<p>Tail the logs:</p>
-<pre><code class="language-console">sudo tail -f /Library/Logs/Multipass/multipassd.log
-</code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="hypervisorframework"><a class="header" href="#hypervisorframework">Hypervisor.framework</a></h1>
-<p>The drivers utilized on MacOS, specifically <a href="https://github.com/moby/hyperkit">HyperKit</a> and <a href="https://www.qemu.org">QEMU</a>, rely on MacOS' <a href="https://developer.apple.com/documentation/hypervisor">Hypervisor.framework</a> to manage the networking stack for the instances. When an instance is created, the <code>Hypervisor.framework</code> on the host employs MacOS' <em>'Internet Sharing'</em> mechanism to establish a virtual switch. Each instance is then connected to this switch with a subnet address from:</p>
-<pre><code class="language-console">$ sudo cat /Library/preferences/SystemConfiguration/com.apple.vmnet.plist | grep -A1 Shared_Net_Address
-Password:
-	&lt;key&gt;Shared_Net_Address&lt;/key&gt;
-	&lt;string&gt;192.168.65.1&lt;/string&gt;
-</code></pre>
-<p>Furthermore, the host provides DHCP and DNS resolution services on this switch through the IP address 192.168.65.1, facilitated by the <code>bootpd</code> and <code>mDNSResponder</code> services running on the host machine. It is worth noting that attempting to manually edit the configuration file <code>/etc/bootpd.plist</code> is futile, as MacOS will regenerate it according to its own preferences.</p>
-<p>Is the <code>bootpd</code> DHCP server alive?</p>
-<pre><code class="language-console">sudo lsof -iUDP:67 -n -P
-</code></pre>
-<p>Start it:</p>
-<pre><code class="language-console">sudo launchctl load -w /System/Library/LaunchDaemons/bootps.plist
-</code></pre>
-<p>Flush all DHCP leases:</p>
-<pre><code class="language-console">sudo launchctl stop com.apple.bootpd
-sudo rm -f /var/db/dhcpd_leases
-sudo launchctl start com.apple.bootpd
-</code></pre>
-<p>It appears that at a certain juncture, <code>docker</code> and <code>multipass</code> ceased to share the same network bridge. Whichever starts first will occupy <code>bridge100</code> with the IP address <code>192.168.64.1</code>, while the subsequent one will take <code>bridge101</code> with the IP address <code>192.168.65.1</code>. Upon repeatedly stopping and starting these services, you will notice a sequential increment in the third octet of the <code>Shared_Net_Address</code>.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="cloud-init"><a class="header" href="#cloud-init">Cloud-init</a></h1>
-<p><a href="https://cloudinit.readthedocs.io/en/latest">cloud-init</a> is a tool used to configure virtual machine instances in the cloud during their first boot. It simplifies the provisioning process, enabling quick setup of new environments with desired configurations. The following commands provide examples for monitoring and inspecting the cloud-init process on various nodes in the system, including logs and scripts run during the instance's first boot.</p>
-<p>Tail the <code>cloud-init</code> logs:</p>
-<pre><code class="language-console">multipass exec mnger-1 -- tail -f /var/log/cloud-init-output.log
-multipass exec pasta-1 -- tail -f /var/log/cloud-init-output.log
-multipass exec pasta-2 -- tail -f /var/log/cloud-init-output.log
-</code></pre>
-<p>Inspect the rendered <code>runcmd</code>:</p>
-<pre><code class="language-console">multipass exec mnger-1 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
-multipass exec pasta-1 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
-multipass exec pasta-2 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
-multipass exec virt-01 -- sudo cat /var/lib/cloud/instance/scripts/runcmd
-</code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="k3s"><a class="header" href="#k3s">k3s</a></h1>
-<p><a href="https://k3s.io">k3s</a> is a lightweight version of Kubernetes designed for resource-constrained environments like IoT devices and edge computing. It requires fewer resources and has additional features such as simplified installation and compatibility with ARM architectures.</p>
-<p>Run config check:</p>
-<pre><code class="language-console">multipass exec pasta-1 -- bash -c "sudo k3s check-config"
-multipass exec pasta-2 -- bash -c "sudo k3s check-config"
-</code></pre>
+<blockquote>
+<p>Node containers are not restart-safe by design: the static routes installed by
+<code>setup-flat-network</code> and the containerd registry config live inside the node
+container. If a node restarts, re-run <code>meshlab run setup-flat-network</code> and
+<code>meshlab run add-registries-to-containerd</code>.</p>
+</blockquote>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="flat-network"><a class="header" href="#flat-network">Flat network</a></h1>
 <p>Each cell is a flat L3 network. Clusters run the default kindnet CNI with
 kube-proxy enabled, and <code>setup-flat-network</code> adds static routes between the
@@ -336,140 +439,559 @@ in <code>lib/common.sh</code>) so the ranges never overlap inside a cell.</p>
 </code></pre>
 <p>Verify cross-cluster pod reachability (from a pod in <code>pasta-1</code> to a pod IP in
 <code>pasta-2</code>):</p>
-<pre><code class="language-console">k --context pasta-1 exec deploy/&lt;app&gt; -- curl -s &lt;pasta-2-pod-ip&gt;:&lt;port&gt;
+<pre><code class="language-console">k --context kind-pasta-1 -n swarm-ambient-n1 exec deploy/peer -c manager -- \
+  curl -s &lt;pasta-2-pod-ip&gt;:8080
 </code></pre>
 <blockquote>
 <p>Routes are added via <code>docker exec ... ip route replace</code> and live only in the
 node container's routing table. They are lost if a node container restarts;
 re-run <code>setup-flat-network</code> (<code>ml run setup-flat-network</code>) to reinstall them.</p>
 </blockquote>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="argocd"><a class="header" href="#argocd">ArgoCD</a></h1>
-<p><a href="https://argo-cd.readthedocs.io/en/stable/">ArgoCD</a> is a GitOps platform for Kubernetes applications that enables continuous delivery with declarative management and automation of deployments from Git repositories to multiple clusters. With its user-friendly interface, robust features, and deep Kubernetes integration, ArgoCD is a popular choice for automating application delivery.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="load-balancers"><a class="header" href="#load-balancers">Load balancers</a></h1>
+<p>kind has no cloud controller, so <code>Service</code> objects of type <code>LoadBalancer</code> would
+stay <code>&lt;pending&gt;</code> forever. The lab runs
+<a href="https://github.com/kubernetes-sigs/cloud-provider-kind">cloud-provider-kind</a>
+instead: a single <code>kindccm</code> container, started by the <code>cloud-provider-kind</code>
+section of <code>bin/meshlab</code> and attached to the Docker <code>kind</code> network. It watches
+every kind cluster, assigns an IP from that network to each <code>LoadBalancer</code>
+service, and runs an Envoy container to proxy that IP to the backing pods.</p>
+<p>(The lab previously ran on k3s and its <code>klipper-lb</code>; neither is used any more.)</p>
+<p>List the assigned IPs across all clusters:</p>
+<pre><code class="language-console">ml    # prints pods and LoadBalancer services per cluster
+</code></pre>
+<p>Or per cluster:</p>
+<pre><code class="language-console">k --context kind-mnger-1 get svc -A --field-selector=spec.type=LoadBalancer
+k --context kind-pasta-1 get svc -A --field-selector=spec.type=LoadBalancer
+</code></pre>
+<p>See the controller container and its logs:</p>
+<pre><code class="language-console">docker ps --filter name=kindccm
+docker logs -f kindccm
+</code></pre>
+<h2 id="reaching-the-services-from-the-host"><a class="header" href="#reaching-the-services-from-the-host">Reaching the services from the host</a></h2>
+<p>The assigned IPs live on the Docker <code>kind</code> network and are reachable from the
+dev container, but not necessarily from the host browser. The <code>publish-ports</code>
+section therefore runs a <code>socat</code> forwarder per UI:</p>
+<div class="table-wrapper"><table><thead><tr><th>Service</th><th>Cluster / namespace</th><th>Local port</th></tr></thead><tbody>
+<tr><td>Argo CD</td><td><code>mnger-1</code> / <code>argocd</code></td><td>8080</td></tr>
+<tr><td>Argo Workflows</td><td><code>mnger-1</code> / <code>argowf</code></td><td>8081</td></tr>
+<tr><td>Vault</td><td><code>mnger-1</code> / <code>vault</code></td><td>8082</td></tr>
+<tr><td>Prometheus</td><td><code>mnger-1</code> / <code>monitoring</code></td><td>8083</td></tr>
+<tr><td>Grafana</td><td><code>mnger-1</code> / <code>monitoring</code></td><td>8084</td></tr>
+<tr><td>Kiali</td><td><code>mnger-1</code> / <code>monitoring</code></td><td>8085</td></tr>
+</tbody></table>
+</div>
+<p>Re-publish them after a restart:</p>
+<pre><code class="language-console">meshlab run publish-ports
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="coredns"><a class="header" href="#coredns">CoreDNS</a></h1>
+<p><a href="https://coredns.io">CoreDNS</a> is the in-cluster DNS server. The lab rewrites its
+<code>Corefile</code> on every cluster (the <code>setup-coredns</code> section) for two reasons.</p>
+<h2 id="1-the-cluster-zone-is-celllocal"><a class="header" href="#1-the-cluster-zone-is-celllocal">1. The cluster zone is <code>&lt;cell&gt;.local</code></a></h2>
+<p>kind clusters are created with kubeadm <code>networking.dnsDomain: &lt;cell&gt;.local</code>, so
+the <code>kubernetes</code> plugin must serve <code>pasta.local</code> (or <code>pizza.local</code>, or
+<code>mngr.local</code>) instead of the default <code>cluster.local</code>:</p>
+<pre><code>kubernetes pasta.local in-addr.arpa ip6.arpa {
+   pods insecure
+   fallthrough in-addr.arpa ip6.arpa
+   ttl 30
+}
+</code></pre>
+<p>Caching of that zone is explicitly disabled (<code>cache 30 { disable success pasta.local; disable denial pasta.local }</code>) so cross-cluster service changes are
+picked up promptly.</p>
+<h2 id="2-demolab-resolves-to-loadbalancer-ips"><a class="header" href="#2-demolab-resolves-to-loadbalancer-ips">2. <code>demo.lab</code> resolves to LoadBalancer IPs</a></h2>
+<p>An extra server block forwards the <code>demo.lab</code> zone to the
+<a href="https://github.com/k8s-gateway/k8s_gateway">k8s_gateway</a> instance running on
+the manager cluster (installed by <code>install-k8s-gateway</code> as the <code>exdns</code> release
+in <code>kube-system</code>):</p>
+<pre><code>demo.lab:53 {
+   forward . &lt;exdns-k8s-gateway LoadBalancer IP&gt;
+}
+</code></pre>
+<p>k8s_gateway synthesises <code>A</code> records for <code>Service</code>/<code>Gateway</code> objects, which is
+how names like <code>prometheus.demo.lab</code> — used by the OpenTelemetry collectors to
+remote-write from every cluster — resolve to the right <code>LoadBalancer</code> IP.</p>
+<h2 id="everyday-commands-1"><a class="header" href="#everyday-commands-1">Everyday commands</a></h2>
+<p>Show the effective config:</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n kube-system get cm coredns -o jsonpath='{.data.Corefile}'
+</code></pre>
+<p>Resolve a name from inside a cluster:</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n swarm-ambient-n1 exec deploy/peer -c manager -- \
+  nslookup prometheus.demo.lab
+</code></pre>
+<p>Re-apply the config (restarts CoreDNS only if it actually changed):</p>
+<pre><code class="language-console">meshlab run setup-coredns
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="argo-cd"><a class="header" href="#argo-cd">Argo CD</a></h1>
+<p><a href="https://argo-cd.readthedocs.io/en/stable/">Argo CD</a> is the GitOps engine of the
+lab. It is installed by the <code>setup-argocd</code> section into the <code>argocd</code> namespace
+of the <strong>manager</strong> cluster only, and it manages every other cluster remotely.</p>
+<ul>
+<li>UI: <a href="http://127.0.0.1:8080">http://127.0.0.1:8080</a> (<code>admin</code> / <code>meshlab123</code>)</li>
+</ul>
+<h2 id="how-applications-are-generated"><a class="header" href="#how-applications-are-generated">How applications are generated</a></h2>
+<p><code>register-argocd-clusters</code> registers each kind cluster as an Argo CD cluster
+secret carrying two labels:</p>
+<ul>
+<li><code>name=&lt;cluster&gt;</code> (e.g. <code>pasta-1</code>)</li>
+<li><code>cell=&lt;cell&gt;</code> (e.g. <code>pasta</code>)</li>
+</ul>
+<p>Every chart under <code>charts/</code> then ships an <code>ApplicationSet</code> with a <code>clusters</code>
+generator that fans out over those secrets, using <code>{{name}}</code> and
+<code>{{metadata.labels.cell}}</code> to derive per-cluster values such as the Istio
+<code>clusterName</code>, <code>network</code> and <code>trustDomain</code>. <code>install-applicationsets</code> renders
+them with <code>helm template ./charts/&lt;x&gt; --set chartVersion=&lt;version&gt;</code> and
+server-side applies the result.</p>
+<p>The applications are <strong>not</strong> auto-synced: the ordering is driven by the
+<a href="components/./argo-workflows.html">Argo Workflows</a> bootstrap DAG, which syncs them by label.</p>
+<h2 id="everyday-commands-2"><a class="header" href="#everyday-commands-2">Everyday commands</a></h2>
 <p>List all the applications:</p>
 <pre><code class="language-console">argocd app list
 </code></pre>
-<p>Manually sync applications:</p>
+<p>Manually sync a set of applications (the label matches the <code>name</code> label on the
+<code>ApplicationSet</code> template, so this hits every cluster at once):</p>
 <pre><code class="language-console">argocd app sync -l name=istio-issuers --async
 argocd app sync -l name=istio-base --async
 argocd app sync -l name=istio-cni --async
 argocd app sync -l name=istio-istiod --async
+argocd app sync -l name=istio-ztunnel --async
 argocd app sync -l name=istio-nsgw --async
-argocd app sync -l name=istio-ewgw --async
+argocd app sync -l name=istio-ewgw --async   # multi-network mode only
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="coredns"><a class="header" href="#coredns">CoreDNS</a></h1>
-<p><a href="https://coredns.io">CoreDNS</a> is a flexible, extensible DNS server that can be easily configured to provide custom DNS resolutions in Kubernetes clusters. It allows for dynamic updates, service discovery, and integration with external data sources, making it a popular choice for service discovery and network management in cloud-native environments.</p>
-<p>Create DNS records for <code>demo.lab</code>:</p>
-<pre><code class="language-console">k --context pasta-1 -n kube-system create configmap coredns-custom --from-literal=demo.server='demo.lab {
-  hosts {
-    ttl 60
-    192.168.65.3 worker.service-1.demo.lab
-    192.168.65.3 worker.service-2.demo.lab
-    fallthrough
-  }
-}'
+<p>Re-render and re-apply the <code>ApplicationSet</code>s after editing a chart:</p>
+<pre><code class="language-console">meshlab run install-applicationsets
+</code></pre>
+<p>Inspect the registered clusters and their labels:</p>
+<pre><code class="language-console">argocd cluster list
+k --context kind-mnger-1 -n argocd get secrets -l argocd.argoproj.io/secret-type=cluster --show-labels
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="argo-workflows"><a class="header" href="#argo-workflows">Argo Workflows</a></h1>
+<p><a href="https://argo-workflows.readthedocs.io">Argo Workflows</a> is the orchestrator that
+turns the pile of Argo CD <code>ApplicationSet</code>s into an ordered bootstrap. It is
+installed by the <code>setup-argowf</code> section into the <code>argowf</code> namespace of the
+manager cluster, with the controller scoped to the <code>argocd</code> namespace and
+<code>DEFAULT_REQUEUE_TIME</code> lowered to <code>1s</code> so the DAG advances quickly.</p>
+<ul>
+<li>UI: <a href="http://127.0.0.1:8081">http://127.0.0.1:8081</a> (<code>admin</code> / <code>meshlab123</code>)</li>
+</ul>
+<h2 id="workflowtemplates"><a class="header" href="#workflowtemplates">WorkflowTemplates</a></h2>
+<p><code>charts/wftemplates</code> provides the two reusable templates:</p>
+<ul>
+<li><code>argocd-sync-and-wait</code> — syncs the Argo CD applications matching a label
+selector (<code>argocd app sync -l name=&lt;app&gt; --async</code>), then waits for the
+operation and for health.</li>
+<li><code>populate-vault</code> — enables the <code>mesh</code> PKI in Vault, generates the root CA,
+writes the <code>mesh-cert-manager</code> policy and creates the AppRole cert-manager
+uses to sign intermediate CAs.</li>
+</ul>
+<h2 id="the-bootstrap-dag"><a class="header" href="#the-bootstrap-dag">The bootstrap DAG</a></h2>
+<p>The DAG itself is not a chart: it is generated inline by the <code>bootstrap-dag</code>
+section of <code>bin/meshlab</code> and submitted with <code>argo submit</code>. Roughly:</p>
+<pre><code class="language-mermaid">graph TD
+  prometheus --&gt; grafana
+  prometheus --&gt; otelco-node
+  prometheus --&gt; otelco-cluster
+  vault
+  cert-manager --&gt; istio-issuers
+  populate-vault --&gt; istio-issuers
+  kubernetes-replicator
+  metrics-server
+  kiali-operator
+  istio-base --&gt; istio-cni
+  istio-base --&gt; istio-istiod
+  istio-issuers --&gt; istio-istiod
+  istio-istiod --&gt; istio-ztunnel
+  istio-istiod --&gt; istio-nsgw
+  istio-istiod --&gt; istio-ewgw
+</code></pre>
+<p><code>istio-ewgw</code> is only part of the DAG in <code>--network-mode multi</code>.</p>
+<h2 id="everyday-commands-3"><a class="header" href="#everyday-commands-3">Everyday commands</a></h2>
+<p>List the workflows:</p>
+<pre><code class="language-console">argo --context kind-mnger-1 -n argocd list
+</code></pre>
+<p>Follow the bootstrap workflow:</p>
+<pre><code class="language-console">argo --context kind-mnger-1 -n argocd logs -f @latest
+argo --context kind-mnger-1 -n argocd get @latest
+</code></pre>
+<p>Re-run the whole bootstrap (idempotent — it is skipped if a <code>bootstrap-*</code>
+workflow already exists):</p>
+<pre><code class="language-console">meshlab run bootstrap-dag
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="vault"><a class="header" href="#vault">Vault</a></h1>
-<p>Blah, blah, blah...</p>
+<p><a href="https://developer.hashicorp.com/vault">Vault</a> is the root of trust of the lab.
+It runs in <strong>dev mode</strong> (unsealed, in-memory, root token <code>meshlab123</code>) in the
+<code>vault</code> namespace of the manager cluster — good enough for a lab, obviously not
+for anything else.</p>
+<ul>
+<li>UI: <a href="http://127.0.0.1:8082">http://127.0.0.1:8082</a> (token <code>meshlab123</code>)</li>
+</ul>
+<h2 id="what-lives-in-it"><a class="header" href="#what-lives-in-it">What lives in it</a></h2>
+<p>The <code>populate-vault</code> <code>WorkflowTemplate</code>
+(<code>charts/wftemplates/templates/populate-vault.yaml</code>) bootstraps it as a DAG root
+of the <a href="components/./argo-workflows.html">bootstrap workflow</a>:</p>
+<ol>
+<li>Enables a PKI secrets engine at <code>mesh/</code> with a max lease TTL of <code>87600h</code>
+(10 years) and generates the <strong>single root CA</strong> shared by all cells,
+<code>common_name=mesh</code>.</li>
+<li>Writes the <code>mesh-cert-manager</code> policy, allowing
+<code>mesh/root/sign-intermediate</code>, <code>mesh/intermediate/set-signed</code> and reads of
+the <code>mesh/roles/ica</code> role.</li>
+<li>Enables the <code>approle</code> auth method and creates the <code>mesh-cert-manager</code>
+AppRole (non-expiring, unlimited uses) that
+<a href="components/./cert-manager.html">cert-manager</a> uses to have per-cluster intermediate CAs
+signed.</li>
+</ol>
+<p>Because the whole task is guarded by existence checks, re-running it is a
+no-op:</p>
+<pre><code class="language-console">meshlab run bootstrap-dag
+</code></pre>
+<h2 id="everyday-commands-4"><a class="header" href="#everyday-commands-4">Everyday commands</a></h2>
+<p>The <code>vault</code> CLI is not shipped in the dev container; use the HTTP API or a
+shell in the pod:</p>
+<pre><code class="language-console">k --context kind-mnger-1 -n vault exec -it vault-0 -- \
+  env VAULT_TOKEN=meshlab123 vault secrets list
+k --context kind-mnger-1 -n vault exec -it vault-0 -- \
+  env VAULT_TOKEN=meshlab123 vault read mesh/cert/ca
+</code></pre>
+<p>Fetch the root CA over the published port:</p>
+<pre><code class="language-console">curl -s http://127.0.0.1:8082/v1/mesh/ca/pem | step certificate inspect
+</code></pre>
+<blockquote>
+<p>Dev mode means the entire PKI is lost when the pod restarts. cert-manager will
+then fail to renew the intermediate CAs until <code>populate-vault</code> runs again.</p>
+</blockquote>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="cert-manager"><a class="header" href="#cert-manager">cert-manager</a></h1>
-<p>Cert-manager is an open-source software that helps automate the management and
-issuance of TLS/SSL certificates in Kubernetes clusters. It integrates with
-various certificate authorities (CAs) and can automatically renew certificates
-before they expire, ensuring secure communication between services running in
-the cluster.</p>
-<p>Print the cert-manager CLI version and the deployed cert-manager version:</p>
-<pre><code>cmctl --context pasta-1 version
+<p><a href="https://cert-manager.io">cert-manager</a> automates the issuance and renewal of
+X.509 certificates. In this lab it is deployed to <strong>every</strong> cluster and it is
+the bridge between <a href="components/./vault.html">Vault</a> and Istio: it turns the single <code>mesh</code>
+root CA into one intermediate CA per cluster.</p>
+<h2 id="the-issuers"><a class="header" href="#the-issuers">The issuers</a></h2>
+<p><code>charts/issuers</code> is synced into <code>istio-system</code> (as the <code>istio-issuers</code>
+application) and contains:</p>
+<div class="table-wrapper"><table><thead><tr><th>Resource</th><th>Kind</th><th>Purpose</th></tr></thead><tbody>
+<tr><td><code>vault-ica-approle</code></td><td><code>Secret</code></td><td>The AppRole <code>secretId</code> created by <code>populate-vault</code>.</td></tr>
+<tr><td><code>vault-ica</code></td><td><code>Issuer</code></td><td>Vault issuer authenticating with that AppRole against <code>mesh/</code>.</td></tr>
+<tr><td><code>istio-cluster-ica</code></td><td><code>Certificate</code></td><td>The cluster's intermediate CA (<code>isCA: true</code>, CN = cluster name, 5-year duration, renewed 1 year before expiry, key rotated on every renewal). It writes the <code>cacerts</code> secret that istiod consumes.</td></tr>
+<tr><td><code>ingress-ca</code></td><td><code>Issuer</code> / <code>ClusterIssuer</code></td><td>CA issuer backed by <code>cacerts</code>, used for ingress/workload leaf certificates.</td></tr>
+</tbody></table>
+</div>
+<p>istiod runs with <code>AUTO_RELOAD_PLUGIN_CERTS: true</code>, so a renewal of <code>cacerts</code> is
+picked up without restarting the control plane.</p>
+<h2 id="everyday-commands-5"><a class="header" href="#everyday-commands-5">Everyday commands</a></h2>
+<p>The <code>cmctl</code> CLI is not installed in the dev container; use <code>kubectl</code>.</p>
+<p>Check the intermediate CA of a cluster:</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n istio-system get certificate istio-cluster-ica
+k --context kind-pasta-1 -n istio-system describe certificate istio-cluster-ica
 </code></pre>
-<p>This check attempts to perform a dry-run create of a cert-manager v1alpha2
-<code>Certificate</code> resource in order to verify that CRDs are installed and all the
-required webhooks are reachable by the K8S API server. We use v1alpha2 API to
-ensure that the API server has also connected to the cert-manager conversion
-webhook:</p>
-<pre><code class="language-console">cmctl check api --context pasta-1
+<p>Follow the request chain when issuance is stuck:</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n istio-system get certificaterequests
+k --context kind-pasta-1 -n cert-manager logs -l app=cert-manager --tail 50
 </code></pre>
-<p>Get details about the current status of a cert-manager Certificate resource,
-including information on related resources like <code>CertificateRequest</code> or <code>Order</code>:</p>
-<pre><code class="language-console">cmctl --context pasta-1 --namespace istio-system status certificate istio-cluster-ica
+<p>Inspect the resulting CA bundle:</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n istio-system get secret cacerts \
+  -o jsonpath='{.data.tls\.crt}' | base64 -d | step certificate inspect --bundle
 </code></pre>
-<p>Mark cert-manager <code>Certificate</code> resources for manual renewal:</p>
-<pre><code class="language-console">cmctl renew --context pasta-1 --namespace istio-system istio-cluster-ica
+<p>Force a reissue (there is no <code>cmctl</code> here, so delete the secret and let the
+<code>Certificate</code> controller re-create it):</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n istio-system delete secret cacerts
+k --context kind-pasta-1 -n istio-system get certificate istio-cluster-ica -w
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="istio"><a class="header" href="#istio">Istio</a></h1>
-<p>Istio is an open-source service mesh platform that provides traffic management,
-policy enforcement, and telemetry collection for microservices applications. It
-helps in improving the reliability, security, and observability of
-service-to-service communication in a cloud-native environment. By integrating
-with popular platforms such as Kubernetes, Istio makes it easier to manage the
-complexities of microservices architecture.</p>
-<p>Lists the remote clusters each <code>istiod</code> instance is connected to:</p>
-<pre><code class="language-console">istioctl --context pasta-1 remote-clusters
+<p>Istio is the reason this lab exists. Every workload cluster runs its own
+control plane (<strong>multi-primary</strong>), and the clusters of a cell federate with each
+other through remote secrets.</p>
+<h2 id="what-is-installed"><a class="header" href="#what-is-installed">What is installed</a></h2>
+<p>All from the official charts at
+<code>https://istio-release.storage.googleapis.com/charts</code>, pinned by
+<code>ISTIO_CHART_VERSION</code> in <code>bin/meshlab</code>:</p>
+<div class="table-wrapper"><table><thead><tr><th>Argo CD app</th><th>Chart</th><th>Notes</th></tr></thead><tbody>
+<tr><td><code>istio-base</code></td><td><code>base</code></td><td>CRDs and cluster roles.</td></tr>
+<tr><td><code>istio-cni</code></td><td><code>cni</code></td><td>Required by ambient.</td></tr>
+<tr><td><code>istio-istiod</code></td><td><code>istiod</code></td><td><code>profile: ambient</code>, revisioned.</td></tr>
+<tr><td><code>istio-ztunnel</code></td><td><code>ztunnel</code></td><td>The ambient L4 node proxy.</td></tr>
+<tr><td><code>istio-nsgw</code></td><td><code>gateway</code></td><td>North-south (ingress) gateway, with a custom bootstrap from <code>conf/istio</code>.</td></tr>
+<tr><td><code>istio-ewgw</code></td><td><code>charts/ewgw</code> (local)</td><td>East-west gateways, <strong><code>--network-mode multi</code> only</strong>.</td></tr>
+<tr><td><code>istio-issuers</code></td><td><code>charts/issuers</code> (local)</td><td>See <a href="components/./cert-manager.html">cert-manager</a>.</td></tr>
+</tbody></table>
+</div>
+<p>istiod is deployed with the revision derived from the version (dots replaced by
+dashes, e.g. <code>1-30-3</code>) and the revision tags <code>stable</code>, <code>canary</code> and <code>default</code>.
+Workloads therefore opt in with <code>istio.io/rev: stable</code> rather than a raw
+revision.</p>
+<h2 id="per-cell--per-cluster-settings"><a class="header" href="#per-cell--per-cluster-settings">Per-cell / per-cluster settings</a></h2>
+<p>The <code>ApplicationSet</code> generator injects <code>{{name}}</code> (cluster) and
+<code>{{metadata.labels.cell}}</code> (cell) into the istiod values:</p>
+<div class="table-wrapper"><table><thead><tr><th>Setting</th><th>Value</th></tr></thead><tbody>
+<tr><td><code>global.multiCluster.clusterName</code></td><td>cluster name</td></tr>
+<tr><td><code>meshConfig.trustDomain</code></td><td><code>&lt;cell&gt;.local</code></td></tr>
+<tr><td><code>global.proxy.clusterDomain</code></td><td><code>&lt;cell&gt;.local</code> (matches the kubeadm DNS domain)</td></tr>
+<tr><td><code>global.meshID</code></td><td>cell name</td></tr>
+<tr><td><code>global.network</code></td><td>cluster name in <code>multi</code> mode, cell name in <code>single</code> mode</td></tr>
+</tbody></table>
+</div>
+<p>A few notable <code>pilot.env</code> settings:</p>
+<ul>
+<li><code>AMBIENT_ENABLE_MULTI_NETWORK: "true"</code> — despite the name, this is the master
+switch for ambient <strong>cross-cluster</strong> endpoint discovery, so it is on in both
+network modes. See <code>docs/single-network-mode.md</code>.</li>
+<li><code>ENABLE_NATIVE_SIDECARS: "true"</code> — inject the sidecar as a Kubernetes native
+sidecar (sidecar mode only).</li>
+<li><code>PILOT_ENABLE_ALPHA_GATEWAY_API: "true"</code> — needed for the <code>TLS</code>/PASSTHROUGH
+listener of the sidecar east-west gateway.</li>
+<li><code>AUTO_RELOAD_PLUGIN_CERTS: true</code> — pick up <code>cacerts</code> renewals without a
+restart.</li>
+</ul>
+<h2 id="gateways"><a class="header" href="#gateways">Gateways</a></h2>
+<p><code>charts/ewgw</code> renders two Gateway API objects per cluster, both labelled with
+<code>topology.istio.io/network</code>:</p>
+<ul>
+<li><strong>ambient</strong>: port <code>15008</code>, <code>HBONE</code> protocol, TLS <code>Terminate</code> with
+<code>ISTIO_MUTUAL</code>.</li>
+<li><strong>sidecar</strong>: port <code>15443</code>, <code>TLS</code> protocol, <code>Passthrough</code> mode (SNI
+auto-passthrough).</li>
+</ul>
+<p>In <code>--network-mode single</code> neither is deployed: the cell is a flat L3 network,
+so proxies dial remote pod IPs directly.</p>
+<h2 id="everyday-commands-6"><a class="header" href="#everyday-commands-6">Everyday commands</a></h2>
+<p>List the remote clusters each <code>istiod</code> is connected to:</p>
+<pre><code class="language-console">istioctl --context kind-pasta-1 remote-clusters
 </code></pre>
-<p>Access the <code>istiod</code> WebUI:</p>
-<pre><code class="language-console">istioctl --context pasta-1 dashboard controlz deployment/istiod-1-22-2.istio-system
+<p>Re-exchange the remote secrets if federation breaks:</p>
+<pre><code class="language-console">meshlab run istio-endpoint-discovery
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="klipper-lb"><a class="header" href="#klipper-lb">klipper-lb</a></h1>
-<p><code>klipper-lb</code> uses a host port for each <code>Service</code> of type <code>LoadBalancer</code> and
-sets up iptables to forward the request to the cluster IP. The regular k8s
-scheduler will find a free host port. If there are no free host ports, the
-<code>Service</code> will stay in pending. There is one <code>DaemonSet</code> per <code>Service</code> of type
-<code>LoadBalancer</code> and each <code>Pod</code> has one container per exposed <code>Service</code> port.</p>
-<p>List the containers fronting the exposed <code>argocd-server</code> ports:</p>
-<pre><code class="language-console">k --context mnger-1 -n kube-system get ds -l svccontroller.k3s.cattle.io/svcname=argocd-server -o yaml | yq '.items[].spec.template.spec.containers[].name'
+<p>Check what a proxy or ztunnel actually sees:</p>
+<pre><code class="language-console">istioctl --context kind-pasta-1 proxy-status
+istioctl --context kind-pasta-1 ztunnel-config workload
+istioctl --context kind-pasta-1 ztunnel-config service
 </code></pre>
-<p>List the containers fronting the exposed <code>istio-eastwestgateway</code> ports:</p>
-<pre><code class="language-console">k --context pasta-1 -n kube-system get ds -l svccontroller.k3s.cattle.io/svcname=istio-eastwestgateway -o yaml | yq '.items[].spec.template.spec.containers[].name'
+<p>Analyse the config of a namespace:</p>
+<pre><code class="language-console">istioctl --context kind-pasta-1 analyze -n swarm-sidecar-n1
 </code></pre>
-<p>List the containers fronting the exposed <code>istio-ingressgateway</code> ports:</p>
-<pre><code class="language-console">k --context pasta-1 -n kube-system get ds -l svccontroller.k3s.cattle.io/svcname=istio-ingressgateway -o yaml | yq '.items[].spec.template.spec.containers[].name'
+<p>Access the <code>istiod</code> ControlZ UI (note the revisioned deployment name):</p>
+<pre><code class="language-console">istioctl --context kind-pasta-1 dashboard controlz deployment/istiod-1-30-3.istio-system
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="envoy"><a class="header" href="#envoy">Envoy</a></h1>
-<p>Envoy is an open-source proxy server designed for modern microservices
-architectures, providing features such as load balancing, traffic management,
-and service discovery. It runs standalone or integrated with a service mesh,
-making it a powerful tool for microservices communication.</p>
-<p>Inspect the <code>config_dump</code> of a VM:</p>
-<pre><code class="language-console">multipass exec virt-01 -- curl -s localhost:15000/config_dump | istioctl pc listeners --file -
-multipass exec virt-01 -- curl -s localhost:15000/config_dump | istioctl pc routes --file -
-multipass exec virt-01 -- curl -s localhost:15000/config_dump | istioctl pc clusters --file -
-multipass exec virt-01 -- curl -s localhost:15000/config_dump | istioctl pc secret --file -
+<p>Envoy is the proxy behind Istio's sidecars and gateways. In this lab you will
+find it in three shapes: as a sidecar in the <code>swarm-sidecar-*</code> namespaces, as
+the north-south gateway (<code>istio-nsgw</code>) and, in <code>--network-mode multi</code>, as the
+east-west gateways. Ambient namespaces (<code>swarm-ambient-*</code>) have <strong>no</strong> Envoy
+sidecar — ztunnel handles L4 there, and Envoy only appears if a waypoint is
+deployed.</p>
+<p>istiod is installed with <code>global.variant: "debug"</code>, so the proxy images include
+<code>curl</code>, <code>tcpdump</code> and friends.</p>
+<h2 id="config-dumps"><a class="header" href="#config-dumps">Config dumps</a></h2>
+<pre><code class="language-console">istioctl --context kind-pasta-1 pc listeners deploy/peer.swarm-sidecar-n1
+istioctl --context kind-pasta-1 pc routes    deploy/peer.swarm-sidecar-n1
+istioctl --context kind-pasta-1 pc clusters  deploy/peer.swarm-sidecar-n1
+istioctl --context kind-pasta-1 pc endpoint  deploy/peer.swarm-sidecar-n1
+istioctl --context kind-pasta-1 pc secret    deploy/peer.swarm-sidecar-n1
 </code></pre>
-<p>Set debug log level on a given proxy:</p>
-<pre><code class="language-console">istioctl pc log sleep-xxx.httpbin --level debug
-k --context pasta-1 -n httpbin logs -f sleep-xxx -c istio-proxy
+<p>Dump the raw config of a gateway:</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n istio-system exec deploy/istio-nsgw -- \
+  curl -s localhost:15000/config_dump | istioctl pc listeners --file -
 </code></pre>
-<p>Access the WebUI of a given envoy proxy:</p>
-<pre><code class="language-console">istioctl dashboard envoy sleep-xxx.httpbin
+<h2 id="log-levels"><a class="header" href="#log-levels">Log levels</a></h2>
+<pre><code class="language-console">istioctl --context kind-pasta-1 pc log deploy/peer.swarm-sidecar-n1 --level debug
+k --context kind-pasta-1 -n swarm-sidecar-n1 logs -f deploy/peer -c istio-proxy
 </code></pre>
-<p>Dump the envoy config of an eastweast gateway:</p>
-<pre><code class="language-console">k --context pasta-1 -n istio-system exec -it deployment/istio-eastwestgateway -- curl -s localhost:15000/config_dump
+<h2 id="admin-interface"><a class="header" href="#admin-interface">Admin interface</a></h2>
+<pre><code class="language-console">istioctl --context kind-pasta-1 dashboard envoy deploy/peer.swarm-sidecar-n1
 </code></pre>
-<p>Dump the <code>common_tls_context</code> for a given envoy cluster:</p>
-<pre><code class="language-console">k --context pasta-1 -n httpbin exec -i sleep-xxx -- \
+<p>Dump the <code>common_tls_context</code> of a given cluster (note the <code>&lt;cell&gt;.local</code>
+suffix instead of <code>cluster.local</code>):</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n swarm-sidecar-n1 exec deploy/peer -c istio-proxy -- \
 curl -s localhost:15000/config_dump | jq '
   .configs[] |
   select(."@type"=="type.googleapis.com/envoy.admin.v3.ClustersConfigDump") |
   .dynamic_active_clusters[] |
-  select(.cluster.name=="outbound|80||httpbin.httpbin.svc.cluster.local") |
+  select(.cluster.name=="outbound|80||peer.swarm-sidecar-n1.svc.pasta.local") |
   .cluster.transport_socket_matches[] |
   select(.name=="tlsMode-istio") |
   .transport_socket.typed_config.common_tls_context
 '
 </code></pre>
-<p>List <code>LISTEN</code> ports:</p>
-<pre><code class="language-console">k --context pasta-1 -n istio-system exec istio-eastwestgateway-xxx -- netstat -tuanp | grep LISTEN | sort -u
+<p>Drain every TCP connection (useful to force new TLS handshakes):</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n swarm-sidecar-n1 exec deploy/peer -c istio-proxy -- \
+  curl -X POST localhost:15000/quitquitquit
 </code></pre>
-<p>Check the status-port:</p>
-<pre><code class="language-console">curl -o /dev/null -Isw "%{http_code}" http://10.0.16.124:31123/healthz/ready
+<p>List the listening ports of a gateway:</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n istio-system exec deploy/istio-nsgw -- \
+  netstat -tuanp | grep LISTEN | sort -u
 </code></pre>
+<h2 id="metrics"><a class="header" href="#metrics">Metrics</a></h2>
+<p>The <code>otelco-node</code> collector scrapes <code>/stats/prometheus</code> on every pod exposing a
+<code>*-envoy-prom</code> port, so the same data is available in Prometheus. To look at it
+raw:</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n swarm-sidecar-n1 exec deploy/peer -c istio-proxy -- \
+  curl -s localhost:15000/stats/prometheus | head
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="observability"><a class="header" href="#observability">Observability</a></h1>
+<p>The observability stack is centralised on the manager cluster: metrics are
+collected in every cluster by the OpenTelemetry Collector and shipped to a
+single Prometheus, which Grafana and Kiali read from.</p>
+<div class="table-wrapper"><table><thead><tr><th>Component</th><th>Where</th><th>Namespace</th><th>URL</th></tr></thead><tbody>
+<tr><td>Prometheus</td><td><code>mnger-1</code></td><td><code>monitoring</code></td><td><a href="http://127.0.0.1:8083">http://127.0.0.1:8083</a></td></tr>
+<tr><td>Grafana</td><td><code>mnger-1</code></td><td><code>monitoring</code></td><td><a href="http://127.0.0.1:8084">http://127.0.0.1:8084</a></td></tr>
+<tr><td>Kiali (operator + CR)</td><td><code>mnger-1</code></td><td><code>monitoring</code></td><td><a href="http://127.0.0.1:8085">http://127.0.0.1:8085</a></td></tr>
+<tr><td><code>otelco-node</code> collector</td><td>every cluster</td><td><code>monitoring</code></td><td>—</td></tr>
+<tr><td><code>otelco-cluster</code> collector</td><td>every cluster</td><td><code>monitoring</code></td><td>—</td></tr>
+<tr><td>metrics-server</td><td>every cluster</td><td><code>monitoring</code></td><td>—</td></tr>
+</tbody></table>
+</div>
+<h2 id="opentelemetry-collector"><a class="header" href="#opentelemetry-collector">OpenTelemetry Collector</a></h2>
+<p>Two releases are deployed per cluster from <code>charts/otel-collector</code>:</p>
+<ul>
+<li><code>otelco-node</code> — a <strong>DaemonSet</strong> that scrapes, on its own node only, the Envoy
+admin <code>/stats/prometheus</code> endpoint of every pod exposing a <code>*-envoy-prom</code>
+port (sidecars and gateways), the ztunnel pods (<code>ztunnel-stats</code> port), and the
+kubelet via the <code>kubeletstats</code> receiver.</li>
+<li><code>otelco-cluster</code> — a <strong>Deployment</strong> that scrapes istiod on port 15014 and
+collects cluster-level metrics through the <code>k8sclusterreceiver</code> preset.</li>
+</ul>
+<p>Both remote-write to the manager's Prometheus at
+<code>http://prometheus.demo.lab/api/v1/write</code> (resolved via
+<a href="components/./coredns.html">CoreDNS + k8s_gateway</a>), and a <code>resource</code> processor stamps every
+series with the <code>k8s.cluster.name</code> label — which is what makes the multi-cluster
+dashboards possible.</p>
+<p>Because the scrape configuration lives in the collectors, Prometheus itself
+ships with an almost empty <code>scrape_configs</code>. That is expected, not a
+misconfiguration.</p>
+<blockquote>
+<p>istiod is configured with an <code>otel-tracing</code> extension provider pointing at
+<code>otelco-cluster-opentelemetry-collector.monitoring.svc:4318</code>, but no
+<code>Telemetry</code> resource selects it and the collector's <code>traces</code> pipeline is
+disabled. Distributed tracing is therefore <strong>wired but not collected</strong> today;
+enabling it needs a <code>Telemetry</code> resource plus a <code>traces</code> pipeline in
+<code>charts/otel-collector</code>.</p>
+</blockquote>
+<h2 id="prometheus"><a class="header" href="#prometheus">Prometheus</a></h2>
+<p>Query the remote-written series:</p>
+<pre><code class="language-console">curl -s 'http://127.0.0.1:8083/api/v1/label/k8s_cluster_name/values' | jq
+curl -sG http://127.0.0.1:8083/api/v1/query --data-urlencode 'query=istio_requests_total' | jq
+</code></pre>
+<h2 id="grafana"><a class="header" href="#grafana">Grafana</a></h2>
+<p>Anonymous access is enabled with the <code>Viewer</code> role, so the UI opens without a
+login; <code>admin</code> / <code>meshlab123</code> still works for editing.</p>
+<p>Dashboards are <strong>not</strong> provisioned by default. The <code>grafana-git-sync</code> section
+only runs when <code>GITHUB_TOKEN</code> is set, in which case Grafana syncs the dashboards
+under <code>grafana/</code> in this repository. Without a token, an empty dashboard list is
+the expected state.</p>
+<h2 id="kiali"><a class="header" href="#kiali">Kiali</a></h2>
+<p>Kiali is installed via its operator on the manager cluster and configured with
+<code>auth.strategy: anonymous</code>, so the login page just needs the <code>Log In</code> button.
+It reaches the workload clusters through the remote-cluster secrets created by
+the <code>kiali-secrets</code> section (using upstream's
+<code>kiali-prepare-remote-cluster.sh</code>), and it is configured to ignore its own home
+cluster — there is no mesh on <code>mnger-1</code>.</p>
+<p>If a cluster is missing from the Kiali mesh view, re-create the secrets and let
+the operator reconcile:</p>
+<pre><code class="language-console">meshlab run kiali-secrets
+k --context kind-mnger-1 -n monitoring get secrets
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="workloads"><a class="header" href="#workloads">Workloads</a></h1>
+<p>The lab does not deploy the usual <code>httpbin</code>/<code>sleep</code> samples. Instead, the
+<code>deploy-workloads</code> section uses <a href="https://github.com/h0tbird/k-swarm">k-swarm</a>'s
+<code>swarmctl</code> CLI to fill the mesh with synthetic peers that continuously call each
+other, so there is always real east-west traffic to observe.</p>
+<h2 id="what-gets-deployed"><a class="header" href="#what-gets-deployed">What gets deployed</a></h2>
+<p>On every workload cluster (<code>pasta-*</code>, and <code>pizza-*</code> with <code>--cell-count 2</code>):</p>
+<div class="table-wrapper"><table><thead><tr><th>Namespace</th><th>Contents</th></tr></thead><tbody>
+<tr><td><code>swarm-informer</code></td><td>The informer that tells the peers about each other.</td></tr>
+<tr><td><code>swarm-ambient-n1</code></td><td>A <code>peer</code> Deployment (2 replicas) + Service, ambient data plane.</td></tr>
+<tr><td><code>swarm-ambient-n2</code></td><td>Same, ambient.</td></tr>
+<tr><td><code>swarm-sidecar-n1</code></td><td>Same, sidecar data plane.</td></tr>
+<tr><td><code>swarm-sidecar-n2</code></td><td>Same, sidecar.</td></tr>
+</tbody></table>
+</div>
+<p>Namespaces follow <code>swarm-&lt;dataplane-mode&gt;-n&lt;index&gt;</code>; every workload pod is the
+<code>peer</code> app (<code>app=peer</code>), so it is a full 8-peer mesh per cell (2 clusters × 2
+modes × 2 namespaces).</p>
+<p>The exact invocations live in <code>bin/meshlab</code> (<code>deploy-workloads</code>) and boil down
+to:</p>
+<pre><code class="language-console">swarmctl --context 'pasta-*|pizza-*' i --istio-revision stable --dataplane-mode ambient --ingress-mode none --multi-cluster
+swarmctl --context 'pasta-*|pizza-*' w 1:2 --istio-revision stable --dataplane-mode ambient --ingress-mode none --multi-cluster --log-responses --disable-keepalives
+swarmctl --context 'pasta-*|pizza-*' w 1:2 --istio-revision stable --dataplane-mode sidecar --ingress-mode none --multi-cluster --log-responses --disable-keepalives
+</code></pre>
+<p>Two flags are worth calling out:</p>
+<ul>
+<li><code>--multi-cluster</code> makes the peers target their counterparts in the sibling
+cluster, which is what actually exercises the east-west path.</li>
+<li><code>--disable-keepalives</code> is <strong>load bearing</strong>. ztunnel is an L4 proxy: it picks
+an upstream endpoint once per TCP connection, so a client reusing a
+keep-alive connection pins every request to a single endpoint and the traffic
+spread becomes meaningless. See <code>docs/single-network-mode.md</code>.</li>
+</ul>
+<h2 id="inspecting-the-peers"><a class="header" href="#inspecting-the-peers">Inspecting the peers</a></h2>
+<pre><code class="language-console">k --context kind-pasta-1 get ns | grep swarm
+k --context kind-pasta-1 -n swarm-ambient-n1 get pods -l app=peer
+</code></pre>
+<p>Each peer logs one JSON <code>hop</code> line per request, with <code>src.cluster</code>,
+<code>src.namespace</code>, <code>dst.cluster</code>, <code>dst.namespace</code> and <code>http.status</code>:</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n swarm-ambient-n1 logs -l app=peer -c manager --tail 20
+</code></pre>
+<h2 id="connectivity-matrix"><a class="header" href="#connectivity-matrix">Connectivity matrix</a></h2>
+<p>Those <code>hop</code> lines are what the <code>connectivity-matrix</code> skill aggregates into an
+8×8 table of which <code>(src peer, dst peer)</code> pairs are succeeding inside a cell:</p>
+<pre><code class="language-console">.github/skills/connectivity-matrix/gen-matrix.sh
+</code></pre>
+<blockquote>
+<p>The script swallows <code>kubectl</code> errors, so an all-❌ matrix usually means it
+could not reach the clusters (for example when run in a sandbox that hides
+<code>~/.kube/config</code>) rather than a real outage. Sanity check with
+<code>k --context kind-pasta-1 -n swarm-ambient-n1 get pods -l app=peer</code> first.</p>
+</blockquote>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="testing"><a class="header" href="#testing">Testing</a></h1>
-<p>Send requests to <code>service-1</code> from an unauthenticated out-of-cluster workstation via the north-south Istio ingress gateway:</p>
-<pre><code class="language-console">IP=$(multipass list | awk '/pasta-1/ {print $3}')
-curl -sk --resolve service-1.demo.lab:443:${IP} https://service-1.demo.lab/data | jq -r '.podName'
+<p>The lab generates its own traffic: the <a href="./components/workloads.html">k-swarm peers</a>
+continuously call each other, both within a cluster and across the clusters of a
+cell. Testing is therefore mostly a matter of <em>reading</em> what is already
+happening.</p>
+<p>Note that the peers are deployed with <code>--ingress-mode none</code>, so no
+<code>Gateway</code>/<code>HTTPRoute</code> is attached to the north-south gateway by default. The
+<code>istio-nsgw</code> deployment exists (with the custom bootstrap from <code>conf/istio</code>) but
+serves nothing until you add routes yourself.</p>
+<h2 id="intra-cell-connectivity-matrix"><a class="header" href="#intra-cell-connectivity-matrix">Intra-cell connectivity matrix</a></h2>
+<p>The fastest end-to-end check is the 8×8 matrix built from the peers' <code>hop</code>
+logs:</p>
+<pre><code class="language-console">.github/skills/connectivity-matrix/gen-matrix.sh
 </code></pre>
-<p>Same as above but with certificate validation:</p>
-<pre><code class="language-console">IP=$(multipass list | awk '/pasta-1/ {print $3}')
-k --context pasta-1 -n istio-system get secret cacerts -o json | jq -r '.data."ca.crt"' | base64 -d &gt; /tmp/ca.crt
-curl -s --cacert /tmp/ca.crt --resolve service-1.demo.lab:443:${IP} https://service-1.demo.lab/data | jq -r '.podName'
+<p>Each axis label is a <code>(cluster, namespace)</code> peer — <code>p1/am1</code> is
+<code>pasta-1</code>/<code>swarm-ambient-n1</code> — and an intersection is ✅ when at least one
+observed hop returned a <code>2xx</code>/<code>3xx</code>.</p>
+<h2 id="ad-hoc-requests"><a class="header" href="#ad-hoc-requests">Ad-hoc requests</a></h2>
+<p>From a sidecar peer to a peer in the other namespace (note the <code>pasta.local</code>
+DNS suffix):</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n swarm-sidecar-n1 exec deploy/peer -c manager -- \
+  curl -s peer.swarm-ambient-n1.svc.pasta.local/data
 </code></pre>
+<p>Repeat it enough times to see the cross-cluster spread. Because ztunnel load
+balances per <strong>connection</strong>, use a fresh connection each time or you will pin
+every request to a single endpoint:</p>
+<pre><code class="language-console">for i in $(seq 20); do
+  k --context kind-pasta-1 -n swarm-ambient-n1 exec deploy/peer -c manager -- \
+    curl -s --no-keepalive peer.swarm-sidecar-n1.svc.pasta.local/data
+done | jq -r '"\(.cluster)/\(.pod)"' | sort | uniq -c
+</code></pre>
+<h2 id="verify-the-federation"><a class="header" href="#verify-the-federation">Verify the federation</a></h2>
+<pre><code class="language-console">istioctl --context kind-pasta-1 remote-clusters
+istioctl --context kind-pasta-1 proxy-status
+</code></pre>
+<p>Endpoints of a service as seen by a sidecar (should list pods from both
+clusters of the cell):</p>
+<pre><code class="language-console">istioctl --context kind-pasta-1 pc endpoint deploy/peer.swarm-sidecar-n1 | grep peer
+</code></pre>
+<p>Same for ambient — this is what breaks first when cross-cluster ambient
+discovery is off:</p>
+<pre><code class="language-console">istioctl --context kind-pasta-1 ztunnel-config service | grep swarm-ambient
+istioctl --context kind-pasta-1 ztunnel-config workload | grep pasta-2
+</code></pre>
+<h2 id="verify-mtls-identities"><a class="header" href="#verify-mtls-identities">Verify mTLS identities</a></h2>
+<pre><code class="language-console">istioctl --context kind-pasta-1 pc secret deploy/peer.swarm-sidecar-n1 -o json |
+  jq -r '.dynamicActiveSecrets[] | select(.name=="default") |
+         .secret.tlsCertificate.certificateChain.inlineBytes' |
+  base64 -d | step certificate inspect --bundle
+</code></pre>
+<p>The SAN should be
+<code>spiffe://pasta.local/ns/swarm-sidecar-n1/sa/&lt;serviceaccount&gt;</code> — per-cell trust
+domain, per-cluster intermediate CA, shared <code>mesh</code> root.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="locality-load-balancing"><a class="header" href="#locality-load-balancing">Locality load balancing</a></h1>
 <p>Istio's Locality Load Balancing (LLB) is a feature that helps distribute
 traffic across different geographic locations in a way that minimizes latency
@@ -477,25 +999,41 @@ and maximizes availability. It routes traffic to the closest available instance
 of the service, reducing network hops and improving performance, while also
 providing fault tolerance and resilience. LLB is important for managing
 microservices architectures.</p>
-<p>From the perspective of <code>istio-nsgw</code>: get the endpoints, priority, and weight of <code>service-1</code>:</p>
-<pre><code class="language-console"># Get a running pod name
-POD=$(k --context pasta-1 -n istio-system get po -l istio=nsgw --no-headers | awk 'NR==1{print $1}')
+<blockquote>
+<p><strong>In this lab, locality is not configured out of the box.</strong> kind nodes carry
+no <code>topology.kubernetes.io/*</code> labels, so every endpoint ends up in the same
+(empty) locality. See <a href="./debug.html">Debug</a> for how to label the nodes or the
+workloads before experimenting.</p>
+<p>LLB is also a <strong>sidecar/waypoint</strong> feature. ztunnel ignores
+<code>DestinationRule.trafficPolicy.loadBalancer</code> entirely and picks an endpoint at
+random, per TCP connection; the way to express same-cluster preference for
+ambient is <code>trafficDistribution: PreferClose</code> on the <code>Service</code>. The details
+are written up in <code>docs/single-network-mode.md</code>.</p>
+</blockquote>
+<p>From the perspective of <code>istio-nsgw</code>: get the endpoints, priority, and weight of
+the <code>peer</code> service:</p>
+<pre><code class="language-console"># Get a running gateway pod name
+POD=$(k --context kind-pasta-1 -n istio-system get po -l istio=nsgw --no-headers | awk 'NR==1{print $1}')
 
 # Add an ephemeral container to the running pod
-k --context pasta-1 -n istio-system debug -it \
+k --context kind-pasta-1 -n istio-system debug -it \
 --attach=false --image=istio/base --target=istio-proxy --container=debugger \
 ${POD} -- bash
 
-# Watch for the endpoints
-watch "istioctl --context pasta-1 -n istio-system pc endpoint deploy/istio-nsgw | grep -E '^END|service-1'; echo; k --context pasta-1 -n istio-system exec -it ${POD} -c debugger -- curl -X POST localhost:15000/clusters | grep '^outbound.*service-1' | grep -E 'zone|region|::priority|::weight' | sort | sed -e '/:zone:/s/$/\n/'"
+# Watch the endpoints
+watch "istioctl --context kind-pasta-1 -n istio-system pc endpoint deploy/istio-nsgw | grep -E '^END|peer'; echo; k --context kind-pasta-1 -n istio-system exec -it ${POD} -c debugger -- curl -X POST localhost:15000/clusters | grep '^outbound.*peer' | grep -E 'zone|region|::priority|::weight' | sort | sed -e '/:zone:/s/$/\n/'"
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="tls"><a class="header" href="#tls">TLS</a></h1>
 <p>TLS 1.3 is the latest version of the TLS protocol. TLS, which is used by HTTPS
 and other network protocols for encryption, is the modern version of SSL. TLS
 1.3 dropped support for older, less secure cryptographic features, and it
 speeds up TLS handshakes, among other improvements.</p>
+<p>The recipe below decrypts mesh mTLS by making the sidecar Envoy write its
+per-session secrets to a keylog file. It only applies to <strong>sidecar</strong> workloads
+(<code>swarm-sidecar-*</code>); ambient traffic is terminated by ztunnel, which has no
+equivalent <code>EnvoyFilter</code> hook.</p>
 <p>Setup a place to dump the crypto material:</p>
-<pre><code class="language-console">k --context pasta-1 -n httpbin patch deployment sleep --type merge -p '
+<pre><code class="language-console">k --context kind-pasta-1 -n swarm-sidecar-n1 patch deployment peer --type merge -p '
 spec:
   template:
     metadata:
@@ -508,22 +1046,22 @@ spec:
 '
 </code></pre>
 <p>Write the required per-session TLS secrets to a file (<a href="https://github.com/istio/istio/blob/5f90e4b9ae19800f4c539628ae038ec118835610/pilot/pkg/networking/core/v1alpha3/envoyfilter/cluster_patch_test.go#L241-L262">source</a>):</p>
-<pre><code class="language-console">k --context pasta-1 apply -f - &lt;&lt; EOF
+<pre><code class="language-console">k --context kind-pasta-1 apply -f - &lt;&lt; EOF
 apiVersion: networking.istio.io/v1alpha3
 kind: EnvoyFilter
 metadata:
-  name: httpbin
-  namespace: httpbin
+  name: peer
+  namespace: swarm-sidecar-n1
 spec:
   workloadSelector:
     labels:
-      app: sleep
+      app: peer
   configPatches:
   - applyTo: CLUSTER
     match:
       context: SIDECAR_OUTBOUND
       cluster:
-        service: "httpbin.httpbin.svc.cluster.local"
+        service: "peer.swarm-sidecar-n2.svc.pasta.local"
         portNumber: 80
     patch:
       operation: MERGE
@@ -538,19 +1076,22 @@ spec:
 EOF
 </code></pre>
 <p>Restart envoy to kill all TCP connections and force new TLS handshakes:</p>
-<pre><code class="language-console">k --context pasta-1 -n httpbin exec -it deployment/sleep -c istio-proxy -- curl -X POST localhost:15000/quitquitquit
+<pre><code class="language-console">k --context kind-pasta-1 -n swarm-sidecar-n1 exec -it deploy/peer -c istio-proxy -- \
+  curl -X POST localhost:15000/quitquitquit
 </code></pre>
 <p>Optionally, use this command to list all available endpoints:</p>
-<pre><code class="language-console">istioctl --context pasta-1 pc endpoint deploy/httpbin.httpbin | egrep '^END|httpbin'
+<pre><code class="language-console">istioctl --context kind-pasta-1 pc endpoint deploy/peer.swarm-sidecar-n1 | grep -E '^END|peer'
 </code></pre>
 <p>Start <code>tcpdump</code>:</p>
-<pre><code class="language-console">k --context pasta-1 -n httpbin exec -it deployment/sleep -c istio-proxy -- sudo tcpdump -s0 -w /sniff/dump.pcap
+<pre><code class="language-console">k --context kind-pasta-1 -n swarm-sidecar-n1 exec -it deploy/peer -c istio-proxy -- \
+  sudo tcpdump -s0 -w /sniff/dump.pcap
 </code></pre>
 <p>Send a few requests to the endpoints listed above:</p>
-<pre><code class="language-console">k --context pasta-1 -n httpbin exec -i deployment/sleep -- curl -s httpbin/hostname | jq -r 'hostname'
+<pre><code class="language-console">k --context kind-pasta-1 -n swarm-sidecar-n1 exec -i deploy/peer -c manager -- \
+  curl -s peer.swarm-sidecar-n2.svc.pasta.local/data | jq -r '.pod'
 </code></pre>
 <p>Stop <code>tcpdump</code> and download everything:</p>
-<pre><code class="language-console">k --context pasta-1 -n httpbin cp -c istio-proxy sleep-xxx:sniff ~/sniff
+<pre><code class="language-console">k --context kind-pasta-1 -n swarm-sidecar-n1 cp -c istio-proxy peer-xxx:sniff ~/sniff
 </code></pre>
 <p>Open it with Wireshark:</p>
 <pre><code class="language-console">open ~/sniff/dump.pcap
@@ -558,58 +1099,146 @@ EOF
 <p>Filter by <code>tls.handshake.type == 1</code> and follow the TLS stream of a <code>Client Hello</code> packet.
 Right click a <code>TLSv1.3</code> packet then <code>Protocol Preferences</code> --&gt; <code>Transport Layer Security</code> --&gt; <code>(Pre)-Master-Secret log filename</code> and provide the path to the <code>keylog</code> file.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="certificates"><a class="header" href="#certificates">Certificates</a></h1>
+<p>The trust chain of the lab is: a single <code>mesh</code> root CA in
+<a href="./components/vault.html">Vault</a> → one intermediate CA per cluster, issued by
+<a href="./components/cert-manager.html">cert-manager</a> into the <code>cacerts</code> secret → the
+workload certificates istiod mints, with a per-cell trust domain
+(<code>spiffe://pasta.local/...</code>).</p>
 <p>Find below a collection of commands to troubleshoot certificate issues.</p>
-<p>Connect to the externally exposed <code>istiod</code> service and inspect the certificate bundle it presents:</p>
-<pre><code class="language-console">step certificate inspect --bundle --servername istiod-1-19-6.istio-system.svc https://192.168.65.3:15012 --roots /path/to/root-ca.pem
-step certificate inspect --bundle --servername istiod-1-19-6.istio-system.svc https://192.168.65.3:15012 --insecure
+<p>Inspect the root CA:</p>
+<pre><code class="language-console">curl -s http://127.0.0.1:8082/v1/mesh/ca/pem | step certificate inspect
 </code></pre>
-<p>Inspect the certificate chain provided by a given workload:</p>
-<pre><code class="language-console">istioctl --context pasta-1 pc secret httpbin-xxxxxxxxxx-yyyyy.httpbin -o json | jq -r '.dynamicActiveSecrets[] | select(.name=="default") | .secret.tlsCertificate.certificateChain.inlineBytes' | base64 -d | step certificate inspect --bundle
+<p>Inspect a cluster's intermediate CA bundle:</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n istio-system get secret cacerts \
+  -o jsonpath='{.data.tls\.crt}' | base64 -d | step certificate inspect --bundle
 </code></pre>
-<p>Inspect the certificate root CA present in a given workload:</p>
-<pre><code class="language-console">istioctl --context pasta-1 pc secret sleep-xxxxxxxxxx-yyyyy.httpbin -o json | jq -r '.dynamicActiveSecrets[] | select(.name=="ROOTCA") | .secret.validationContext.trustedCa.inlineBytes' | base64 -d | step certificate inspect --bundle
+<p>Connect to <code>istiod</code> and inspect the certificate bundle it presents (<code>15012</code> is
+the mTLS xDS/CA port):</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n istio-system port-forward svc/istiod-1-30-3 15012:15012 &amp;
+step certificate inspect --bundle --insecure \
+  --servername istiod-1-30-3.istio-system.svc https://127.0.0.1:15012
 </code></pre>
-<p>Similar as above but this time as a client:</p>
-<pre><code class="language-console">k --context pasta-1 -n httpbin exec -it deployment/sleep -c istio-proxy -- openssl s_client -showcerts httpbin:80
+<p>Inspect the certificate chain of a given workload:</p>
+<pre><code class="language-console">istioctl --context kind-pasta-1 pc secret deploy/peer.swarm-sidecar-n1 -o json |
+  jq -r '.dynamicActiveSecrets[] | select(.name=="default") |
+         .secret.tlsCertificate.certificateChain.inlineBytes' |
+  base64 -d | step certificate inspect --bundle
 </code></pre>
-<p>Get details about the status of a cert-manager managed certificate:</p>
-<pre><code class="language-console">cmctl --context pasta-1 --namespace applab-blau status certificate blau
+<p>Inspect the root CA a workload trusts:</p>
+<pre><code class="language-console">istioctl --context kind-pasta-1 pc secret deploy/peer.swarm-sidecar-n1 -o json |
+  jq -r '.dynamicActiveSecrets[] | select(.name=="ROOTCA") |
+         .secret.validationContext.trustedCa.inlineBytes' |
+  base64 -d | step certificate inspect --bundle
+</code></pre>
+<p>Same, but as a client from inside the proxy:</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n swarm-sidecar-n1 exec -it deploy/peer -c istio-proxy -- \
+  openssl s_client -showcerts peer.swarm-ambient-n1.svc.pasta.local:80
+</code></pre>
+<p>Follow a cert-manager issuance:</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n istio-system get certificate,certificaterequest
+k --context kind-pasta-1 -n istio-system describe certificate istio-cluster-ica
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="development"><a class="header" href="#development">Development</a></h1>
-<p>Provision only one VM:</p>
-<pre><code class="language-console">source ./lib/misc.sh &amp;&amp; launch_k8s mnger-1
-source ./lib/misc.sh &amp;&amp; launch_vms virt-01
+<p>The lab is designed to iterate on Istio itself. The workspace
+(<code>meshlab.code-workspace</code>) mounts three repositories side by side:
+<code>/workspaces/meshlab</code>, <code>/workspaces/istio</code> and <code>/workspaces/k-swarm</code>.</p>
+<h2 id="partial-labs"><a class="header" href="#partial-labs">Partial labs</a></h2>
+<p><code>meshlab create</code> is a graph of idempotent sections, so you rarely need a full
+rebuild:</p>
+<pre><code class="language-console">meshlab list                      # all sections
+meshlab run &lt;section&gt;             # run one, honouring --cell-count
+meshlab create --cell-count 1     # manager + pasta only (the default)
 </code></pre>
+<h2 id="live-reloading-istiod-with-tilt"><a class="header" href="#live-reloading-istiod-with-tilt">Live-reloading istiod with Tilt</a></h2>
+<p>The <code>tilt-up</code> section starts one <a href="https://tilt.dev">Tilt</a> instance per workload
+cluster (ports 9091…9094). Tilt watches the <code>pilot-discovery</code> binary built from
+<code>/workspaces/istio</code> and, on every rebuild, syncs it into the running istiod pod
+and restarts the process — no image push, no Argo CD sync.</p>
+<p>Rebuild the binary and watch Tilt pick it up:</p>
+<pre><code class="language-console">make istio-binaries          # runs `make build-linux` in /workspaces/istio
+</code></pre>
+<p>The Tilt UI for <code>pasta-1</code> is at <a href="http://127.0.0.1:9091">http://127.0.0.1:9091</a>. The YAML Tilt applies
+mirrors what Argo CD applies for the istiod deployment, so the injected live
+sync shows up as a diff in the Argo CD UI.</p>
+<h2 id="building-images-and-charts"><a class="header" href="#building-images-and-charts">Building images and charts</a></h2>
+<pre><code class="language-console">make help                                                     # list the targets
+make toolbox    REGISTRY=ghcr.io/&lt;you&gt;                        # image used by the Vault WorkflowTemplate
+make istio-images ISTIO_HUB=ghcr.io/&lt;you&gt; ISTIO_TAG=&lt;tag&gt;     # push patched Istio images
+make istio-charts HUB=ghcr.io/&lt;you&gt; VERSION=&lt;version&gt;
+make istio-labels
+</code></pre>
+<p>To actually run a custom build, point the istiod <code>ApplicationSet</code> at it: the
+<code>hub</code>/<code>tag</code> and <code>pilot.image</code> overrides are already present (commented out) in
+<code>charts/istio/templates/applicationsets/istio-istiod.yaml</code>.</p>
+<h2 id="building-this-book"><a class="header" href="#building-this-book">Building this book</a></h2>
+<pre><code class="language-console">mdbook serve docs/book        # live preview
+mdbook build docs/book
+</code></pre>
+<h2 id="upgrading-components"><a class="header" href="#upgrading-components">Upgrading components</a></h2>
+<p>Component versions are the <code>readonly *_VERSION</code> / <code>*_CHART_VERSION</code> constants at
+the top of <code>bin/meshlab</code>, and CLI tool versions live in
+<code>.devcontainer/Dockerfile</code>. The <code>upgrade-components</code> skill
+(<code>.github/skills/upgrade-components/</code>) checks ArtifactHub and GitHub releases
+and bumps them.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="debug"><a class="header" href="#debug">Debug</a></h1>
-<p>Add locality info:</p>
-<pre><code class="language-console">k --context pasta-1 -n httpbin patch workloadentries httpbin-192.168.65.5-vm-network --type merge -p '{"spec":{"locality":"milky-way/solar-system/virt-01"}}'
-k --context pasta-1 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"labels":{"istio-locality":"milky-way.solar-system.pasta-1"}}}}}'
-k --context pasta-1 -n httpbin label pod sleep-xxxx topology.istio.io/subzone=pasta-1 topology.kubernetes.io/region=milky-way topology.kubernetes.io/zone=solar-system
+<h2 id="cluster-overview"><a class="header" href="#cluster-overview">Cluster overview</a></h2>
+<pre><code class="language-console">ml            # pods + LoadBalancer services on every cluster
+ml short      # only mnger-1 and pasta-1
+meshlab watch # `ml short` on a loop
 </code></pre>
-<pre><code class="language-console">k --context pasta-1 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"labels":{
-  "topology.kubernetes.io/region":"milky-way",
-  "topology.kubernetes.io/zone":"solar-system",
-  "topology.istio.io/subzone":"pasta-1"
-}}}}}'
+<h2 id="failed-sections"><a class="header" href="#failed-sections">Failed sections</a></h2>
+<p><code>meshlab create</code> runs with <code>make -k</code>, so it keeps going after a failure and
+records the offenders in <code>.tmp/failed</code>. Re-run just those:</p>
+<pre><code class="language-console">cat .tmp/failed
+meshlab run &lt;section&gt;
 </code></pre>
-<p>Delete locality info:</p>
-<pre><code class="language-console">k --context pasta-1 -n httpbin patch workloadentries httpbin-192.168.65.5-vm-network --type json -p '[{"op": "remove", "path": "/spec/locality"}]'
-k --context pasta-1 -n httpbin patch deployment sleep --type json -p '[{"op": "remove", "path": "/spec/template/metadata/labels/istio-locality"}]'
-k --context pasta-1 -n httpbin label pod sleep-xxxx topology.istio.io/subzone- topology.kubernetes.io/region- topology.kubernetes.io/zone-
+<p>Section logs that run detached are also under <code>.tmp/</code> (for example
+<code>.tmp/tilt-pasta-1.log</code>).</p>
+<h2 id="locality-labels"><a class="header" href="#locality-labels">Locality labels</a></h2>
+<p>Locality is derived from the node's <code>topology.kubernetes.io/*</code> labels, which
+kind does not set. Add them manually to experiment with
+<a href="./locality-lb.html">locality load balancing</a>:</p>
+<pre><code class="language-console">k --context kind-pasta-1 label node pasta-1-control-plane \
+  topology.kubernetes.io/region=milky-way \
+  topology.kubernetes.io/zone=solar-system \
+  topology.istio.io/subzone=pasta-1
 </code></pre>
-<p>Set debug images:</p>
-<pre><code class="language-console">k --context pasta-1 -n istio-system set image deployment/istiod-1-19-6 discovery=docker.io/h0tbird/pilot:1.19.6
-k --context pasta-1 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"docker.io/h0tbird/proxyv2:1.19.6"}}}}}'
+<p>Or override it per workload with the <code>istio-locality</code> pod label
+(<code>&lt;region&gt;/&lt;zone&gt;/&lt;subzone&gt;</code>, dots instead of slashes in the label value):</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n swarm-sidecar-n1 patch deployment peer --type merge -p \
+  '{"spec":{"template":{"metadata":{"labels":{"istio-locality":"milky-way.solar-system.pasta-1"}}}}}'
 </code></pre>
-<p>Unset debug images:</p>
-<pre><code class="language-console">k --context pasta-1 -n istio-system set image deployment/istiod-1-19-6 discovery=docker.io/istio/pilot:1.19.6
-k --context pasta-1 -n httpbin patch deployment sleep --type merge -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"docker.io/istio/proxyv2:1.19.6"}}}}}'
+<p>Remove it again:</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n swarm-sidecar-n1 patch deployment peer --type json -p \
+  '[{"op":"remove","path":"/spec/template/metadata/labels/istio-locality"}]'
+k --context kind-pasta-1 label node pasta-1-control-plane \
+  topology.kubernetes.io/region- topology.kubernetes.io/zone- topology.istio.io/subzone-
 </code></pre>
-<p>Debug:</p>
-<pre><code class="language-console">k --context pasta-1 -n httpbin exec -it deployments/sleep -c istio-proxy -- sudo bash -c 'echo 0 &gt; /proc/sys/kernel/yama/ptrace_scope'
-k --context pasta-1 -n istio-system exec -it deployments/istiod-1-19-6 -- dlv dap --listen=:40000 --log=true
-k --context pasta-1 -n istio-system port-forward deployments/istiod-1-19-6 40000:40000
+<h2 id="custom-istiod--proxy-images"><a class="header" href="#custom-istiod--proxy-images">Custom istiod / proxy images</a></h2>
+<p>For a one-off image swap (for a persistent change, edit the istiod
+<code>ApplicationSet</code> — otherwise Argo CD will revert it):</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n istio-system set image deployment/istiod-1-30-3 \
+  discovery=ghcr.io/h0tbird/pilot:1.30.3-dev
+
+k --context kind-pasta-1 -n swarm-sidecar-n1 patch deployment peer --type merge -p \
+  '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"ghcr.io/h0tbird/proxyv2:1.30.3-dev"}}}}}'
 </code></pre>
+<p>For iterating on <code>pilot-discovery</code> itself, prefer Tilt — see
+<a href="./development.html">Development</a>.</p>
+<h2 id="attaching-a-debugger-to-istiod"><a class="header" href="#attaching-a-debugger-to-istiod">Attaching a debugger to istiod</a></h2>
+<p><code>hack/launch.json</code> holds the matching VS Code launch configuration.</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n istio-system exec -it deployment/istiod-1-30-3 -- \
+  dlv dap --listen=:40000 --log=true
+k --context kind-pasta-1 -n istio-system port-forward deployment/istiod-1-30-3 40000:40000
+</code></pre>
+<p>To attach to a proxy, first relax <code>ptrace_scope</code> in the debug-variant proxy
+container:</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n swarm-sidecar-n1 exec -it deploy/peer -c istio-proxy -- \
+  sudo bash -c 'echo 0 &gt; /proc/sys/kernel/yama/ptrace_scope'
+</code></pre>
+<h2 id="more"><a class="header" href="#more">More</a></h2>
+<p><code>docs/troubleshooting.md</code> in this repository collects issue-specific
+write-ups that are too narrow for the book.</p>
 
                     </main>
 

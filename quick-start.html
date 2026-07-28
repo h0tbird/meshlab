@@ -152,12 +152,59 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="quick-start"><a class="header" href="#quick-start">Quick Start</a></h1>
-<p>To quickly get started with the MeshLab repository, follow these simple steps:</p>
-<pre><code class="language-bash">./bin/meshlab-multipass create
-./bin/meshlab-multipass suspend
-./bin/meshlab-multipass delete
+                        <h1 id="quick-start"><a class="header" href="#quick-start">Quick start</a></h1>
+<p>Everything runs inside the repository's dev container, which already ships
+<code>kind</code>, <code>kubectl</code> (aliased to <code>k</code>), <code>helm</code>, <code>istioctl</code>, <code>argocd</code>, <code>argo</code>,
+<code>swarmctl</code>, <code>tilt</code> and friends. Open the repo in VS Code and run
+<code>Dev Containers: Reopen in Container</code> (see the README for the other options),
+then open a terminal inside the container.</p>
+<h2 id="create-the-lab"><a class="header" href="#create-the-lab">Create the lab</a></h2>
+<pre><code class="language-console">meshlab create
 </code></pre>
+<p>This creates the manager cluster plus the <code>pasta</code> cell and runs every section
+of the bootstrap graph. Useful flags:</p>
+<pre><code class="language-console">meshlab create --cell-count 2          # also create the pizza cell
+meshlab create --network-mode single   # one Istio network per cell (no east-west gateways)
+</code></pre>
+<p>Watch the clusters converge from a second terminal:</p>
+<pre><code class="language-console">meshlab watch     # loops `ml short`
+ml                # one-shot, all clusters
+</code></pre>
+<h2 id="services"><a class="header" href="#services">Services</a></h2>
+<p>As the lab starts up, these become available on the host:</p>
+<div class="table-wrapper"><table><thead><tr><th>Service</th><th>URL</th><th>Credentials</th></tr></thead><tbody>
+<tr><td>Argo CD</td><td><a href="http://127.0.0.1:8080">http://127.0.0.1:8080</a></td><td><code>admin</code>/<code>meshlab123</code></td></tr>
+<tr><td>Argo Workflows</td><td><a href="http://127.0.0.1:8081">http://127.0.0.1:8081</a></td><td><code>admin</code>/<code>meshlab123</code></td></tr>
+<tr><td>Vault</td><td><a href="http://127.0.0.1:8082">http://127.0.0.1:8082</a></td><td>token <code>meshlab123</code></td></tr>
+<tr><td>Prometheus</td><td><a href="http://127.0.0.1:8083">http://127.0.0.1:8083</a></td><td>none</td></tr>
+<tr><td>Grafana</td><td><a href="http://127.0.0.1:8084">http://127.0.0.1:8084</a></td><td>anonymous viewer, or <code>admin</code>/<code>meshlab123</code></td></tr>
+<tr><td>Kiali</td><td><a href="http://127.0.0.1:8085">http://127.0.0.1:8085</a></td><td>none (anonymous)</td></tr>
+<tr><td>zot</td><td><a href="http://127.0.0.1:8086">http://127.0.0.1:8086</a></td><td>none</td></tr>
+<tr><td>Tilt <code>pasta-1</code></td><td><a href="http://127.0.0.1:9091">http://127.0.0.1:9091</a></td><td>none</td></tr>
+<tr><td>Tilt <code>pasta-2</code></td><td><a href="http://127.0.0.1:9092">http://127.0.0.1:9092</a></td><td>none</td></tr>
+</tbody></table>
+</div>
+<p>With <code>--cell-count 2</code>, Tilt for <code>pizza-1</code> and <code>pizza-2</code> is published on 9093
+and 9094.</p>
+<h2 id="talk-to-the-clusters"><a class="header" href="#talk-to-the-clusters">Talk to the clusters</a></h2>
+<p>kubeconfig contexts are named after the kind clusters, so they carry a <code>kind-</code>
+prefix:</p>
+<pre><code class="language-console">k --context kind-mnger-1 get nodes
+k --context kind-pasta-1 -n istio-system get pods
+istioctl --context kind-pasta-1 remote-clusters
+</code></pre>
+<h2 id="re-run-a-single-section"><a class="header" href="#re-run-a-single-section">Re-run a single section</a></h2>
+<p><code>meshlab create</code> is a dependency graph of idempotent sections executed with
+<code>make -j</code>. Any of them can be re-run on its own:</p>
+<pre><code class="language-console">meshlab list                       # list the sections
+meshlab run setup-flat-network     # re-run just one
+</code></pre>
+<h2 id="tear-it-down"><a class="header" href="#tear-it-down">Tear it down</a></h2>
+<pre><code class="language-console">meshlab delete
+</code></pre>
+<p>This removes the kind clusters, the <code>kindccm</code> load-balancer containers, the zot
+container, the Tilt and <code>socat</code> processes, and <code>./.tmp</code>. The <code>zot-data</code> Docker
+volume is kept so the next <code>meshlab create</code> does not re-download every image.</p>
 
                     </main>
 

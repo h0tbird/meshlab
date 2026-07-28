@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Multipass - The MeshLab Book</title>
+        <title>Argo Workflows - The MeshLab Book</title>
 
 
         <!-- Custom HTML head -->
@@ -152,42 +152,68 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="multipass"><a class="header" href="#multipass">Multipass</a></h1>
-<p><a href="https://multipass.run/">Multipass</a> from Canonical is a tool for launching, managing, and orchestrating Linux virtual machines on local computers, simplifying the process for development, testing, and other purposes. It provides a user-friendly command-line interface and integrates with other tools for automation and customization.</p>
-<p>Stop/start multipassd:</p>
-<pre><code class="language-console">sudo launchctl unload /Library/LaunchDaemons/com.canonical.multipassd.plist
-sudo launchctl load -w /Library/LaunchDaemons/com.canonical.multipassd.plist
+                        <h1 id="argo-workflows"><a class="header" href="#argo-workflows">Argo Workflows</a></h1>
+<p><a href="https://argo-workflows.readthedocs.io">Argo Workflows</a> is the orchestrator that
+turns the pile of Argo CD <code>ApplicationSet</code>s into an ordered bootstrap. It is
+installed by the <code>setup-argowf</code> section into the <code>argowf</code> namespace of the
+manager cluster, with the controller scoped to the <code>argocd</code> namespace and
+<code>DEFAULT_REQUEUE_TIME</code> lowered to <code>1s</code> so the DAG advances quickly.</p>
+<ul>
+<li>UI: <a href="http://127.0.0.1:8081">http://127.0.0.1:8081</a> (<code>admin</code> / <code>meshlab123</code>)</li>
+</ul>
+<h2 id="workflowtemplates"><a class="header" href="#workflowtemplates">WorkflowTemplates</a></h2>
+<p><code>charts/wftemplates</code> provides the two reusable templates:</p>
+<ul>
+<li><code>argocd-sync-and-wait</code> — syncs the Argo CD applications matching a label
+selector (<code>argocd app sync -l name=&lt;app&gt; --async</code>), then waits for the
+operation and for health.</li>
+<li><code>populate-vault</code> — enables the <code>mesh</code> PKI in Vault, generates the root CA,
+writes the <code>mesh-cert-manager</code> policy and creates the AppRole cert-manager
+uses to sign intermediate CAs.</li>
+</ul>
+<h2 id="the-bootstrap-dag"><a class="header" href="#the-bootstrap-dag">The bootstrap DAG</a></h2>
+<p>The DAG itself is not a chart: it is generated inline by the <code>bootstrap-dag</code>
+section of <code>bin/meshlab</code> and submitted with <code>argo submit</code>. Roughly:</p>
+<pre><code class="language-mermaid">graph TD
+  prometheus --&gt; grafana
+  prometheus --&gt; otelco-node
+  prometheus --&gt; otelco-cluster
+  vault
+  cert-manager --&gt; istio-issuers
+  populate-vault --&gt; istio-issuers
+  kubernetes-replicator
+  metrics-server
+  kiali-operator
+  istio-base --&gt; istio-cni
+  istio-base --&gt; istio-istiod
+  istio-issuers --&gt; istio-istiod
+  istio-istiod --&gt; istio-ztunnel
+  istio-istiod --&gt; istio-nsgw
+  istio-istiod --&gt; istio-ewgw
 </code></pre>
-<p>Restart multipassd:</p>
-<pre><code class="language-console">sudo launchctl kickstart -k system/com.canonical.multipassd
+<p><code>istio-ewgw</code> is only part of the DAG in <code>--network-mode multi</code>.</p>
+<h2 id="everyday-commands"><a class="header" href="#everyday-commands">Everyday commands</a></h2>
+<p>List the workflows:</p>
+<pre><code class="language-console">argo --context kind-mnger-1 -n argocd list
 </code></pre>
-<p>Directories of interest:</p>
-<pre><code class="language-console">sudo tree /var/root/Library/Caches/multipassd
-sudo tree /var/root/Library/Application\ Support/multipassd
-sudo tree /Library/Application\ Support/com.canonical.multipass
+<p>Follow the bootstrap workflow:</p>
+<pre><code class="language-console">argo --context kind-mnger-1 -n argocd logs -f @latest
+argo --context kind-mnger-1 -n argocd get @latest
 </code></pre>
-<p>List all available instances:</p>
-<pre><code class="language-console">multipass list
-</code></pre>
-<p>Display information about all instances:</p>
-<pre><code class="language-console">multipass info
-</code></pre>
-<p>Open a shell on a running instance:</p>
-<pre><code>multipass shell pasta-1
-</code></pre>
-<p>Tail the logs:</p>
-<pre><code class="language-console">sudo tail -f /Library/Logs/Multipass/multipassd.log
+<p>Re-run the whole bootstrap (idempotent — it is skipped if a <code>bootstrap-*</code>
+workflow already exists):</p>
+<pre><code class="language-console">meshlab run bootstrap-dag
 </code></pre>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../components/pull-through.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../components/argocd.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../components/hypervisor.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../components/vault.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -197,11 +223,11 @@ sudo tree /Library/Application\ Support/com.canonical.multipass
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../components/pull-through.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../components/argocd.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../components/hypervisor.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../components/vault.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

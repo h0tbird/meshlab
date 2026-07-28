@@ -153,6 +153,37 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="components"><a class="header" href="#components">Components</a></h1>
+<p><code>meshlab create</code> is a dependency graph of idempotent <strong>sections</strong> defined in
+<code>bin/meshlab</code> (<code>meshlab list</code> prints them). The graph itself lives in the <code>DEPS</code>
+associative array in <code>lib/common.sh</code> and is executed with <code>make -j</code>, so
+independent sections run in parallel.</p>
+<div class="table-wrapper"><table><thead><tr><th>Section</th><th>What it does</th></tr></thead><tbody>
+<tr><td><code>cloud-provider-kind</code></td><td>Creates the Docker <code>kind</code> network and starts the <code>kindccm</code> containers that hand out <code>LoadBalancer</code> IPs.</td></tr>
+<tr><td><code>pull-through-cache</code></td><td>Starts the <a href="./components/pull-through.html">zot</a> registry used as an on-demand pull-through cache.</td></tr>
+<tr><td><code>create-clusters</code></td><td>Creates the <a href="./components/kind.html">kind</a> clusters with per-cluster pod/service CIDRs and a <code>&lt;cell&gt;.local</code> DNS domain.</td></tr>
+<tr><td><code>add-registries-to-containerd</code></td><td>Points each cluster's containerd at zot.</td></tr>
+<tr><td><code>setup-kubeconfig</code></td><td>Rebuilds the in-container kubeconfig with only the <code>kind-*</code> contexts, plus an in-cluster variant.</td></tr>
+<tr><td><code>setup-flat-network</code></td><td>Adds the static routes that make each cell a <a href="./components/flat-network.html">flat L3 network</a>.</td></tr>
+<tr><td><code>install-k8s-gateway</code></td><td>Installs <code>k8s_gateway</code> so <code>demo.lab</code> names resolve to <code>LoadBalancer</code> IPs.</td></tr>
+<tr><td><code>setup-coredns</code></td><td>Rewrites the <a href="./components/coredns.html">CoreDNS</a> Corefile for the <code>&lt;cell&gt;.local</code> zone and forwards <code>demo.lab</code>.</td></tr>
+<tr><td><code>setup-argocd</code></td><td>Installs <a href="./components/argocd.html">Argo CD</a> on the manager cluster.</td></tr>
+<tr><td><code>register-argocd-clusters</code></td><td>Registers every cluster in Argo CD with <code>name</code> and <code>cell</code> labels used by the <code>ApplicationSet</code> generators.</td></tr>
+<tr><td><code>install-applicationsets</code></td><td>Renders <code>charts/*</code> and applies the <code>ApplicationSet</code>s and <code>WorkflowTemplate</code>s.</td></tr>
+<tr><td><code>setup-argowf</code></td><td>Installs <a href="./components/argo-workflows.html">Argo Workflows</a> on the manager cluster.</td></tr>
+<tr><td><code>kiali-secrets</code></td><td>Creates the Kiali remote-cluster secrets.</td></tr>
+<tr><td><code>bootstrap-dag</code></td><td>Submits the Workflow that syncs every <code>ApplicationSet</code> in dependency order.</td></tr>
+<tr><td><code>istio-endpoint-discovery</code></td><td>Exchanges <code>istioctl create-remote-secret</code> credentials between the clusters of a cell.</td></tr>
+<tr><td><code>grafana-git-sync</code></td><td>Optional; wires Grafana to the dashboards in the repo (needs <code>GITHUB_TOKEN</code>).</td></tr>
+<tr><td><code>tilt-up</code></td><td>Starts one <a href="./development.html">Tilt</a> instance per workload cluster.</td></tr>
+<tr><td><code>deploy-workloads</code></td><td>Deploys the <a href="./components/workloads.html">k-swarm workloads</a>.</td></tr>
+<tr><td><code>publish-ports</code></td><td><code>socat</code> forwards the <code>LoadBalancer</code> services to <code>127.0.0.1</code>.</td></tr>
+</tbody></table>
+</div>
+<h2 id="pinned-versions"><a class="header" href="#pinned-versions">Pinned versions</a></h2>
+<p>All component versions are <code>readonly</code> constants at the top of <code>bin/meshlab</code>,
+each with a link to where the latest version can be checked. The
+<code>upgrade-components</code> skill (<code>.github/skills/upgrade-components/</code>) automates
+bumping them.</p>
 
                     </main>
 

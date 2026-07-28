@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>ArgoCD - The MeshLab Book</title>
+        <title>Argo CD - The MeshLab Book</title>
 
 
         <!-- Custom HTML head -->
@@ -152,29 +152,59 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="argocd"><a class="header" href="#argocd">ArgoCD</a></h1>
-<p><a href="https://argo-cd.readthedocs.io/en/stable/">ArgoCD</a> is a GitOps platform for Kubernetes applications that enables continuous delivery with declarative management and automation of deployments from Git repositories to multiple clusters. With its user-friendly interface, robust features, and deep Kubernetes integration, ArgoCD is a popular choice for automating application delivery.</p>
+                        <h1 id="argo-cd"><a class="header" href="#argo-cd">Argo CD</a></h1>
+<p><a href="https://argo-cd.readthedocs.io/en/stable/">Argo CD</a> is the GitOps engine of the
+lab. It is installed by the <code>setup-argocd</code> section into the <code>argocd</code> namespace
+of the <strong>manager</strong> cluster only, and it manages every other cluster remotely.</p>
+<ul>
+<li>UI: <a href="http://127.0.0.1:8080">http://127.0.0.1:8080</a> (<code>admin</code> / <code>meshlab123</code>)</li>
+</ul>
+<h2 id="how-applications-are-generated"><a class="header" href="#how-applications-are-generated">How applications are generated</a></h2>
+<p><code>register-argocd-clusters</code> registers each kind cluster as an Argo CD cluster
+secret carrying two labels:</p>
+<ul>
+<li><code>name=&lt;cluster&gt;</code> (e.g. <code>pasta-1</code>)</li>
+<li><code>cell=&lt;cell&gt;</code> (e.g. <code>pasta</code>)</li>
+</ul>
+<p>Every chart under <code>charts/</code> then ships an <code>ApplicationSet</code> with a <code>clusters</code>
+generator that fans out over those secrets, using <code>{{name}}</code> and
+<code>{{metadata.labels.cell}}</code> to derive per-cluster values such as the Istio
+<code>clusterName</code>, <code>network</code> and <code>trustDomain</code>. <code>install-applicationsets</code> renders
+them with <code>helm template ./charts/&lt;x&gt; --set chartVersion=&lt;version&gt;</code> and
+server-side applies the result.</p>
+<p>The applications are <strong>not</strong> auto-synced: the ordering is driven by the
+<a href="./argo-workflows.html">Argo Workflows</a> bootstrap DAG, which syncs them by label.</p>
+<h2 id="everyday-commands"><a class="header" href="#everyday-commands">Everyday commands</a></h2>
 <p>List all the applications:</p>
 <pre><code class="language-console">argocd app list
 </code></pre>
-<p>Manually sync applications:</p>
+<p>Manually sync a set of applications (the label matches the <code>name</code> label on the
+<code>ApplicationSet</code> template, so this hits every cluster at once):</p>
 <pre><code class="language-console">argocd app sync -l name=istio-issuers --async
 argocd app sync -l name=istio-base --async
 argocd app sync -l name=istio-cni --async
 argocd app sync -l name=istio-istiod --async
+argocd app sync -l name=istio-ztunnel --async
 argocd app sync -l name=istio-nsgw --async
-argocd app sync -l name=istio-ewgw --async
+argocd app sync -l name=istio-ewgw --async   # multi-network mode only
+</code></pre>
+<p>Re-render and re-apply the <code>ApplicationSet</code>s after editing a chart:</p>
+<pre><code class="language-console">meshlab run install-applicationsets
+</code></pre>
+<p>Inspect the registered clusters and their labels:</p>
+<pre><code class="language-console">argocd cluster list
+k --context kind-mnger-1 -n argocd get secrets -l argocd.argoproj.io/secret-type=cluster --show-labels
 </code></pre>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../components/flat-network.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../components/coredns.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../components/coredns.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../components/argo-workflows.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -184,11 +214,11 @@ argocd app sync -l name=istio-ewgw --async
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../components/flat-network.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../components/coredns.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../components/coredns.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../components/argo-workflows.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

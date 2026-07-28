@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>klipper-lb - The MeshLab Book</title>
+        <title>kind - The MeshLab Book</title>
 
 
         <!-- Custom HTML head -->
@@ -152,31 +152,62 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="klipper-lb"><a class="header" href="#klipper-lb">klipper-lb</a></h1>
-<p><code>klipper-lb</code> uses a host port for each <code>Service</code> of type <code>LoadBalancer</code> and
-sets up iptables to forward the request to the cluster IP. The regular k8s
-scheduler will find a free host port. If there are no free host ports, the
-<code>Service</code> will stay in pending. There is one <code>DaemonSet</code> per <code>Service</code> of type
-<code>LoadBalancer</code> and each <code>Pod</code> has one container per exposed <code>Service</code> port.</p>
-<p>List the containers fronting the exposed <code>argocd-server</code> ports:</p>
-<pre><code class="language-console">k --context mnger-1 -n kube-system get ds -l svccontroller.k3s.cattle.io/svcname=argocd-server -o yaml | yq '.items[].spec.template.spec.containers[].name'
+                        <h1 id="kind"><a class="header" href="#kind">kind</a></h1>
+<p><a href="https://kind.sigs.k8s.io">kind</a> runs Kubernetes clusters as Docker containers.
+The lab used to provision VMs; today every cluster is a single-node kind
+cluster and there is no VM, hypervisor or cloud-init layer left.</p>
+<p>Clusters are created by the <code>create-clusters</code> section of <code>bin/meshlab</code>. Which
+ones exist depends on <code>--cell-count</code>:</p>
+<div class="table-wrapper"><table><thead><tr><th>Cluster</th><th>Cell</th><th>Pod CIDR</th><th>Service CIDR</th><th>DNS domain</th></tr></thead><tbody>
+<tr><td><code>mnger-1</code></td><td><code>mngr</code></td><td><code>10.41.0.0/16</code></td><td><code>10.141.0.0/16</code></td><td><code>mngr.local</code></td></tr>
+<tr><td><code>pasta-1</code></td><td><code>pasta</code></td><td><code>10.51.0.0/16</code></td><td><code>10.151.0.0/16</code></td><td><code>pasta.local</code></td></tr>
+<tr><td><code>pasta-2</code></td><td><code>pasta</code></td><td><code>10.52.0.0/16</code></td><td><code>10.152.0.0/16</code></td><td><code>pasta.local</code></td></tr>
+<tr><td><code>pizza-1</code></td><td><code>pizza</code></td><td><code>10.61.0.0/16</code></td><td><code>10.161.0.0/16</code></td><td><code>pizza.local</code></td></tr>
+<tr><td><code>pizza-2</code></td><td><code>pizza</code></td><td><code>10.62.0.0/16</code></td><td><code>10.162.0.0/16</code></td><td><code>pizza.local</code></td></tr>
+</tbody></table>
+</div>
+<p>The CIDRs come from the <code>POD_CIDR</code> and <code>SVC_CIDR</code> maps in <code>lib/common.sh</code>; they
+never overlap so the clusters of a cell can be wired into a
+<a href="./flat-network.html">flat L3 network</a>. The kubeadm <code>networking.dnsDomain</code> is set
+to <code>&lt;cell&gt;.local</code>, which is why istiod is configured with a matching
+<code>global.proxy.clusterDomain</code>.</p>
+<p>All node containers are attached to the Docker <code>kind</code> network, together with
+the <a href="./pull-through.html">zot</a> cache and the <code>kindccm</code>
+<a href="./load-balancers.html">load balancer</a> containers.</p>
+<h2 id="everyday-commands"><a class="header" href="#everyday-commands">Everyday commands</a></h2>
+<p>List the clusters:</p>
+<pre><code class="language-console">kind get clusters
 </code></pre>
-<p>List the containers fronting the exposed <code>istio-eastwestgateway</code> ports:</p>
-<pre><code class="language-console">k --context pasta-1 -n kube-system get ds -l svccontroller.k3s.cattle.io/svcname=istio-eastwestgateway -o yaml | yq '.items[].spec.template.spec.containers[].name'
+<p>Note that kubeconfig contexts carry the <code>kind-</code> prefix:</p>
+<pre><code class="language-console">k config get-contexts
+k --context kind-pasta-1 get nodes -o wide
 </code></pre>
-<p>List the containers fronting the exposed <code>istio-ingressgateway</code> ports:</p>
-<pre><code class="language-console">k --context pasta-1 -n kube-system get ds -l svccontroller.k3s.cattle.io/svcname=istio-ingressgateway -o yaml | yq '.items[].spec.template.spec.containers[].name'
+<p>Get a shell on a node (each cluster has a single <code>&lt;cluster&gt;-control-plane</code>
+container):</p>
+<pre><code class="language-console">docker exec -it pasta-1-control-plane bash
 </code></pre>
+<p>Inspect the Docker network the clusters share:</p>
+<pre><code class="language-console">docker network inspect kind | jq -r '.[].Containers[].Name'
+</code></pre>
+<p>Delete everything (also stops zot, <code>kindccm</code>, Tilt and the <code>socat</code> forwards):</p>
+<pre><code class="language-console">meshlab delete
+</code></pre>
+<blockquote>
+<p>Node containers are not restart-safe by design: the static routes installed by
+<code>setup-flat-network</code> and the containerd registry config live inside the node
+container. If a node restarts, re-run <code>meshlab run setup-flat-network</code> and
+<code>meshlab run add-registries-to-containerd</code>.</p>
+</blockquote>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../components/istio.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../components/pull-through.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../components/envoy.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../components/flat-network.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -186,11 +217,11 @@ scheduler will find a free host port. If there are no free host ports, the
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../components/istio.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../components/pull-through.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../components/envoy.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../components/flat-network.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

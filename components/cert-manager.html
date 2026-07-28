@@ -153,27 +153,40 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="cert-manager"><a class="header" href="#cert-manager">cert-manager</a></h1>
-<p>Cert-manager is an open-source software that helps automate the management and
-issuance of TLS/SSL certificates in Kubernetes clusters. It integrates with
-various certificate authorities (CAs) and can automatically renew certificates
-before they expire, ensuring secure communication between services running in
-the cluster.</p>
-<p>Print the cert-manager CLI version and the deployed cert-manager version:</p>
-<pre><code>cmctl --context pasta-1 version
+<p><a href="https://cert-manager.io">cert-manager</a> automates the issuance and renewal of
+X.509 certificates. In this lab it is deployed to <strong>every</strong> cluster and it is
+the bridge between <a href="./vault.html">Vault</a> and Istio: it turns the single <code>mesh</code>
+root CA into one intermediate CA per cluster.</p>
+<h2 id="the-issuers"><a class="header" href="#the-issuers">The issuers</a></h2>
+<p><code>charts/issuers</code> is synced into <code>istio-system</code> (as the <code>istio-issuers</code>
+application) and contains:</p>
+<div class="table-wrapper"><table><thead><tr><th>Resource</th><th>Kind</th><th>Purpose</th></tr></thead><tbody>
+<tr><td><code>vault-ica-approle</code></td><td><code>Secret</code></td><td>The AppRole <code>secretId</code> created by <code>populate-vault</code>.</td></tr>
+<tr><td><code>vault-ica</code></td><td><code>Issuer</code></td><td>Vault issuer authenticating with that AppRole against <code>mesh/</code>.</td></tr>
+<tr><td><code>istio-cluster-ica</code></td><td><code>Certificate</code></td><td>The cluster's intermediate CA (<code>isCA: true</code>, CN = cluster name, 5-year duration, renewed 1 year before expiry, key rotated on every renewal). It writes the <code>cacerts</code> secret that istiod consumes.</td></tr>
+<tr><td><code>ingress-ca</code></td><td><code>Issuer</code> / <code>ClusterIssuer</code></td><td>CA issuer backed by <code>cacerts</code>, used for ingress/workload leaf certificates.</td></tr>
+</tbody></table>
+</div>
+<p>istiod runs with <code>AUTO_RELOAD_PLUGIN_CERTS: true</code>, so a renewal of <code>cacerts</code> is
+picked up without restarting the control plane.</p>
+<h2 id="everyday-commands"><a class="header" href="#everyday-commands">Everyday commands</a></h2>
+<p>The <code>cmctl</code> CLI is not installed in the dev container; use <code>kubectl</code>.</p>
+<p>Check the intermediate CA of a cluster:</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n istio-system get certificate istio-cluster-ica
+k --context kind-pasta-1 -n istio-system describe certificate istio-cluster-ica
 </code></pre>
-<p>This check attempts to perform a dry-run create of a cert-manager v1alpha2
-<code>Certificate</code> resource in order to verify that CRDs are installed and all the
-required webhooks are reachable by the K8S API server. We use v1alpha2 API to
-ensure that the API server has also connected to the cert-manager conversion
-webhook:</p>
-<pre><code class="language-console">cmctl check api --context pasta-1
+<p>Follow the request chain when issuance is stuck:</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n istio-system get certificaterequests
+k --context kind-pasta-1 -n cert-manager logs -l app=cert-manager --tail 50
 </code></pre>
-<p>Get details about the current status of a cert-manager Certificate resource,
-including information on related resources like <code>CertificateRequest</code> or <code>Order</code>:</p>
-<pre><code class="language-console">cmctl --context pasta-1 --namespace istio-system status certificate istio-cluster-ica
+<p>Inspect the resulting CA bundle:</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n istio-system get secret cacerts \
+  -o jsonpath='{.data.tls\.crt}' | base64 -d | step certificate inspect --bundle
 </code></pre>
-<p>Mark cert-manager <code>Certificate</code> resources for manual renewal:</p>
-<pre><code class="language-console">cmctl renew --context pasta-1 --namespace istio-system istio-cluster-ica
+<p>Force a reissue (there is no <code>cmctl</code> here, so delete the secret and let the
+<code>Certificate</code> controller re-create it):</p>
+<pre><code class="language-console">k --context kind-pasta-1 -n istio-system delete secret cacerts
+k --context kind-pasta-1 -n istio-system get certificate istio-cluster-ica -w
 </code></pre>
 
                     </main>

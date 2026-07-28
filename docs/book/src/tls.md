@@ -5,9 +5,14 @@ and other network protocols for encryption, is the modern version of SSL. TLS
 1.3 dropped support for older, less secure cryptographic features, and it
 speeds up TLS handshakes, among other improvements.
 
+The recipe below decrypts mesh mTLS by making the sidecar Envoy write its
+per-session secrets to a keylog file. It only applies to **sidecar** workloads
+(`swarm-sidecar-*`); ambient traffic is terminated by ztunnel, which has no
+equivalent `EnvoyFilter` hook.
+
 Setup a place to dump the crypto material:
 ```console
-k --context pasta-1 -n httpbin patch deployment sleep --type merge -p '
+k --context kind-pasta-1 -n swarm-sidecar-n1 patch deployment peer --type merge -p '
 spec:
   template:
     metadata:
@@ -22,22 +27,22 @@ spec:
 
 Write the required per-session TLS secrets to a file ([source](https://github.com/istio/istio/blob/5f90e4b9ae19800f4c539628ae038ec118835610/pilot/pkg/networking/core/v1alpha3/envoyfilter/cluster_patch_test.go#L241-L262)):
 ```console
-k --context pasta-1 apply -f - << EOF
+k --context kind-pasta-1 apply -f - << EOF
 apiVersion: networking.istio.io/v1alpha3
 kind: EnvoyFilter
 metadata:
-  name: httpbin
-  namespace: httpbin
+  name: peer
+  namespace: swarm-sidecar-n1
 spec:
   workloadSelector:
     labels:
-      app: sleep
+      app: peer
   configPatches:
   - applyTo: CLUSTER
     match:
       context: SIDECAR_OUTBOUND
       cluster:
-        service: "httpbin.httpbin.svc.cluster.local"
+        service: "peer.swarm-sidecar-n2.svc.pasta.local"
         portNumber: 80
     patch:
       operation: MERGE
@@ -54,27 +59,30 @@ EOF
 
 Restart envoy to kill all TCP connections and force new TLS handshakes:
 ```console
-k --context pasta-1 -n httpbin exec -it deployment/sleep -c istio-proxy -- curl -X POST localhost:15000/quitquitquit
+k --context kind-pasta-1 -n swarm-sidecar-n1 exec -it deploy/peer -c istio-proxy -- \
+  curl -X POST localhost:15000/quitquitquit
 ```
 
 Optionally, use this command to list all available endpoints:
 ```console
-istioctl --context pasta-1 pc endpoint deploy/httpbin.httpbin | egrep '^END|httpbin'
+istioctl --context kind-pasta-1 pc endpoint deploy/peer.swarm-sidecar-n1 | grep -E '^END|peer'
 ```
 
 Start `tcpdump`:
 ```console
-k --context pasta-1 -n httpbin exec -it deployment/sleep -c istio-proxy -- sudo tcpdump -s0 -w /sniff/dump.pcap
+k --context kind-pasta-1 -n swarm-sidecar-n1 exec -it deploy/peer -c istio-proxy -- \
+  sudo tcpdump -s0 -w /sniff/dump.pcap
 ```
 
 Send a few requests to the endpoints listed above:
 ```console
-k --context pasta-1 -n httpbin exec -i deployment/sleep -- curl -s httpbin/hostname | jq -r 'hostname'
+k --context kind-pasta-1 -n swarm-sidecar-n1 exec -i deploy/peer -c manager -- \
+  curl -s peer.swarm-sidecar-n2.svc.pasta.local/data | jq -r '.pod'
 ```
 
 Stop `tcpdump` and download everything:
 ```console
-k --context pasta-1 -n httpbin cp -c istio-proxy sleep-xxx:sniff ~/sniff
+k --context kind-pasta-1 -n swarm-sidecar-n1 cp -c istio-proxy peer-xxx:sniff ~/sniff
 ```
 
 Open it with Wireshark:

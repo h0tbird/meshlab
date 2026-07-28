@@ -6,19 +6,19 @@
 ---
 
 - [Components](./components.md)
-  - [Pull-through](./components/pull-through.md)
-  - [Multipass](./components/multipass.md)
-  - [Hypervisor](./components/hypervisor.md)
-  - [Cloud-init](./components/cloud-init.md)
-  - [k3s](./components/k3s.md)
+  - [Pull-through cache](./components/pull-through.md)
+  - [kind](./components/kind.md)
   - [Flat network](./components/flat-network.md)
-  - [ArgoCD](./components/argocd.md)
+  - [Load balancers](./components/load-balancers.md)
   - [CoreDNS](./components/coredns.md)
+  - [Argo CD](./components/argocd.md)
+  - [Argo Workflows](./components/argo-workflows.md)
   - [Vault](./components/vault.md)
   - [cert-manager](./components/cert-manager.md)
   - [Istio](./components/istio.md)
-  - [klipper-lb](./components/klipper-lb.md)
   - [Envoy](./components/envoy.md)
+  - [Observability](./components/observability.md)
+  - [Workloads](./components/workloads.md)
 
 - [Testing](./testing.md)
 

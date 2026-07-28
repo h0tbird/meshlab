@@ -1,54 +1,77 @@
 # Envoy
 
-Envoy is an open-source proxy server designed for modern microservices
-architectures, providing features such as load balancing, traffic management,
-and service discovery. It runs standalone or integrated with a service mesh,
-making it a powerful tool for microservices communication.
+Envoy is the proxy behind Istio's sidecars and gateways. In this lab you will
+find it in three shapes: as a sidecar in the `swarm-sidecar-*` namespaces, as
+the north-south gateway (`istio-nsgw`) and, in `--network-mode multi`, as the
+east-west gateways. Ambient namespaces (`swarm-ambient-*`) have **no** Envoy
+sidecar — ztunnel handles L4 there, and Envoy only appears if a waypoint is
+deployed.
 
-Inspect the `config_dump` of a VM:
+istiod is installed with `global.variant: "debug"`, so the proxy images include
+`curl`, `tcpdump` and friends.
+
+## Config dumps
+
 ```console
-multipass exec virt-01 -- curl -s localhost:15000/config_dump | istioctl pc listeners --file -
-multipass exec virt-01 -- curl -s localhost:15000/config_dump | istioctl pc routes --file -
-multipass exec virt-01 -- curl -s localhost:15000/config_dump | istioctl pc clusters --file -
-multipass exec virt-01 -- curl -s localhost:15000/config_dump | istioctl pc secret --file -
+istioctl --context kind-pasta-1 pc listeners deploy/peer.swarm-sidecar-n1
+istioctl --context kind-pasta-1 pc routes    deploy/peer.swarm-sidecar-n1
+istioctl --context kind-pasta-1 pc clusters  deploy/peer.swarm-sidecar-n1
+istioctl --context kind-pasta-1 pc endpoint  deploy/peer.swarm-sidecar-n1
+istioctl --context kind-pasta-1 pc secret    deploy/peer.swarm-sidecar-n1
 ```
 
-Set debug log level on a given proxy:
+Dump the raw config of a gateway:
 ```console
-istioctl pc log sleep-xxx.httpbin --level debug
-k --context pasta-1 -n httpbin logs -f sleep-xxx -c istio-proxy
+k --context kind-pasta-1 -n istio-system exec deploy/istio-nsgw -- \
+  curl -s localhost:15000/config_dump | istioctl pc listeners --file -
 ```
 
-Access the WebUI of a given envoy proxy:
+## Log levels
+
 ```console
-istioctl dashboard envoy sleep-xxx.httpbin
+istioctl --context kind-pasta-1 pc log deploy/peer.swarm-sidecar-n1 --level debug
+k --context kind-pasta-1 -n swarm-sidecar-n1 logs -f deploy/peer -c istio-proxy
 ```
 
-Dump the envoy config of an eastweast gateway:
+## Admin interface
+
 ```console
-k --context pasta-1 -n istio-system exec -it deployment/istio-eastwestgateway -- curl -s localhost:15000/config_dump
+istioctl --context kind-pasta-1 dashboard envoy deploy/peer.swarm-sidecar-n1
 ```
 
-Dump the `common_tls_context` for a given envoy cluster:
+Dump the `common_tls_context` of a given cluster (note the `<cell>.local`
+suffix instead of `cluster.local`):
 ```console
-k --context pasta-1 -n httpbin exec -i sleep-xxx -- \
+k --context kind-pasta-1 -n swarm-sidecar-n1 exec deploy/peer -c istio-proxy -- \
 curl -s localhost:15000/config_dump | jq '
   .configs[] |
   select(."@type"=="type.googleapis.com/envoy.admin.v3.ClustersConfigDump") |
   .dynamic_active_clusters[] |
-  select(.cluster.name=="outbound|80||httpbin.httpbin.svc.cluster.local") |
+  select(.cluster.name=="outbound|80||peer.swarm-sidecar-n1.svc.pasta.local") |
   .cluster.transport_socket_matches[] |
   select(.name=="tlsMode-istio") |
   .transport_socket.typed_config.common_tls_context
 '
 ```
 
-List `LISTEN` ports:
+Drain every TCP connection (useful to force new TLS handshakes):
 ```console
-k --context pasta-1 -n istio-system exec istio-eastwestgateway-xxx -- netstat -tuanp | grep LISTEN | sort -u
+k --context kind-pasta-1 -n swarm-sidecar-n1 exec deploy/peer -c istio-proxy -- \
+  curl -X POST localhost:15000/quitquitquit
 ```
 
-Check the status-port:
+List the listening ports of a gateway:
 ```console
-curl -o /dev/null -Isw "%{http_code}" http://10.0.16.124:31123/healthz/ready
+k --context kind-pasta-1 -n istio-system exec deploy/istio-nsgw -- \
+  netstat -tuanp | grep LISTEN | sort -u
+```
+
+## Metrics
+
+The `otelco-node` collector scrapes `/stats/prometheus` on every pod exposing a
+`*-envoy-prom` port, so the same data is available in Prometheus. To look at it
+raw:
+```console
+k --context kind-pasta-1 -n swarm-sidecar-n1 exec deploy/peer -c istio-proxy -- \
+  curl -s localhost:15000/stats/prometheus | head
 ```

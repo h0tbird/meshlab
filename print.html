@@ -1,5 +1,5 @@
 <!DOCTYPE HTML>
-<html lang="en" class="light sidebar-visible" dir="ltr">
+<html lang="en" class="latte sidebar-visible" dir="ltr">
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
@@ -13,40 +13,53 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
-        <link rel="icon" href="favicon.svg">
-        <link rel="shortcut icon" href="favicon.png">
-        <link rel="stylesheet" href="css/variables.css">
-        <link rel="stylesheet" href="css/general.css">
-        <link rel="stylesheet" href="css/chrome.css">
-        <link rel="stylesheet" href="css/print.css" media="print">
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-e96d0476.css">
+        <link rel="stylesheet" href="css/chrome-d279d366.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
-        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
-        <link rel="stylesheet" href="fonts/fonts.css">
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" href="highlight.css">
-        <link rel="stylesheet" href="tomorrow-night.css">
-        <link rel="stylesheet" href="ayu-highlight.css">
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/catppuccin-e08be6a9.css">
 
 
-        <!-- Provide site root to javascript -->
+        <!-- Provide site root and default themes to javascript -->
         <script>
-            var path_to_root = "";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+            const path_to_root = "";
+            const default_light_theme = "latte";
+            const default_dark_theme = "mocha";
+            window.path_to_searchindex_js = "searchindex-afd21378.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc.js"></script>
+        <script src="toc-f1907180.js"></script>
     </head>
     <body>
-    <div id="body-container">
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                var theme = localStorage.getItem('mdbook-theme');
-                var sidebar = localStorage.getItem('mdbook-sidebar');
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -60,64 +73,68 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            var theme;
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
-            html.classList.remove('light')
+            html.classList.remove('latte')
             html.classList.add(theme);
             html.classList.add("js");
         </script>
 
-        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            var sidebar = null;
-            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
+                sidebar_toggle.checked = false;
             }
-            sidebar_toggle.checked = sidebar === 'visible';
-            html.classList.remove('sidebar-visible');
-            html.classList.add("sidebar-" + sidebar);
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
         </script>
 
-        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
             <!-- populated by js -->
             <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
             <noscript>
                 <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
             </noscript>
-            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
             </div>
         </nav>
 
-        <div id="page-wrapper" class="page-wrapper">
+        <div id="mdbook-page-wrapper" class="page-wrapper">
 
             <div class="page">
-                <div id="menu-bar-hover-placeholder"></div>
-                <div id="menu-bar" class="menu-bar sticky">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
                     <div class="left-buttons">
-                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
-                            <i class="fa fa-bars"></i>
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
                         </label>
-                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
-                            <i class="fa fa-paint-brush"></i>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
                         </button>
-                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
-                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
-                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
-                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
-                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
-                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-latte">Latte</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-frappe">Frappé</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-macchiato">Macchiato</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-mocha">Mocha</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
-                            <i class="fa fa-search"></i>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
                         </button>
                     </div>
 
@@ -125,33 +142,41 @@
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
-                            <i id="print-button" class="fa fa-print"></i>
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/h0tbird/meshlab" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
                         </a>
 
                     </div>
                 </div>
 
-                <div id="search-wrapper" class="hidden">
-                    <form id="searchbar-outer" class="searchbar-outer">
-                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
                     </form>
-                    <div id="searchresults-outer" class="searchresults-outer hidden">
-                        <div id="searchresults-header" class="searchresults-header"></div>
-                        <ul id="searchresults">
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
                         </ul>
                     </div>
                 </div>
 
                 <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
                 <script>
-                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
-                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
-                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
                         link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
                     });
                 </script>
 
-                <div id="content" class="content">
+                <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="introduction"><a class="header" href="#introduction">Introduction</a></h1>
 <p>Welcome to the MeshLab repository! In this lab, you will find a setup to
@@ -162,21 +187,27 @@ clusters, plus a <strong>manager</strong> cluster (<code>mnger-1</code>) that ho
 Every workload cluster runs its own Istio control plane (multi-primary).</p>
 <p>By default only the <code>pasta</code> cell is created; pass <code>--cell-count 2</code> to also
 create <code>pizza</code>.</p>
-<div class="table-wrapper"><table><thead><tr><th>Cell</th><th>Clusters</th><th>Trust domain</th><th>Pod CIDRs</th></tr></thead><tbody>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Cell</th><th>Clusters</th><th>Trust domain</th><th>Pod CIDRs</th></tr>
+</thead>
+<tbody>
 <tr><td><code>mngr</code></td><td><code>mnger-1</code></td><td>n/a</td><td><code>10.41.0.0/16</code></td></tr>
 <tr><td><code>pasta</code></td><td><code>pasta-1</code> <code>pasta-2</code></td><td><code>pasta.local</code></td><td><code>10.51.0.0/16</code> <code>10.52.0.0/16</code></td></tr>
 <tr><td><code>pizza</code></td><td><code>pizza-1</code> <code>pizza-2</code></td><td><code>pizza.local</code></td><td><code>10.61.0.0/16</code> <code>10.62.0.0/16</code></td></tr>
-</tbody></table>
+</tbody>
+</table>
 </div>
 <p>Although the cells share the same root CA for their cryptographic material,
 each one uses a different SPIFFE trust domain and each cluster within a cell
 gets its own intermediate CA. The kind clusters are also created with the
 kubeadm DNS domain set to <code>&lt;cell&gt;.local</code>, so in-cluster FQDNs look like
 <code>peer.swarm-ambient-n1.svc.pasta.local</code> instead of the usual <code>cluster.local</code>.</p>
-<p>Clusters run on <a href="./components/kind.html">kind</a>, all attached to the same Docker
+<p>Clusters run on <a href="#kind">kind</a>, all attached to the same Docker
 <code>kind</code> network. Every cluster gets non-overlapping pod and service CIDRs and
 <code>setup-flat-network</code> installs static routes between the sibling clusters of a
-cell, so a cell is a <a href="./components/flat-network.html">flat L3 network</a>. On top of
+cell, so a cell is a <a href="#flat-network">flat L3 network</a>. On top of
 that, the Istio network topology is selectable:</p>
 <ul>
 <li><code>--network-mode multi</code> (default): one Istio network <strong>per cluster</strong>, so
@@ -215,8 +246,9 @@ into <code>swarm-ambient-*</code> and <code>swarm-sidecar-*</code> namespaces so
 traffic to observe.</p>
 <p>The purpose of this lab is to test and validate different Istio configurations
 in a realistic environment.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="quick-start"><a class="header" href="#quick-start">Quick start</a></h1>
-<p>Everything runs inside the repository's dev container, which already ships
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="quick-start"><a class="header" href="#quick-start">Quick start</a></h1>
+<p>Everything runs inside the repository’s dev container, which already ships
 <code>kind</code>, <code>kubectl</code> (aliased to <code>k</code>), <code>helm</code>, <code>istioctl</code>, <code>argocd</code>, <code>argo</code>,
 <code>swarmctl</code>, <code>tilt</code> and friends. Open the repo in VS Code and run
 <code>Dev Containers: Reopen in Container</code> (see the README for the other options),
@@ -235,7 +267,12 @@ ml                # one-shot, all clusters
 </code></pre>
 <h2 id="services"><a class="header" href="#services">Services</a></h2>
 <p>As the lab starts up, these become available on the host:</p>
-<div class="table-wrapper"><table><thead><tr><th>Service</th><th>URL</th><th>Credentials</th></tr></thead><tbody>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Service</th><th>URL</th><th>Credentials</th></tr>
+</thead>
+<tbody>
 <tr><td>Argo CD</td><td><a href="http://127.0.0.1:8080">http://127.0.0.1:8080</a></td><td><code>admin</code>/<code>meshlab123</code></td></tr>
 <tr><td>Argo Workflows</td><td><a href="http://127.0.0.1:8081">http://127.0.0.1:8081</a></td><td><code>admin</code>/<code>meshlab123</code></td></tr>
 <tr><td>Vault</td><td><a href="http://127.0.0.1:8082">http://127.0.0.1:8082</a></td><td>token <code>meshlab123</code></td></tr>
@@ -245,7 +282,8 @@ ml                # one-shot, all clusters
 <tr><td>zot</td><td><a href="http://127.0.0.1:8086">http://127.0.0.1:8086</a></td><td>none</td></tr>
 <tr><td>Tilt <code>pasta-1</code></td><td><a href="http://127.0.0.1:9091">http://127.0.0.1:9091</a></td><td>none</td></tr>
 <tr><td>Tilt <code>pasta-2</code></td><td><a href="http://127.0.0.1:9092">http://127.0.0.1:9092</a></td><td>none</td></tr>
-</tbody></table>
+</tbody>
+</table>
 </div>
 <p>With <code>--cell-count 2</code>, Tilt for <code>pizza-1</code> and <code>pizza-2</code> is published on 9093
 and 9094.</p>
@@ -268,39 +306,47 @@ meshlab run setup-flat-network     # re-run just one
 <p>This removes the kind clusters, the <code>kindccm</code> load-balancer containers, the zot
 container, the Tilt and <code>socat</code> processes, and <code>./.tmp</code>. The <code>zot-data</code> Docker
 volume is kept so the next <code>meshlab create</code> does not re-download every image.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="components"><a class="header" href="#components">Components</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="components"><a class="header" href="#components">Components</a></h1>
 <p><code>meshlab create</code> is a dependency graph of idempotent <strong>sections</strong> defined in
 <code>bin/meshlab</code> (<code>meshlab list</code> prints them). The graph itself lives in the <code>DEPS</code>
 associative array in <code>lib/common.sh</code> and is executed with <code>make -j</code>, so
 independent sections run in parallel.</p>
-<div class="table-wrapper"><table><thead><tr><th>Section</th><th>What it does</th></tr></thead><tbody>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Section</th><th>What it does</th></tr>
+</thead>
+<tbody>
 <tr><td><code>cloud-provider-kind</code></td><td>Creates the Docker <code>kind</code> network and starts the <code>kindccm</code> containers that hand out <code>LoadBalancer</code> IPs.</td></tr>
-<tr><td><code>pull-through-cache</code></td><td>Starts the <a href="./components/pull-through.html">zot</a> registry used as an on-demand pull-through cache.</td></tr>
-<tr><td><code>create-clusters</code></td><td>Creates the <a href="./components/kind.html">kind</a> clusters with per-cluster pod/service CIDRs and a <code>&lt;cell&gt;.local</code> DNS domain.</td></tr>
-<tr><td><code>add-registries-to-containerd</code></td><td>Points each cluster's containerd at zot.</td></tr>
+<tr><td><code>pull-through-cache</code></td><td>Starts the <a href="#pull-through-cache-zot">zot</a> registry used as an on-demand pull-through cache.</td></tr>
+<tr><td><code>create-clusters</code></td><td>Creates the <a href="#kind">kind</a> clusters with per-cluster pod/service CIDRs and a <code>&lt;cell&gt;.local</code> DNS domain.</td></tr>
+<tr><td><code>add-registries-to-containerd</code></td><td>Points each cluster’s containerd at zot.</td></tr>
 <tr><td><code>setup-kubeconfig</code></td><td>Rebuilds the in-container kubeconfig with only the <code>kind-*</code> contexts, plus an in-cluster variant.</td></tr>
-<tr><td><code>setup-flat-network</code></td><td>Adds the static routes that make each cell a <a href="./components/flat-network.html">flat L3 network</a>.</td></tr>
+<tr><td><code>setup-flat-network</code></td><td>Adds the static routes that make each cell a <a href="#flat-network">flat L3 network</a>.</td></tr>
 <tr><td><code>install-k8s-gateway</code></td><td>Installs <code>k8s_gateway</code> so <code>demo.lab</code> names resolve to <code>LoadBalancer</code> IPs.</td></tr>
-<tr><td><code>setup-coredns</code></td><td>Rewrites the <a href="./components/coredns.html">CoreDNS</a> Corefile for the <code>&lt;cell&gt;.local</code> zone and forwards <code>demo.lab</code>.</td></tr>
-<tr><td><code>setup-argocd</code></td><td>Installs <a href="./components/argocd.html">Argo CD</a> on the manager cluster.</td></tr>
+<tr><td><code>setup-coredns</code></td><td>Rewrites the <a href="#coredns">CoreDNS</a> Corefile for the <code>&lt;cell&gt;.local</code> zone and forwards <code>demo.lab</code>.</td></tr>
+<tr><td><code>setup-argocd</code></td><td>Installs <a href="#argo-cd">Argo CD</a> on the manager cluster.</td></tr>
 <tr><td><code>register-argocd-clusters</code></td><td>Registers every cluster in Argo CD with <code>name</code> and <code>cell</code> labels used by the <code>ApplicationSet</code> generators.</td></tr>
 <tr><td><code>install-applicationsets</code></td><td>Renders <code>charts/*</code> and applies the <code>ApplicationSet</code>s and <code>WorkflowTemplate</code>s.</td></tr>
-<tr><td><code>setup-argowf</code></td><td>Installs <a href="./components/argo-workflows.html">Argo Workflows</a> on the manager cluster.</td></tr>
+<tr><td><code>setup-argowf</code></td><td>Installs <a href="#argo-workflows">Argo Workflows</a> on the manager cluster.</td></tr>
 <tr><td><code>kiali-secrets</code></td><td>Creates the Kiali remote-cluster secrets.</td></tr>
 <tr><td><code>bootstrap-dag</code></td><td>Submits the Workflow that syncs every <code>ApplicationSet</code> in dependency order.</td></tr>
 <tr><td><code>istio-endpoint-discovery</code></td><td>Exchanges <code>istioctl create-remote-secret</code> credentials between the clusters of a cell.</td></tr>
 <tr><td><code>grafana-git-sync</code></td><td>Optional; wires Grafana to the dashboards in the repo (needs <code>GITHUB_TOKEN</code>).</td></tr>
-<tr><td><code>tilt-up</code></td><td>Starts one <a href="./development.html">Tilt</a> instance per workload cluster.</td></tr>
-<tr><td><code>deploy-workloads</code></td><td>Deploys the <a href="./components/workloads.html">k-swarm workloads</a>.</td></tr>
+<tr><td><code>tilt-up</code></td><td>Starts one <a href="#development">Tilt</a> instance per workload cluster.</td></tr>
+<tr><td><code>deploy-workloads</code></td><td>Deploys the <a href="#workloads">k-swarm workloads</a>.</td></tr>
 <tr><td><code>publish-ports</code></td><td><code>socat</code> forwards the <code>LoadBalancer</code> services to <code>127.0.0.1</code>.</td></tr>
-</tbody></table>
+</tbody>
+</table>
 </div>
 <h2 id="pinned-versions"><a class="header" href="#pinned-versions">Pinned versions</a></h2>
 <p>All component versions are <code>readonly</code> constants at the top of <code>bin/meshlab</code>,
 each with a link to where the latest version can be checked. The
 <code>upgrade-components</code> skill (<code>.github/skills/upgrade-components/</code>) automates
 bumping them.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="pull-through-cache-zot"><a class="header" href="#pull-through-cache-zot">Pull-through cache (zot)</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="pull-through-cache-zot"><a class="header" href="#pull-through-cache-zot">Pull-through cache (zot)</a></h1>
 <p>A pull-through cache is a proxy that sits between the clusters and the remote
 container registries. The first time an image is pulled it is fetched from the
 upstream registry and cached; subsequent pulls of the same image are served from
@@ -308,23 +354,29 @@ the cache instead of hitting the upstream again.</p>
 <p>This lab runs a single <a href="https://zotregistry.dev/">zot</a> instance as the
 pull-through cache for every upstream registry. zot runs as a Docker container on
 the devcontainer host (attached to the <code>kind</code> network) so it is available before
-any cluster or CNI exists. It uses zot's <code>sync</code> extension in <strong>on-demand</strong> mode:
+any cluster or CNI exists. It uses zot’s <code>sync</code> extension in <strong>on-demand</strong> mode:
 an image is mirrored from the upstream only when it is first requested, then
-cached in zot's local blob store.</p>
+cached in zot’s local blob store.</p>
 <p>Each upstream is mirrored under its own destination prefix:</p>
-<div class="table-wrapper"><table><thead><tr><th>Upstream</th><th>zot destination</th><th>Endpoint</th></tr></thead><tbody>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Upstream</th><th>zot destination</th><th>Endpoint</th></tr>
+</thead>
+<tbody>
 <tr><td><code>docker.io</code></td><td><code>/docker.io</code></td><td><code>https://registry-1.docker.io</code></td></tr>
 <tr><td><code>quay.io</code></td><td><code>/quay.io</code></td><td><code>https://quay.io</code></td></tr>
 <tr><td><code>ghcr.io</code></td><td><code>/ghcr.io</code></td><td><code>https://ghcr.io</code></td></tr>
 <tr><td><code>registry.k8s.io</code></td><td><code>/registry.k8s.io</code></td><td><code>https://registry.k8s.io</code></td></tr>
 <tr><td><code>registry.istio.io</code></td><td><code>/registry.istio.io</code></td><td><code>https://registry.istio.io</code></td></tr>
 <tr><td><code>ecr-public.aws.com</code></td><td><code>/ecr-public.aws.com</code></td><td><code>https://public.ecr.aws</code></td></tr>
-</tbody></table>
+</tbody>
+</table>
 </div>
 <p>The upstreams are defined in a single associative array (<code>REGISTRIES</code>) in
 <code>lib/common.sh</code>; add more by adding a row there.</p>
 <h2 id="how-the-clusters-use-it"><a class="header" href="#how-the-clusters-use-it">How the clusters use it</a></h2>
-<p>Each cluster's containerd is configured (via
+<p>Each cluster’s containerd is configured (via
 <code>/etc/containerd/certs.d/&lt;upstream&gt;/hosts.toml</code>) to mirror every upstream through
 its zot destination prefix, using <code>override_path = true</code> so the prefix becomes
 the registry API root:</p>
@@ -340,7 +392,7 @@ upstream as a fallback if zot is unreachable.</p>
 <code>compat: ["docker2s2"]</code> and the sync <code>preserveDigest</code> option, so Docker media
 types and digests are preserved instead of being rewritten to OCI.</p>
 <h2 id="web-ui"><a class="header" href="#web-ui">Web UI</a></h2>
-<p>zot's web interface and <code>/v2</code> API are published on the host:</p>
+<p>zot’s web interface and <code>/v2</code> API are published on the host:</p>
 <ul>
 <li>URL: <a href="http://127.0.0.1:8086">http://127.0.0.1:8086</a></li>
 </ul>
@@ -381,28 +433,35 @@ docker volume rm zot-data
 </code></pre>
 </li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="kind"><a class="header" href="#kind">kind</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="kind"><a class="header" href="#kind">kind</a></h1>
 <p><a href="https://kind.sigs.k8s.io">kind</a> runs Kubernetes clusters as Docker containers.
 The lab used to provision VMs; today every cluster is a single-node kind
 cluster and there is no VM, hypervisor or cloud-init layer left.</p>
 <p>Clusters are created by the <code>create-clusters</code> section of <code>bin/meshlab</code>. Which
 ones exist depends on <code>--cell-count</code>:</p>
-<div class="table-wrapper"><table><thead><tr><th>Cluster</th><th>Cell</th><th>Pod CIDR</th><th>Service CIDR</th><th>DNS domain</th></tr></thead><tbody>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Cluster</th><th>Cell</th><th>Pod CIDR</th><th>Service CIDR</th><th>DNS domain</th></tr>
+</thead>
+<tbody>
 <tr><td><code>mnger-1</code></td><td><code>mngr</code></td><td><code>10.41.0.0/16</code></td><td><code>10.141.0.0/16</code></td><td><code>mngr.local</code></td></tr>
 <tr><td><code>pasta-1</code></td><td><code>pasta</code></td><td><code>10.51.0.0/16</code></td><td><code>10.151.0.0/16</code></td><td><code>pasta.local</code></td></tr>
 <tr><td><code>pasta-2</code></td><td><code>pasta</code></td><td><code>10.52.0.0/16</code></td><td><code>10.152.0.0/16</code></td><td><code>pasta.local</code></td></tr>
 <tr><td><code>pizza-1</code></td><td><code>pizza</code></td><td><code>10.61.0.0/16</code></td><td><code>10.161.0.0/16</code></td><td><code>pizza.local</code></td></tr>
 <tr><td><code>pizza-2</code></td><td><code>pizza</code></td><td><code>10.62.0.0/16</code></td><td><code>10.162.0.0/16</code></td><td><code>pizza.local</code></td></tr>
-</tbody></table>
+</tbody>
+</table>
 </div>
 <p>The CIDRs come from the <code>POD_CIDR</code> and <code>SVC_CIDR</code> maps in <code>lib/common.sh</code>; they
 never overlap so the clusters of a cell can be wired into a
-<a href="components/./flat-network.html">flat L3 network</a>. The kubeadm <code>networking.dnsDomain</code> is set
+<a href="#flat-network">flat L3 network</a>. The kubeadm <code>networking.dnsDomain</code> is set
 to <code>&lt;cell&gt;.local</code>, which is why istiod is configured with a matching
 <code>global.proxy.clusterDomain</code>.</p>
 <p>All node containers are attached to the Docker <code>kind</code> network, together with
-the <a href="components/./pull-through.html">zot</a> cache and the <code>kindccm</code>
-<a href="components/./load-balancers.html">load balancer</a> containers.</p>
+the <a href="#pull-through-cache-zot">zot</a> cache and the <code>kindccm</code>
+<a href="#load-balancers">load balancer</a> containers.</p>
 <h2 id="everyday-commands"><a class="header" href="#everyday-commands">Everyday commands</a></h2>
 <p>List the clusters:</p>
 <pre><code class="language-console">kind get clusters
@@ -427,7 +486,8 @@ container):</p>
 container. If a node restarts, re-run <code>meshlab run setup-flat-network</code> and
 <code>meshlab run add-registries-to-containerd</code>.</p>
 </blockquote>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="flat-network"><a class="header" href="#flat-network">Flat network</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="flat-network"><a class="header" href="#flat-network">Flat network</a></h1>
 <p>Each cell is a flat L3 network. Clusters run the default kindnet CNI with
 kube-proxy enabled, and <code>setup-flat-network</code> adds static routes between the
 sibling clusters of a cell so their pod and service CIDRs are directly routable,
@@ -444,10 +504,11 @@ in <code>lib/common.sh</code>) so the ranges never overlap inside a cell.</p>
 </code></pre>
 <blockquote>
 <p>Routes are added via <code>docker exec ... ip route replace</code> and live only in the
-node container's routing table. They are lost if a node container restarts;
+node container’s routing table. They are lost if a node container restarts;
 re-run <code>setup-flat-network</code> (<code>ml run setup-flat-network</code>) to reinstall them.</p>
 </blockquote>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="load-balancers"><a class="header" href="#load-balancers">Load balancers</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="load-balancers"><a class="header" href="#load-balancers">Load balancers</a></h1>
 <p>kind has no cloud controller, so <code>Service</code> objects of type <code>LoadBalancer</code> would
 stay <code>&lt;pending&gt;</code> forever. The lab runs
 <a href="https://github.com/kubernetes-sigs/cloud-provider-kind">cloud-provider-kind</a>
@@ -471,19 +532,26 @@ docker logs -f kindccm
 <p>The assigned IPs live on the Docker <code>kind</code> network and are reachable from the
 dev container, but not necessarily from the host browser. The <code>publish-ports</code>
 section therefore runs a <code>socat</code> forwarder per UI:</p>
-<div class="table-wrapper"><table><thead><tr><th>Service</th><th>Cluster / namespace</th><th>Local port</th></tr></thead><tbody>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Service</th><th>Cluster / namespace</th><th>Local port</th></tr>
+</thead>
+<tbody>
 <tr><td>Argo CD</td><td><code>mnger-1</code> / <code>argocd</code></td><td>8080</td></tr>
 <tr><td>Argo Workflows</td><td><code>mnger-1</code> / <code>argowf</code></td><td>8081</td></tr>
 <tr><td>Vault</td><td><code>mnger-1</code> / <code>vault</code></td><td>8082</td></tr>
 <tr><td>Prometheus</td><td><code>mnger-1</code> / <code>monitoring</code></td><td>8083</td></tr>
 <tr><td>Grafana</td><td><code>mnger-1</code> / <code>monitoring</code></td><td>8084</td></tr>
 <tr><td>Kiali</td><td><code>mnger-1</code> / <code>monitoring</code></td><td>8085</td></tr>
-</tbody></table>
+</tbody>
+</table>
 </div>
 <p>Re-publish them after a restart:</p>
 <pre><code class="language-console">meshlab run publish-ports
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="coredns"><a class="header" href="#coredns">CoreDNS</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="coredns"><a class="header" href="#coredns">CoreDNS</a></h1>
 <p><a href="https://coredns.io">CoreDNS</a> is the in-cluster DNS server. The lab rewrites its
 <code>Corefile</code> on every cluster (the <code>setup-coredns</code> section) for two reasons.</p>
 <h2 id="1-the-cluster-zone-is-celllocal"><a class="header" href="#1-the-cluster-zone-is-celllocal">1. The cluster zone is <code>&lt;cell&gt;.local</code></a></h2>
@@ -521,7 +589,8 @@ remote-write from every cluster — resolve to the right <code>LoadBalancer</cod
 <p>Re-apply the config (restarts CoreDNS only if it actually changed):</p>
 <pre><code class="language-console">meshlab run setup-coredns
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="argo-cd"><a class="header" href="#argo-cd">Argo CD</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="argo-cd"><a class="header" href="#argo-cd">Argo CD</a></h1>
 <p><a href="https://argo-cd.readthedocs.io/en/stable/">Argo CD</a> is the GitOps engine of the
 lab. It is installed by the <code>setup-argocd</code> section into the <code>argocd</code> namespace
 of the <strong>manager</strong> cluster only, and it manages every other cluster remotely.</p>
@@ -542,7 +611,7 @@ generator that fans out over those secrets, using <code>{{name}}</code> and
 them with <code>helm template ./charts/&lt;x&gt; --set chartVersion=&lt;version&gt;</code> and
 server-side applies the result.</p>
 <p>The applications are <strong>not</strong> auto-synced: the ordering is driven by the
-<a href="components/./argo-workflows.html">Argo Workflows</a> bootstrap DAG, which syncs them by label.</p>
+<a href="#argo-workflows">Argo Workflows</a> bootstrap DAG, which syncs them by label.</p>
 <h2 id="everyday-commands-2"><a class="header" href="#everyday-commands-2">Everyday commands</a></h2>
 <p>List all the applications:</p>
 <pre><code class="language-console">argocd app list
@@ -564,7 +633,8 @@ argocd app sync -l name=istio-ewgw --async   # multi-network mode only
 <pre><code class="language-console">argocd cluster list
 k --context kind-mnger-1 -n argocd get secrets -l argocd.argoproj.io/secret-type=cluster --show-labels
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="argo-workflows"><a class="header" href="#argo-workflows">Argo Workflows</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="argo-workflows"><a class="header" href="#argo-workflows">Argo Workflows</a></h1>
 <p><a href="https://argo-workflows.readthedocs.io">Argo Workflows</a> is the orchestrator that
 turns the pile of Argo CD <code>ApplicationSet</code>s into an ordered bootstrap. It is
 installed by the <code>setup-argowf</code> section into the <code>argowf</code> namespace of the
@@ -616,7 +686,8 @@ argo --context kind-mnger-1 -n argocd get @latest
 workflow already exists):</p>
 <pre><code class="language-console">meshlab run bootstrap-dag
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="vault"><a class="header" href="#vault">Vault</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="vault"><a class="header" href="#vault">Vault</a></h1>
 <p><a href="https://developer.hashicorp.com/vault">Vault</a> is the root of trust of the lab.
 It runs in <strong>dev mode</strong> (unsealed, in-memory, root token <code>meshlab123</code>) in the
 <code>vault</code> namespace of the manager cluster — good enough for a lab, obviously not
@@ -627,7 +698,7 @@ for anything else.</p>
 <h2 id="what-lives-in-it"><a class="header" href="#what-lives-in-it">What lives in it</a></h2>
 <p>The <code>populate-vault</code> <code>WorkflowTemplate</code>
 (<code>charts/wftemplates/templates/populate-vault.yaml</code>) bootstraps it as a DAG root
-of the <a href="components/./argo-workflows.html">bootstrap workflow</a>:</p>
+of the <a href="#argo-workflows">bootstrap workflow</a>:</p>
 <ol>
 <li>Enables a PKI secrets engine at <code>mesh/</code> with a max lease TTL of <code>87600h</code>
 (10 years) and generates the <strong>single root CA</strong> shared by all cells,
@@ -637,7 +708,7 @@ of the <a href="components/./argo-workflows.html">bootstrap workflow</a>:</p>
 the <code>mesh/roles/ica</code> role.</li>
 <li>Enables the <code>approle</code> auth method and creates the <code>mesh-cert-manager</code>
 AppRole (non-expiring, unlimited uses) that
-<a href="components/./cert-manager.html">cert-manager</a> uses to have per-cluster intermediate CAs
+<a href="#cert-manager">cert-manager</a> uses to have per-cluster intermediate CAs
 signed.</li>
 </ol>
 <p>Because the whole task is guarded by existence checks, re-running it is a
@@ -659,20 +730,27 @@ k --context kind-mnger-1 -n vault exec -it vault-0 -- \
 <p>Dev mode means the entire PKI is lost when the pod restarts. cert-manager will
 then fail to renew the intermediate CAs until <code>populate-vault</code> runs again.</p>
 </blockquote>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="cert-manager"><a class="header" href="#cert-manager">cert-manager</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="cert-manager"><a class="header" href="#cert-manager">cert-manager</a></h1>
 <p><a href="https://cert-manager.io">cert-manager</a> automates the issuance and renewal of
 X.509 certificates. In this lab it is deployed to <strong>every</strong> cluster and it is
-the bridge between <a href="components/./vault.html">Vault</a> and Istio: it turns the single <code>mesh</code>
+the bridge between <a href="#vault">Vault</a> and Istio: it turns the single <code>mesh</code>
 root CA into one intermediate CA per cluster.</p>
 <h2 id="the-issuers"><a class="header" href="#the-issuers">The issuers</a></h2>
 <p><code>charts/issuers</code> is synced into <code>istio-system</code> (as the <code>istio-issuers</code>
 application) and contains:</p>
-<div class="table-wrapper"><table><thead><tr><th>Resource</th><th>Kind</th><th>Purpose</th></tr></thead><tbody>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Resource</th><th>Kind</th><th>Purpose</th></tr>
+</thead>
+<tbody>
 <tr><td><code>vault-ica-approle</code></td><td><code>Secret</code></td><td>The AppRole <code>secretId</code> created by <code>populate-vault</code>.</td></tr>
 <tr><td><code>vault-ica</code></td><td><code>Issuer</code></td><td>Vault issuer authenticating with that AppRole against <code>mesh/</code>.</td></tr>
-<tr><td><code>istio-cluster-ica</code></td><td><code>Certificate</code></td><td>The cluster's intermediate CA (<code>isCA: true</code>, CN = cluster name, 5-year duration, renewed 1 year before expiry, key rotated on every renewal). It writes the <code>cacerts</code> secret that istiod consumes.</td></tr>
+<tr><td><code>istio-cluster-ica</code></td><td><code>Certificate</code></td><td>The cluster’s intermediate CA (<code>isCA: true</code>, CN = cluster name, 5-year duration, renewed 1 year before expiry, key rotated on every renewal). It writes the <code>cacerts</code> secret that istiod consumes.</td></tr>
 <tr><td><code>ingress-ca</code></td><td><code>Issuer</code> / <code>ClusterIssuer</code></td><td>CA issuer backed by <code>cacerts</code>, used for ingress/workload leaf certificates.</td></tr>
-</tbody></table>
+</tbody>
+</table>
 </div>
 <p>istiod runs with <code>AUTO_RELOAD_PLUGIN_CERTS: true</code>, so a renewal of <code>cacerts</code> is
 picked up without restarting the control plane.</p>
@@ -695,7 +773,8 @@ k --context kind-pasta-1 -n cert-manager logs -l app=cert-manager --tail 50
 <pre><code class="language-console">k --context kind-pasta-1 -n istio-system delete secret cacerts
 k --context kind-pasta-1 -n istio-system get certificate istio-cluster-ica -w
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="istio"><a class="header" href="#istio">Istio</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="istio"><a class="header" href="#istio">Istio</a></h1>
 <p>Istio is the reason this lab exists. Every workload cluster runs its own
 control plane (<strong>multi-primary</strong>), and the clusters of a cell federate with each
 other through remote secrets.</p>
@@ -703,15 +782,21 @@ other through remote secrets.</p>
 <p>All from the official charts at
 <code>https://istio-release.storage.googleapis.com/charts</code>, pinned by
 <code>ISTIO_CHART_VERSION</code> in <code>bin/meshlab</code>:</p>
-<div class="table-wrapper"><table><thead><tr><th>Argo CD app</th><th>Chart</th><th>Notes</th></tr></thead><tbody>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argo CD app</th><th>Chart</th><th>Notes</th></tr>
+</thead>
+<tbody>
 <tr><td><code>istio-base</code></td><td><code>base</code></td><td>CRDs and cluster roles.</td></tr>
 <tr><td><code>istio-cni</code></td><td><code>cni</code></td><td>Required by ambient.</td></tr>
 <tr><td><code>istio-istiod</code></td><td><code>istiod</code></td><td><code>profile: ambient</code>, revisioned.</td></tr>
 <tr><td><code>istio-ztunnel</code></td><td><code>ztunnel</code></td><td>The ambient L4 node proxy.</td></tr>
 <tr><td><code>istio-nsgw</code></td><td><code>gateway</code></td><td>North-south (ingress) gateway, with a custom bootstrap from <code>conf/istio</code>.</td></tr>
 <tr><td><code>istio-ewgw</code></td><td><code>charts/ewgw</code> (local)</td><td>East-west gateways, <strong><code>--network-mode multi</code> only</strong>.</td></tr>
-<tr><td><code>istio-issuers</code></td><td><code>charts/issuers</code> (local)</td><td>See <a href="components/./cert-manager.html">cert-manager</a>.</td></tr>
-</tbody></table>
+<tr><td><code>istio-issuers</code></td><td><code>charts/issuers</code> (local)</td><td>See <a href="#cert-manager">cert-manager</a>.</td></tr>
+</tbody>
+</table>
 </div>
 <p>istiod is deployed with the revision derived from the version (dots replaced by
 dashes, e.g. <code>1-30-3</code>) and the revision tags <code>stable</code>, <code>canary</code> and <code>default</code>.
@@ -720,13 +805,19 @@ revision.</p>
 <h2 id="per-cell--per-cluster-settings"><a class="header" href="#per-cell--per-cluster-settings">Per-cell / per-cluster settings</a></h2>
 <p>The <code>ApplicationSet</code> generator injects <code>{{name}}</code> (cluster) and
 <code>{{metadata.labels.cell}}</code> (cell) into the istiod values:</p>
-<div class="table-wrapper"><table><thead><tr><th>Setting</th><th>Value</th></tr></thead><tbody>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Setting</th><th>Value</th></tr>
+</thead>
+<tbody>
 <tr><td><code>global.multiCluster.clusterName</code></td><td>cluster name</td></tr>
 <tr><td><code>meshConfig.trustDomain</code></td><td><code>&lt;cell&gt;.local</code></td></tr>
 <tr><td><code>global.proxy.clusterDomain</code></td><td><code>&lt;cell&gt;.local</code> (matches the kubeadm DNS domain)</td></tr>
 <tr><td><code>global.meshID</code></td><td>cell name</td></tr>
 <tr><td><code>global.network</code></td><td>cluster name in <code>multi</code> mode, cell name in <code>single</code> mode</td></tr>
-</tbody></table>
+</tbody>
+</table>
 </div>
 <p>A few notable <code>pilot.env</code> settings:</p>
 <ul>
@@ -769,8 +860,9 @@ istioctl --context kind-pasta-1 ztunnel-config service
 <p>Access the <code>istiod</code> ControlZ UI (note the revisioned deployment name):</p>
 <pre><code class="language-console">istioctl --context kind-pasta-1 dashboard controlz deployment/istiod-1-30-3.istio-system
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="envoy"><a class="header" href="#envoy">Envoy</a></h1>
-<p>Envoy is the proxy behind Istio's sidecars and gateways. In this lab you will
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="envoy"><a class="header" href="#envoy">Envoy</a></h1>
+<p>Envoy is the proxy behind Istio’s sidecars and gateways. In this lab you will
 find it in three shapes: as a sidecar in the <code>swarm-sidecar-*</code> namespaces, as
 the north-south gateway (<code>istio-nsgw</code>) and, in <code>--network-mode multi</code>, as the
 east-west gateways. Ambient namespaces (<code>swarm-ambient-*</code>) have <strong>no</strong> Envoy
@@ -824,18 +916,25 @@ raw:</p>
 <pre><code class="language-console">k --context kind-pasta-1 -n swarm-sidecar-n1 exec deploy/peer -c istio-proxy -- \
   curl -s localhost:15000/stats/prometheus | head
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="observability"><a class="header" href="#observability">Observability</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="observability"><a class="header" href="#observability">Observability</a></h1>
 <p>The observability stack is centralised on the manager cluster: metrics are
 collected in every cluster by the OpenTelemetry Collector and shipped to a
 single Prometheus, which Grafana and Kiali read from.</p>
-<div class="table-wrapper"><table><thead><tr><th>Component</th><th>Where</th><th>Namespace</th><th>URL</th></tr></thead><tbody>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Component</th><th>Where</th><th>Namespace</th><th>URL</th></tr>
+</thead>
+<tbody>
 <tr><td>Prometheus</td><td><code>mnger-1</code></td><td><code>monitoring</code></td><td><a href="http://127.0.0.1:8083">http://127.0.0.1:8083</a></td></tr>
 <tr><td>Grafana</td><td><code>mnger-1</code></td><td><code>monitoring</code></td><td><a href="http://127.0.0.1:8084">http://127.0.0.1:8084</a></td></tr>
 <tr><td>Kiali (operator + CR)</td><td><code>mnger-1</code></td><td><code>monitoring</code></td><td><a href="http://127.0.0.1:8085">http://127.0.0.1:8085</a></td></tr>
 <tr><td><code>otelco-node</code> collector</td><td>every cluster</td><td><code>monitoring</code></td><td>—</td></tr>
 <tr><td><code>otelco-cluster</code> collector</td><td>every cluster</td><td><code>monitoring</code></td><td>—</td></tr>
 <tr><td>metrics-server</td><td>every cluster</td><td><code>monitoring</code></td><td>—</td></tr>
-</tbody></table>
+</tbody>
+</table>
 </div>
 <h2 id="opentelemetry-collector"><a class="header" href="#opentelemetry-collector">OpenTelemetry Collector</a></h2>
 <p>Two releases are deployed per cluster from <code>charts/otel-collector</code>:</p>
@@ -847,9 +946,9 @@ kubelet via the <code>kubeletstats</code> receiver.</li>
 <li><code>otelco-cluster</code> — a <strong>Deployment</strong> that scrapes istiod on port 15014 and
 collects cluster-level metrics through the <code>k8sclusterreceiver</code> preset.</li>
 </ul>
-<p>Both remote-write to the manager's Prometheus at
+<p>Both remote-write to the manager’s Prometheus at
 <code>http://prometheus.demo.lab/api/v1/write</code> (resolved via
-<a href="components/./coredns.html">CoreDNS + k8s_gateway</a>), and a <code>resource</code> processor stamps every
+<a href="#coredns">CoreDNS + k8s_gateway</a>), and a <code>resource</code> processor stamps every
 series with the <code>k8s.cluster.name</code> label — which is what makes the multi-cluster
 dashboards possible.</p>
 <p>Because the scrape configuration lives in the collectors, Prometheus itself
@@ -858,7 +957,7 @@ misconfiguration.</p>
 <blockquote>
 <p>istiod is configured with an <code>otel-tracing</code> extension provider pointing at
 <code>otelco-cluster-opentelemetry-collector.monitoring.svc:4318</code>, but no
-<code>Telemetry</code> resource selects it and the collector's <code>traces</code> pipeline is
+<code>Telemetry</code> resource selects it and the collector’s <code>traces</code> pipeline is
 disabled. Distributed tracing is therefore <strong>wired but not collected</strong> today;
 enabling it needs a <code>Telemetry</code> resource plus a <code>traces</code> pipeline in
 <code>charts/otel-collector</code>.</p>
@@ -879,7 +978,7 @@ the expected state.</p>
 <p>Kiali is installed via its operator on the manager cluster and configured with
 <code>auth.strategy: anonymous</code>, so the login page just needs the <code>Log In</code> button.
 It reaches the workload clusters through the remote-cluster secrets created by
-the <code>kiali-secrets</code> section (using upstream's
+the <code>kiali-secrets</code> section (using upstream’s
 <code>kiali-prepare-remote-cluster.sh</code>), and it is configured to ignore its own home
 cluster — there is no mesh on <code>mnger-1</code>.</p>
 <p>If a cluster is missing from the Kiali mesh view, re-create the secrets and let
@@ -887,20 +986,27 @@ the operator reconcile:</p>
 <pre><code class="language-console">meshlab run kiali-secrets
 k --context kind-mnger-1 -n monitoring get secrets
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="workloads"><a class="header" href="#workloads">Workloads</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="workloads"><a class="header" href="#workloads">Workloads</a></h1>
 <p>The lab does not deploy the usual <code>httpbin</code>/<code>sleep</code> samples. Instead, the
-<code>deploy-workloads</code> section uses <a href="https://github.com/h0tbird/k-swarm">k-swarm</a>'s
+<code>deploy-workloads</code> section uses <a href="https://github.com/h0tbird/k-swarm">k-swarm</a>’s
 <code>swarmctl</code> CLI to fill the mesh with synthetic peers that continuously call each
 other, so there is always real east-west traffic to observe.</p>
 <h2 id="what-gets-deployed"><a class="header" href="#what-gets-deployed">What gets deployed</a></h2>
 <p>On every workload cluster (<code>pasta-*</code>, and <code>pizza-*</code> with <code>--cell-count 2</code>):</p>
-<div class="table-wrapper"><table><thead><tr><th>Namespace</th><th>Contents</th></tr></thead><tbody>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Namespace</th><th>Contents</th></tr>
+</thead>
+<tbody>
 <tr><td><code>swarm-informer</code></td><td>The informer that tells the peers about each other.</td></tr>
 <tr><td><code>swarm-ambient-n1</code></td><td>A <code>peer</code> Deployment (2 replicas) + Service, ambient data plane.</td></tr>
 <tr><td><code>swarm-ambient-n2</code></td><td>Same, ambient.</td></tr>
 <tr><td><code>swarm-sidecar-n1</code></td><td>Same, sidecar data plane.</td></tr>
 <tr><td><code>swarm-sidecar-n2</code></td><td>Same, sidecar.</td></tr>
-</tbody></table>
+</tbody>
+</table>
 </div>
 <p>Namespaces follow <code>swarm-&lt;dataplane-mode&gt;-n&lt;index&gt;</code>; every workload pod is the
 <code>peer</code> app (<code>app=peer</code>), so it is a full 8-peer mesh per cell (2 clusters × 2
@@ -939,8 +1045,9 @@ could not reach the clusters (for example when run in a sandbox that hides
 <code>~/.kube/config</code>) rather than a real outage. Sanity check with
 <code>k --context kind-pasta-1 -n swarm-ambient-n1 get pods -l app=peer</code> first.</p>
 </blockquote>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="testing"><a class="header" href="#testing">Testing</a></h1>
-<p>The lab generates its own traffic: the <a href="./components/workloads.html">k-swarm peers</a>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="testing"><a class="header" href="#testing">Testing</a></h1>
+<p>The lab generates its own traffic: the <a href="#workloads">k-swarm peers</a>
 continuously call each other, both within a cluster and across the clusters of a
 cell. Testing is therefore mostly a matter of <em>reading</em> what is already
 happening.</p>
@@ -949,7 +1056,7 @@ happening.</p>
 <code>istio-nsgw</code> deployment exists (with the custom bootstrap from <code>conf/istio</code>) but
 serves nothing until you add routes yourself.</p>
 <h2 id="intra-cell-connectivity-matrix"><a class="header" href="#intra-cell-connectivity-matrix">Intra-cell connectivity matrix</a></h2>
-<p>The fastest end-to-end check is the 8×8 matrix built from the peers' <code>hop</code>
+<p>The fastest end-to-end check is the 8×8 matrix built from the peers’ <code>hop</code>
 logs:</p>
 <pre><code class="language-console">.github/skills/connectivity-matrix/gen-matrix.sh
 </code></pre>
@@ -992,8 +1099,9 @@ istioctl --context kind-pasta-1 ztunnel-config workload | grep pasta-2
 <p>The SAN should be
 <code>spiffe://pasta.local/ns/swarm-sidecar-n1/sa/&lt;serviceaccount&gt;</code> — per-cell trust
 domain, per-cluster intermediate CA, shared <code>mesh</code> root.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="locality-load-balancing"><a class="header" href="#locality-load-balancing">Locality load balancing</a></h1>
-<p>Istio's Locality Load Balancing (LLB) is a feature that helps distribute
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="locality-load-balancing"><a class="header" href="#locality-load-balancing">Locality load balancing</a></h1>
+<p>Istio’s Locality Load Balancing (LLB) is a feature that helps distribute
 traffic across different geographic locations in a way that minimizes latency
 and maximizes availability. It routes traffic to the closest available instance
 of the service, reducing network hops and improving performance, while also
@@ -1002,7 +1110,7 @@ microservices architectures.</p>
 <blockquote>
 <p><strong>In this lab, locality is not configured out of the box.</strong> kind nodes carry
 no <code>topology.kubernetes.io/*</code> labels, so every endpoint ends up in the same
-(empty) locality. See <a href="./debug.html">Debug</a> for how to label the nodes or the
+(empty) locality. See <a href="#debug">Debug</a> for how to label the nodes or the
 workloads before experimenting.</p>
 <p>LLB is also a <strong>sidecar/waypoint</strong> feature. ztunnel ignores
 <code>DestinationRule.trafficPolicy.loadBalancer</code> entirely and picks an endpoint at
@@ -1023,7 +1131,8 @@ ${POD} -- bash
 # Watch the endpoints
 watch "istioctl --context kind-pasta-1 -n istio-system pc endpoint deploy/istio-nsgw | grep -E '^END|peer'; echo; k --context kind-pasta-1 -n istio-system exec -it ${POD} -c debugger -- curl -X POST localhost:15000/clusters | grep '^outbound.*peer' | grep -E 'zone|region|::priority|::weight' | sort | sed -e '/:zone:/s/$/\n/'"
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="tls"><a class="header" href="#tls">TLS</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="tls"><a class="header" href="#tls">TLS</a></h1>
 <p>TLS 1.3 is the latest version of the TLS protocol. TLS, which is used by HTTPS
 and other network protocols for encryption, is the modern version of SSL. TLS
 1.3 dropped support for older, less secure cryptographic features, and it
@@ -1097,18 +1206,19 @@ EOF
 <pre><code class="language-console">open ~/sniff/dump.pcap
 </code></pre>
 <p>Filter by <code>tls.handshake.type == 1</code> and follow the TLS stream of a <code>Client Hello</code> packet.
-Right click a <code>TLSv1.3</code> packet then <code>Protocol Preferences</code> --&gt; <code>Transport Layer Security</code> --&gt; <code>(Pre)-Master-Secret log filename</code> and provide the path to the <code>keylog</code> file.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="certificates"><a class="header" href="#certificates">Certificates</a></h1>
+Right click a <code>TLSv1.3</code> packet then <code>Protocol Preferences</code> –&gt; <code>Transport Layer Security</code> –&gt; <code>(Pre)-Master-Secret log filename</code> and provide the path to the <code>keylog</code> file.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="certificates"><a class="header" href="#certificates">Certificates</a></h1>
 <p>The trust chain of the lab is: a single <code>mesh</code> root CA in
-<a href="./components/vault.html">Vault</a> → one intermediate CA per cluster, issued by
-<a href="./components/cert-manager.html">cert-manager</a> into the <code>cacerts</code> secret → the
+<a href="#vault">Vault</a> → one intermediate CA per cluster, issued by
+<a href="#cert-manager">cert-manager</a> into the <code>cacerts</code> secret → the
 workload certificates istiod mints, with a per-cell trust domain
 (<code>spiffe://pasta.local/...</code>).</p>
 <p>Find below a collection of commands to troubleshoot certificate issues.</p>
 <p>Inspect the root CA:</p>
 <pre><code class="language-console">curl -s http://127.0.0.1:8082/v1/mesh/ca/pem | step certificate inspect
 </code></pre>
-<p>Inspect a cluster's intermediate CA bundle:</p>
+<p>Inspect a cluster’s intermediate CA bundle:</p>
 <pre><code class="language-console">k --context kind-pasta-1 -n istio-system get secret cacerts \
   -o jsonpath='{.data.tls\.crt}' | base64 -d | step certificate inspect --bundle
 </code></pre>
@@ -1138,7 +1248,8 @@ step certificate inspect --bundle --insecure \
 <pre><code class="language-console">k --context kind-pasta-1 -n istio-system get certificate,certificaterequest
 k --context kind-pasta-1 -n istio-system describe certificate istio-cluster-ica
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="development"><a class="header" href="#development">Development</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="development"><a class="header" href="#development">Development</a></h1>
 <p>The lab is designed to iterate on Istio itself. The workspace
 (<code>meshlab.code-workspace</code>) mounts three repositories side by side:
 <code>/workspaces/meshlab</code>, <code>/workspaces/istio</code> and <code>/workspaces/k-swarm</code>.</p>
@@ -1180,7 +1291,8 @@ the top of <code>bin/meshlab</code>, and CLI tool versions live in
 <code>.devcontainer/Dockerfile</code>. The <code>upgrade-components</code> skill
 (<code>.github/skills/upgrade-components/</code>) checks ArtifactHub and GitHub releases
 and bumps them.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="debug"><a class="header" href="#debug">Debug</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="debug"><a class="header" href="#debug">Debug</a></h1>
 <h2 id="cluster-overview"><a class="header" href="#cluster-overview">Cluster overview</a></h2>
 <pre><code class="language-console">ml            # pods + LoadBalancer services on every cluster
 ml short      # only mnger-1 and pasta-1
@@ -1195,9 +1307,9 @@ meshlab run &lt;section&gt;
 <p>Section logs that run detached are also under <code>.tmp/</code> (for example
 <code>.tmp/tilt-pasta-1.log</code>).</p>
 <h2 id="locality-labels"><a class="header" href="#locality-labels">Locality labels</a></h2>
-<p>Locality is derived from the node's <code>topology.kubernetes.io/*</code> labels, which
+<p>Locality is derived from the node’s <code>topology.kubernetes.io/*</code> labels, which
 kind does not set. Add them manually to experiment with
-<a href="./locality-lb.html">locality load balancing</a>:</p>
+<a href="#locality-load-balancing">locality load balancing</a>:</p>
 <pre><code class="language-console">k --context kind-pasta-1 label node pasta-1-control-plane \
   topology.kubernetes.io/region=milky-way \
   topology.kubernetes.io/zone=solar-system \
@@ -1224,7 +1336,7 @@ k --context kind-pasta-1 -n swarm-sidecar-n1 patch deployment peer --type merge 
   '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"ghcr.io/h0tbird/proxyv2:1.30.3-dev"}}}}}'
 </code></pre>
 <p>For iterating on <code>pilot-discovery</code> itself, prefer Tilt — see
-<a href="./development.html">Development</a>.</p>
+<a href="#development">Development</a>.</p>
 <h2 id="attaching-a-debugger-to-istiod"><a class="header" href="#attaching-a-debugger-to-istiod">Attaching a debugger to istiod</a></h2>
 <p><code>hack/launch.json</code> holds the matching VS Code launch configuration.</p>
 <pre><code class="language-console">k --context kind-pasta-1 -n istio-system exec -it deployment/istiod-1-30-3 -- \
@@ -1257,6 +1369,11 @@ write-ups that are too narrow for the book.</p>
 
         </div>
 
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
 
 
 
@@ -1265,13 +1382,13 @@ write-ups that are too narrow for the book.</p>
         </script>
 
 
-        <script src="elasticlunr.min.js"></script>
-        <script src="mark.min.js"></script>
-        <script src="searcher.js"></script>
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-09f2665d.js"></script>
 
-        <script src="clipboard.min.js"></script>
-        <script src="highlight.js"></script>
-        <script src="book.js"></script>
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-609e4cb8.js"></script>
 
         <!-- Custom JS scripts -->
 
@@ -1280,6 +1397,7 @@ write-ups that are too narrow for the book.</p>
             window.setTimeout(window.print, 100);
         });
         </script>
+
 
     </div>
     </body>

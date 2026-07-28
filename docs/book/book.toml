@@ -4,6 +4,13 @@ language = "en"
 src = "src"
 title = "The MeshLab Book"
 
+[output.html]
+additional-css = ["theme/catppuccin.css"]
+default-theme = "latte"
+preferred-dark-theme = "mocha"
+git-repository-url = "https://github.com/h0tbird/meshlab"
+edit-url-template = "https://github.com/h0tbird/meshlab/edit/master/docs/book/{path}"
+
 [output.html.fold]
 enable = true
 level = 0

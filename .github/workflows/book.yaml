@@ -3,12 +3,12 @@ on:
   workflow_dispatch: {}
   pull_request:
     paths:
-      - 'docs/book/src/**'
+      - 'docs/book/**'
   push:
     branches:
       - master
     paths:
-      - 'docs/book/src/**'
+      - 'docs/book/**'
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -22,11 +22,12 @@ jobs:
       with:
         fetch-depth: 0
 
-    # Setup mdBook
+    # Setup mdBook (must match the version shipped in .devcontainer/Dockerfile,
+    # the theme/index.hbs override is tied to the mdBook template API)
     - name: Setup mdBook
       uses: peaceiris/actions-mdbook@v1
       with:
-        mdbook-version: '0.4.43'
+        mdbook-version: '0.5.4'
 
     # Build the book
     - name: Build the book

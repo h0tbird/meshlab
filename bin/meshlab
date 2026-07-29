@@ -590,6 +590,24 @@ bootstrap-dag() {
     --dry-run=client -o yaml | kubectl --context "kind-${cluster}" apply -f -
   ) & done; join
 
+  # charts/istio only renders the istio-ewgw ApplicationSet in multi-network
+  # mode, so in single mode the task would sync a selector matching no app.
+  local ewgw_task=''
+  if [[ "${NETWORK_MODE}" == "multi" ]]; then
+    ewgw_task=$(cat <<- 'EOF'
+	      - name: istio-ewgw
+	        dependencies: [istio-istiod]
+	        templateRef:
+	          name: argocd-sync-and-wait
+	          template: argocd-sync-and-wait
+	        arguments:
+	          parameters:
+	          - name: selectors
+	            value: name=istio-ewgw
+	EOF
+    )
+  fi
+
   # Create the bootstrap workflow
   argo --context "kind-${MNGR}" list -n argocd | grep -q bootstrap || \
   argo --context "kind-${MNGR}" submit -n argocd -w - <<- EOF
@@ -749,15 +767,7 @@ bootstrap-dag() {
 	          parameters:
 	          - name: selectors
 	            value: name=istio-nsgw
-	      - name: istio-ewgw
-	        dependencies: [istio-istiod]
-	        templateRef:
-	          name: argocd-sync-and-wait
-	          template: argocd-sync-and-wait
-	        arguments:
-	          parameters:
-	          - name: selectors
-	            value: name=istio-ewgw
+	${ewgw_task}
 	EOF
 }; SECTIONS+=( bootstrap-dag )
 

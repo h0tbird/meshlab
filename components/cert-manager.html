@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "latte";
             const default_dark_theme = "mocha";
-            window.path_to_searchindex_js = "../searchindex-12c89d97.js";
+            window.path_to_searchindex_js = "../searchindex-025bbdab.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f1907180.js"></script>
@@ -204,10 +204,11 @@ application) and contains:</p>
 <p>istiod runs with <code>AUTO_RELOAD_PLUGIN_CERTS: true</code>, so a renewal of <code>cacerts</code> is
 picked up without restarting the control plane.</p>
 <h2 id="everyday-commands"><a class="header" href="#everyday-commands">Everyday commands</a></h2>
-<p>The <code>cmctl</code> CLI is not installed in the dev container; use <code>kubectl</code>.</p>
+<p>The <code>cmctl</code> CLI is shipped in the dev container; it honours <code>--context</code> like
+<code>kubectl</code>.</p>
 <p>Check the intermediate CA of a cluster:</p>
 <pre><code class="language-console">k --context kind-pasta-1 -n istio-system get certificate istio-cluster-ica
-k --context kind-pasta-1 -n istio-system describe certificate istio-cluster-ica
+cmctl --context kind-pasta-1 -n istio-system status certificate istio-cluster-ica
 </code></pre>
 <p>Follow the request chain when issuance is stuck:</p>
 <pre><code class="language-console">k --context kind-pasta-1 -n istio-system get certificaterequests
@@ -217,10 +218,12 @@ k --context kind-pasta-1 -n cert-manager logs -l app=cert-manager --tail 50
 <pre><code class="language-console">k --context kind-pasta-1 -n istio-system get secret cacerts \
   -o jsonpath='{.data.tls\.crt}' | base64 -d | step certificate inspect --bundle
 </code></pre>
-<p>Force a reissue (there is no <code>cmctl</code> here, so delete the secret and let the
-<code>Certificate</code> controller re-create it):</p>
-<pre><code class="language-console">k --context kind-pasta-1 -n istio-system delete secret cacerts
+<p>Force a reissue:</p>
+<pre><code class="language-console">cmctl --context kind-pasta-1 -n istio-system renew istio-cluster-ica
 k --context kind-pasta-1 -n istio-system get certificate istio-cluster-ica -w
+</code></pre>
+<p>Check that the cert-manager API is up after an upgrade:</p>
+<pre><code class="language-console">cmctl --context kind-pasta-1 check api
 </code></pre>
 
                     </main>

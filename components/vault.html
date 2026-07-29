@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "latte";
             const default_dark_theme = "mocha";
-            window.path_to_searchindex_js = "../searchindex-12c89d97.js";
+            window.path_to_searchindex_js = "../searchindex-025bbdab.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f1907180.js"></script>
@@ -209,12 +209,19 @@ no-op:</p>
 <pre><code class="language-console">meshlab run bootstrap-dag
 </code></pre>
 <h2 id="everyday-commands"><a class="header" href="#everyday-commands">Everyday commands</a></h2>
-<p>The <code>vault</code> CLI is not shipped in the dev container; use the HTTP API or a
-shell in the pod:</p>
+<p>The <code>vault</code> CLI is shipped in the dev container and the published port is
+reachable from inside it. <code>VAULT_ADDR</code> (<code>http://127.0.0.1:8082</code>) and
+<code>VAULT_TOKEN</code> (<code>meshlab123</code>) are already exported in the container, so use the
+CLI directly:</p>
+<pre><code class="language-console">vault secrets list
+vault read mesh/cert/ca
+vault list mesh/roles
+vault read auth/approle/role/mesh-cert-manager
+</code></pre>
+<p>If the ports have not been published yet (or you prefer to skip the tunnel),
+run the same commands inside the pod:</p>
 <pre><code class="language-console">k --context kind-mnger-1 -n vault exec -it vault-0 -- \
   env VAULT_TOKEN=meshlab123 vault secrets list
-k --context kind-mnger-1 -n vault exec -it vault-0 -- \
-  env VAULT_TOKEN=meshlab123 vault read mesh/cert/ca
 </code></pre>
 <p>Fetch the root CA over the published port:</p>
 <pre><code class="language-console">curl -s http://127.0.0.1:8082/v1/mesh/ca/pem | step certificate inspect

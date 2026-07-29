@@ -145,6 +145,11 @@ RUN VERSION="v0.1.10" && ARCH=$(archmap 'arm64' 'x86_64') && \
     $CURL https://github.com/grafana/grafanactl/releases/download/${VERSION}/grafanactl_Linux_${ARCH}.tar.gz | \
     tar -xzC /usr/local/bin grafanactl && echo "source <(grafanactl completion zsh)" >> /etc/zsh/zshrc
 
+# Install mcp-grafana (https://github.com/grafana/mcp-grafana/releases)
+RUN VERSION="v1.0.0" && ARCH=$(archmap 'arm64' 'x86_64') && \
+    $CURL https://github.com/grafana/mcp-grafana/releases/download/${VERSION}/mcp-grafana_Linux_${ARCH}.tar.gz | \
+    tar -xzC /usr/local/bin mcp-grafana
+
 # Install bat (https://github.com/sharkdp/bat/releases)
 RUN VERSION="0.26.1" && ARCH=$(archmap 'aarch64' 'x86_64') && \
     $CURL https://github.com/sharkdp/bat/releases/download/v${VERSION}/bat-v${VERSION}-${ARCH}-unknown-linux-musl.tar.gz | \

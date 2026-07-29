@@ -61,6 +61,8 @@ RUN VERSION="X.Y.Z" && ARCH=$(archmap 'arm64' 'amd64') && \
 | argo (workflows) | https://github.com/argoproj/argo-workflows/releases |
 | istioctl | https://github.com/istio/istio/releases |
 | step | https://github.com/smallstep/cli/releases |
+| vault | https://github.com/hashicorp/vault/releases (binaries from https://releases.hashicorp.com/vault, tag without the `v`) |
+| cmctl | https://github.com/cert-manager/cmctl/releases |
 | gh | https://github.com/cli/cli/releases |
 | mdbook | https://github.com/rust-lang/mdBook/releases |
 | swarmctl | https://github.com/h0tbird/k-swarm/releases |
@@ -106,7 +108,7 @@ env GH_FORCE_TTY= GH_PAGER= PAGER=cat NO_COLOR=1 bash -c '
 for repo in \
   kubernetes-sigs/cloud-provider-kind k8s-gateway/k8s_gateway \
   argoproj/argo-cd argoproj/argo-workflows hashicorp/vault \
-  cert-manager/cert-manager mittwald/kubernetes-replicator \
+  cert-manager/cert-manager cert-manager/cmctl mittwald/kubernetes-replicator \
   kubernetes-sigs/metrics-server istio/istio kiali/kiali \
   kubernetes-sigs/kind helm/helm mikefarah/yq \
   smallstep/cli cli/cli rust-lang/mdBook h0tbird/k-swarm \

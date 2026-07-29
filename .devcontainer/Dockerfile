@@ -11,6 +11,10 @@ LABEL "org.opencontainers.image.source"="https://github.com/h0tbird/meshlab/tree
 ENV LOCALE=en_US.UTF-8 LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 ENV PATH=/workspaces/meshlab/bin:${PATH}
 
+# Point the vault CLI at the lab's published port. Vault runs in dev mode with a
+# fixed, non-secret root token, so it is safe to bake in here.
+ENV VAULT_ADDR=http://127.0.0.1:8082 VAULT_TOKEN=meshlab123
+
 # Use bash with pipefail so failures in piped commands (curl | tar, etc.) are
 # surfaced instead of silently ignored.
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
@@ -37,7 +41,7 @@ EOF
 RUN apt-get -o Acquire::ForceIPv4=true update && \
     apt-get install -y --no-install-recommends \
     curl jq iputils-ping dnsutils neovim socat \
-    netcat-openbsd apache2-utils shellcheck \
+    netcat-openbsd apache2-utils shellcheck unzip \
     python3 ripgrep locales graphviz && \
     locale-gen en_US.UTF-8 && \
     apt-get clean -y && \
@@ -109,6 +113,19 @@ RUN VERSION="0.30.6" && ARCH=$(archmap 'arm64' 'amd64') && cd /tmp && \
     $CURL -O https://dl.smallstep.com/gh-release/cli/gh-release-header/v${VERSION}/step-cli_${VERSION}-1_${ARCH}.deb && \
     dpkg -i step-cli_${VERSION}-1_${ARCH}.deb && rm -f step-cli_${VERSION}-1_${ARCH}.deb && \
     echo "source <(step completion zsh)" >> /etc/zsh/zshrc
+
+# Install vault (https://releases.hashicorp.com/vault)
+# Vault ships a `complete -C` style completer, so zsh needs bashcompinit.
+RUN VERSION="2.0.3" && ARCH=$(archmap 'arm64' 'amd64') && \
+    $CURL -o /tmp/vault.zip https://releases.hashicorp.com/vault/${VERSION}/vault_${VERSION}_linux_${ARCH}.zip && \
+    unzip -qo /tmp/vault.zip vault -d /usr/local/bin && rm -f /tmp/vault.zip && \
+    echo "autoload -U +X bashcompinit && bashcompinit" >> /etc/zsh/zshrc && \
+    echo "complete -o nospace -C /usr/local/bin/vault vault" >> /etc/zsh/zshrc
+
+# Install cmctl (https://github.com/cert-manager/cmctl/releases)
+RUN VERSION="v2.5.0" && ARCH=$(archmap 'arm64' 'amd64') && \
+    $CURL https://github.com/cert-manager/cmctl/releases/download/${VERSION}/cmctl_linux_${ARCH}.tar.gz | \
+    tar -xzC /usr/local/bin cmctl && echo "source <(cmctl completion zsh)" >> /etc/zsh/zshrc
 
 # Install gh (https://github.com/cli/cli/releases)
 RUN VERSION="2.96.0" && ARCH=$(archmap 'arm64' 'amd64') && cd /tmp && \

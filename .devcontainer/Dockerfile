@@ -150,6 +150,11 @@ RUN VERSION="v1.0.0" && ARCH=$(archmap 'arm64' 'x86_64') && \
     $CURL https://github.com/grafana/mcp-grafana/releases/download/${VERSION}/mcp-grafana_Linux_${ARCH}.tar.gz | \
     tar -xzC /usr/local/bin mcp-grafana
 
+# Install prometheus-mcp-server (https://github.com/prometheus/prometheus-mcp/releases)
+RUN VERSION="0.18.0" && ARCH=$(archmap 'arm64' 'amd64') && \
+    $CURL https://github.com/prometheus/prometheus-mcp/releases/download/v${VERSION}/prometheus-mcp-server_${VERSION}_linux_${ARCH}.tar.gz | \
+    tar -xzC /usr/local/bin prometheus-mcp-server
+
 # Install bat (https://github.com/sharkdp/bat/releases)
 RUN VERSION="0.26.1" && ARCH=$(archmap 'aarch64' 'x86_64') && \
     $CURL https://github.com/sharkdp/bat/releases/download/v${VERSION}/bat-v${VERSION}-${ARCH}-unknown-linux-musl.tar.gz | \

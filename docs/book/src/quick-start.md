@@ -2,9 +2,28 @@
 
 Everything runs inside the repository's dev container, which already ships
 `kind`, `kubectl` (aliased to `k`), `helm`, `istioctl`, `argocd`, `argo`,
-`swarmctl`, `tilt` and friends. Open the repo in VS Code and run
-`Dev Containers: Reopen in Container` (see the README for the other options),
-then open a terminal inside the container.
+`swarmctl`, `tilt` and friends. With the **Dev Containers** extension
+installed, the preferred way in is:
+
+```console
+make -C ~/path/to/meshlab code
+```
+
+Run it from the host (not from inside the container). It builds the
+`vscode-remote://dev-container+<hex>/...` URI and opens the multi-root
+`meshlab.code-workspace` attached to the dev container in one step, so you
+don't have to reopen in container and then open the workspace file separately.
+
+Since `-C` makes it work from any directory, it is handy as a shell alias:
+
+```console
+alias meshlab='make -C ~/git/h0tbird/meshlab code'
+```
+
+Otherwise, open the repo in VS Code, run `Dev Containers: Reopen in Container`,
+then `File: Open Workspace from File...` and pick `meshlab.code-workspace`
+(see the README for the other options). Finally, open a terminal inside the
+container.
 
 ## Create the lab
 

@@ -6,7 +6,7 @@
 # stack (new kube.Client, informers, ~25 KRT collections). The teardown is
 # incomplete, so each rotation leaks heap and goroutines.
 #
-# See docs/istiod-retoken-memory-leak.md for the analysis.
+# See docs/issues/istiod-retoken-memory-leak.md for the analysis.
 #
 #   Usage: retoken [patch|recreate]
 #

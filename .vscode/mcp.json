@@ -1,0 +1,11 @@
+{
+  "servers": {
+    "grafana": {
+      "type": "stdio",
+      "command": "mcp-grafana",
+      "env": {
+        "GRAFANA_URL": "http://127.0.0.1:8084"
+      }
+    }
+  }
+}

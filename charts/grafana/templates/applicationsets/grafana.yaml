@@ -50,7 +50,9 @@ spec:
                 # bounced back to /login. "Main Org." is Grafana's built-in
                 # default org.
                 org_name: Main Org.
-                org_role: Viewer
+                # Editor (not Viewer) so anonymous clients — including the
+                # mcp-grafana MCP server — can create and update dashboards.
+                org_role: Editor
               feature_toggles:
                 provisioning: true
                 kubernetesDashboards: true

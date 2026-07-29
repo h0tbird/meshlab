@@ -25,9 +25,9 @@ NET_START=$(net_bytes)
 
 readonly KINDCCM_VERSION='0.11.1'                      # https://github.com/kubernetes-sigs/cloud-provider-kind/releases
 readonly K8S_GATEWAY_CHART_VERSION='3.7.2'             # https://github.com/k8s-gateway/k8s_gateway/blob/master/charts/k8s-gateway/Chart.yaml
-readonly ARGOCD_CHART_VERSION='10.1.4'                 # https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd
-readonly ARGOWF_CHART_VERSION='1.0.20'                 # https://artifacthub.io/packages/helm/argo/argo-workflows
-readonly PROMETHEUS_CHART_VERSION='29.18.0'            # https://artifacthub.io/packages/helm/prometheus-community/prometheus
+readonly ARGOCD_CHART_VERSION='10.2.1'                 # https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd
+readonly ARGOWF_CHART_VERSION='1.0.23'                 # https://artifacthub.io/packages/helm/argo/argo-workflows
+readonly PROMETHEUS_CHART_VERSION='29.20.0'            # https://artifacthub.io/packages/helm/prometheus-community/prometheus
 readonly GRAFANA_CHART_VERSION='10.5.15'               # https://artifacthub.io/packages/helm/grafana/grafana
 readonly OTEL_COLLECTOR_CHART_VERSION='0.165.0'        # https://artifacthub.io/packages/helm/opentelemetry-helm/opentelemetry-collector
 readonly VAULT_CHART_VERSION='0.34.0'                  # https://artifacthub.io/packages/helm/hashicorp/vault

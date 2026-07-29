@@ -12,7 +12,12 @@ make -C ~/path/to/meshlab code
 ```
 
 This builds the correct `vscode-remote://dev-container+<hex>/...` URI and
-opens the workspace attached to the dev container in one step.
+opens the workspace attached to the dev container in one step. Since `-C`
+makes it work from any directory, it is handy as a shell alias:
+
+```console
+alias meshlab='make -C ~/git/h0tbird/meshlab code'
+```
 
 Alternatively, do it manually:
 

@@ -68,6 +68,8 @@ RUN VERSION="X.Y.Z" && ARCH=$(archmap 'arm64' 'amd64') && \
 | tilt | https://github.com/tilt-dev/tilt/releases |
 | crane | https://github.com/google/go-containerregistry/releases |
 | grafanactl | https://github.com/grafana/grafanactl/releases |
+| stern | https://github.com/stern/stern/releases |
+| dlv (delve) | https://github.com/go-delve/delve/releases |
 
 ---
 
@@ -109,7 +111,7 @@ for repo in \
   kubernetes-sigs/kind helm/helm mikefarah/yq \
   smallstep/cli cli/cli rust-lang/mdBook h0tbird/k-swarm \
   aristocratos/btop tilt-dev/tilt google/go-containerregistry \
-  grafana/grafanactl sharkdp/bat; do
+  grafana/grafanactl sharkdp/bat stern/stern go-delve/delve; do
   echo -n "$repo: "
   gh release list -R $repo -L 8 --json tagName,isLatest \
     -q "[.[] | select(.isLatest)] | .[0].tagName // \"(none)\"" 2>/dev/null

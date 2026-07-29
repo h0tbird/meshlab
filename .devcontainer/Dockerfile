@@ -32,12 +32,13 @@ case "$(arch)" in
 esac
 EOF
 
-# Install base packages.
+# Install base packages. graphviz provides dot, required by `go tool pprof`
+# for its -svg/-png output and the graph views of its web UI.
 RUN apt-get -o Acquire::ForceIPv4=true update && \
     apt-get install -y --no-install-recommends \
     curl jq iputils-ping dnsutils neovim socat \
     netcat-openbsd apache2-utils shellcheck \
-    python3 ripgrep locales && \
+    python3 ripgrep locales graphviz && \
     locale-gen en_US.UTF-8 && \
     apt-get clean -y && \
     rm -rf /var/lib/apt/lists/* && \
@@ -159,6 +160,18 @@ RUN VERSION="0.18.0" && ARCH=$(archmap 'arm64' 'amd64') && \
 RUN VERSION="0.26.1" && ARCH=$(archmap 'aarch64' 'x86_64') && \
     $CURL https://github.com/sharkdp/bat/releases/download/v${VERSION}/bat-v${VERSION}-${ARCH}-unknown-linux-musl.tar.gz | \
     tar -xzC /usr/local/bin --strip-components 1 -f - bat-v${VERSION}-${ARCH}-unknown-linux-musl/bat
+
+# Install stern (https://github.com/stern/stern/releases)
+RUN VERSION="1.34.0" && ARCH=$(archmap 'arm64' 'amd64') && \
+    $CURL https://github.com/stern/stern/releases/download/v${VERSION}/stern_${VERSION}_linux_${ARCH}.tar.gz | \
+    tar -xzC /usr/local/bin stern && echo "source <(stern --completion=zsh)" >> /etc/zsh/zshrc
+
+# Install dlv (https://github.com/go-delve/delve/releases)
+# Delve publishes no release binaries, so build it from the pinned module.
+RUN VERSION="v1.27.0" && \
+    GOBIN=/usr/local/bin /usr/local/go/bin/go install github.com/go-delve/delve/cmd/dlv@${VERSION} && \
+    /usr/local/go/bin/go clean -modcache && \
+    echo "source <(dlv completion zsh)" >> /etc/zsh/zshrc
 
 # Install kiali-prepare-remote-cluster.sh (https://github.com/kiali/kiali)
 RUN $CURL -o /usr/local/bin/kiali-prepare-remote-cluster.sh \

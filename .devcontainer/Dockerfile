@@ -11,6 +11,10 @@ LABEL "org.opencontainers.image.source"="https://github.com/h0tbird/meshlab/tree
 ENV LOCALE=en_US.UTF-8 LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 ENV PATH=/workspaces/meshlab/bin:${PATH}
 
+# Point the vault CLI at the lab's published port. Vault runs in dev mode with a
+# fixed, non-secret root token, so it is safe to bake in here.
+ENV VAULT_ADDR=http://127.0.0.1:8082 VAULT_TOKEN=meshlab123
+
 # Use bash with pipefail so failures in piped commands (curl | tar, etc.) are
 # surfaced instead of silently ignored.
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]

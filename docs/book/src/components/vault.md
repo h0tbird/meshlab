@@ -33,12 +33,11 @@ meshlab run bootstrap-dag
 ## Everyday commands
 
 The `vault` CLI is shipped in the dev container and the published port is
-reachable from inside it, so point it at the lab and use it directly:
+reachable from inside it. `VAULT_ADDR` (`http://127.0.0.1:8082`) and
+`VAULT_TOKEN` (`meshlab123`) are already exported in the container, so use the
+CLI directly:
 
 ```console
-export VAULT_ADDR=http://127.0.0.1:8082
-export VAULT_TOKEN=meshlab123
-
 vault secrets list
 vault read mesh/cert/ca
 vault list mesh/roles

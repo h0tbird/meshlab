@@ -7,7 +7,7 @@
 
 kind clusters are created with kubeadm `networking.dnsDomain: <cell>.local`, so
 the `kubernetes` plugin must serve `pasta.local` (or `pizza.local`, or
-`mngr.local`) instead of the default `cluster.local`:
+`mnger.local`) instead of the default `cluster.local`:
 
 ```
 kubernetes pasta.local in-addr.arpa ip6.arpa {

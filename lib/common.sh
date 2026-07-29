@@ -27,7 +27,7 @@ declare -a CELL_ORDER=( pasta pizza )
 # Reverse map (cluster -> cell), covers manager + all workload clusters
 # shellcheck disable=SC2034 # used by bin/meshlab
 declare -A CELL_OF=(
-  [${MNGR}]=mngr
+  [${MNGR}]=mnger
   [pasta-1]=pasta [pasta-2]=pasta
   [pizza-1]=pizza [pizza-2]=pizza
 )
@@ -104,7 +104,7 @@ cells() {
 
 # Manager cell + workload cells above
 all_cells() {
-  echo "mngr $(cells)"
+  echo "mnger $(cells)"
 }
 
 # List the first ${CELL_COUNT} workload clusters

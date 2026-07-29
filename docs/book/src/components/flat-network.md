@@ -22,4 +22,4 @@ k --context kind-pasta-1 -n swarm-ambient-n1 exec deploy/peer -c manager -- \
 
 > Routes are added via `docker exec ... ip route replace` and live only in the
 > node container's routing table. They are lost if a node container restarts;
-> re-run `setup-flat-network` (`ml run setup-flat-network`) to reinstall them.
+> re-run `setup-flat-network` (`meshlab run setup-flat-network`) to reinstall them.

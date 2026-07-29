@@ -32,14 +32,25 @@ meshlab run bootstrap-dag
 
 ## Everyday commands
 
-The `vault` CLI is not shipped in the dev container; use the HTTP API or a
-shell in the pod:
+The `vault` CLI is shipped in the dev container and the published port is
+reachable from inside it, so point it at the lab and use it directly:
+
+```console
+export VAULT_ADDR=http://127.0.0.1:8082
+export VAULT_TOKEN=meshlab123
+
+vault secrets list
+vault read mesh/cert/ca
+vault list mesh/roles
+vault read auth/approle/role/mesh-cert-manager
+```
+
+If the ports have not been published yet (or you prefer to skip the tunnel),
+run the same commands inside the pod:
 
 ```console
 k --context kind-mnger-1 -n vault exec -it vault-0 -- \
   env VAULT_TOKEN=meshlab123 vault secrets list
-k --context kind-mnger-1 -n vault exec -it vault-0 -- \
-  env VAULT_TOKEN=meshlab123 vault read mesh/cert/ca
 ```
 
 Fetch the root CA over the published port:

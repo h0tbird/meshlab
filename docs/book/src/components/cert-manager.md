@@ -22,12 +22,13 @@ picked up without restarting the control plane.
 
 ## Everyday commands
 
-The `cmctl` CLI is not installed in the dev container; use `kubectl`.
+The `cmctl` CLI is shipped in the dev container; it honours `--context` like
+`kubectl`.
 
 Check the intermediate CA of a cluster:
 ```console
 k --context kind-pasta-1 -n istio-system get certificate istio-cluster-ica
-k --context kind-pasta-1 -n istio-system describe certificate istio-cluster-ica
+cmctl --context kind-pasta-1 -n istio-system status certificate istio-cluster-ica
 ```
 
 Follow the request chain when issuance is stuck:
@@ -42,9 +43,13 @@ k --context kind-pasta-1 -n istio-system get secret cacerts \
   -o jsonpath='{.data.tls\.crt}' | base64 -d | step certificate inspect --bundle
 ```
 
-Force a reissue (there is no `cmctl` here, so delete the secret and let the
-`Certificate` controller re-create it):
+Force a reissue:
 ```console
-k --context kind-pasta-1 -n istio-system delete secret cacerts
+cmctl --context kind-pasta-1 -n istio-system renew istio-cluster-ica
 k --context kind-pasta-1 -n istio-system get certificate istio-cluster-ica -w
+```
+
+Check that the cert-manager API is up after an upgrade:
+```console
+cmctl --context kind-pasta-1 check api
 ```

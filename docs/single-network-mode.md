@@ -154,7 +154,7 @@ Note that all four ambient directions require the client to open fresh
 connections (see above) for traffic to actually reach both clusters;
 otherwise each source pins to a single endpoint per service.
 
-Compare with [docs/issue-1.md](./issue-1.md) for the equivalent
+Compare with [docs/issues/cross-mode-cross-cluster-connectivity.md](./issues/cross-mode-cross-cluster-connectivity.md) for the equivalent
 multi-network results, where the two ambient↔sidecar cross-cluster
 combinations are blocked by upstream issues
 [istio/istio#57877](https://github.com/istio/istio/issues/57877) and

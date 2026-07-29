@@ -29,11 +29,11 @@ Same-cluster paths (any combination of sidecar/ambient) all work. The two ❌ ro
 
 1. **Renamed** the original ambient EW gateway from `istio-eastwestgateway` to
    `istio-eastwestgateway-ambient`
-   ([charts/ewgw/templates/gateway-ambient.yaml](../charts/ewgw/templates/gateway-ambient.yaml)).
+   ([charts/ewgw/templates/gateway-ambient.yaml](../../charts/ewgw/templates/gateway-ambient.yaml)).
    It still uses `gatewayClassName: istio-east-west`, listener `HBONE/15008`,
    `tls.mode: Terminate`, `gateway.istio.io/tls-terminate-mode: ISTIO_MUTUAL`.
 2. **Added** a sibling sidecar EW gateway `istio-eastwestgateway-sidecar`
-   ([charts/ewgw/templates/gateway-sidecar.yaml](../charts/ewgw/templates/gateway-sidecar.yaml)).
+   ([charts/ewgw/templates/gateway-sidecar.yaml](../../charts/ewgw/templates/gateway-sidecar.yaml)).
    - `gatewayClassName: istio` (NOT `istio-east-west` — that class only accepts the
      ambient HBONE listener).
    - Single listener: `port: 15443`, `protocol: TLS`, `hostname: "*.local"`,
@@ -42,7 +42,7 @@ Same-cluster paths (any combination of sidecar/ambient) all work. The two ❌ ro
      resulting Service as the cross-network gateway for the local network and turns on
      **AUTO_PASSTHROUGH** SNI routing for sidecars.
 3. **Enabled `PILOT_ENABLE_ALPHA_GATEWAY_API=true`** on istiod
-   ([charts/istio/templates/applicationsets/istio-istiod.yaml](../charts/istio/templates/applicationsets/istio-istiod.yaml)).
+   ([charts/istio/templates/applicationsets/istio-istiod.yaml](../../charts/istio/templates/applicationsets/istio-istiod.yaml)).
    The `protocol: TLS` listener on a Gateway-API `Gateway` is alpha in 1.29.x and is
    silently ignored without this flag (the gateway provisions but its Deployment stays
    `Degraded` and istiod never programs an inbound 15443 listener).
@@ -57,7 +57,7 @@ Same-cluster paths (any combination of sidecar/ambient) all work. The two ❌ ro
      `failoverPriority: [topology.istio.io/cluster]` so cross-cluster failover is actually
      exercised instead of always landing on the local pod.
 5. **Wired the swarmctl `--multi-cluster` flag into the lab bootstrap**
-   ([bin/meshlab](../bin/meshlab), `deploy-workloads` section) so re-creating the lab
+   ([bin/meshlab](../../bin/meshlab), `deploy-workloads` section) so re-creating the lab
    produces the right config out of the box.
 
 ## Current connectivity matrix (after all the changes above)
@@ -218,10 +218,10 @@ gateway. Steps that were taken since then (in chronological order):
 
 ## References
 
-- [charts/ewgw/templates/gateway-ambient.yaml](../charts/ewgw/templates/gateway-ambient.yaml)
-- [charts/ewgw/templates/gateway-sidecar.yaml](../charts/ewgw/templates/gateway-sidecar.yaml)
-- [charts/istio/templates/applicationsets/istio-istiod.yaml](../charts/istio/templates/applicationsets/istio-istiod.yaml)
-- [bin/meshlab](../bin/meshlab) — `deploy-workloads` section
+- [charts/ewgw/templates/gateway-ambient.yaml](../../charts/ewgw/templates/gateway-ambient.yaml)
+- [charts/ewgw/templates/gateway-sidecar.yaml](../../charts/ewgw/templates/gateway-sidecar.yaml)
+- [charts/istio/templates/applicationsets/istio-istiod.yaml](../../charts/istio/templates/applicationsets/istio-istiod.yaml)
+- [bin/meshlab](../../bin/meshlab) — `deploy-workloads` section
 - Upstream code paths verified: `pilot/pkg/xds/endpoints/ep_filters.go`,
   `pilot/pkg/networking/core/cluster.go`, `pilot/pkg/serviceregistry/kube/conversion.go`,
   `pilot/pkg/features/ambient.go`.

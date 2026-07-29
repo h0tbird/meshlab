@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "latte";
             const default_dark_theme = "mocha";
-            window.path_to_searchindex_js = "searchindex-afd21378.js";
+            window.path_to_searchindex_js = "searchindex-10750d1e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-f1907180.js"></script>
@@ -195,7 +195,7 @@ create <code>pizza</code>.</p>
 <tr><th>Cell</th><th>Clusters</th><th>Trust domain</th><th>Pod CIDRs</th></tr>
 </thead>
 <tbody>
-<tr><td><code>mngr</code></td><td><code>mnger-1</code></td><td>n/a</td><td><code>10.41.0.0/16</code></td></tr>
+<tr><td><code>mnger</code></td><td><code>mnger-1</code></td><td>n/a</td><td><code>10.41.0.0/16</code></td></tr>
 <tr><td><code>pasta</code></td><td><code>pasta-1</code> <code>pasta-2</code></td><td><code>pasta.local</code></td><td><code>10.51.0.0/16</code> <code>10.52.0.0/16</code></td></tr>
 <tr><td><code>pizza</code></td><td><code>pizza-1</code> <code>pizza-2</code></td><td><code>pizza.local</code></td><td><code>10.61.0.0/16</code> <code>10.62.0.0/16</code></td></tr>
 </tbody>
@@ -205,7 +205,7 @@ create <code>pizza</code>.</p>
 each one uses a different SPIFFE trust domain and each cluster within a cell
 gets its own intermediate CA. The kind clusters are also created with the
 kubeadm DNS domain set to <code>&lt;cell&gt;.local</code>, so in-cluster FQDNs look like
-<code>peer.swarm-ambient-n1.svc.pasta.local</code> instead of the usual <code>cluster.local</code>.</p>
+<code>&lt;service&gt;.&lt;namespace&gt;.svc.&lt;cell&gt;.local</code> instead of the usual <code>cluster.local</code>.</p>
 <p>Clusters run on <a href="./components/kind.html">kind</a>, all attached to the same Docker
 <code>kind</code> network. Every cluster gets non-overlapping pod and service CIDRs and
 <code>setup-flat-network</code> installs static routes between the sibling clusters of a

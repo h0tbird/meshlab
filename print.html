@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "latte";
             const default_dark_theme = "mocha";
-            window.path_to_searchindex_js = "searchindex-afd21378.js";
+            window.path_to_searchindex_js = "searchindex-10750d1e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-f1907180.js"></script>
@@ -193,7 +193,7 @@ create <code>pizza</code>.</p>
 <tr><th>Cell</th><th>Clusters</th><th>Trust domain</th><th>Pod CIDRs</th></tr>
 </thead>
 <tbody>
-<tr><td><code>mngr</code></td><td><code>mnger-1</code></td><td>n/a</td><td><code>10.41.0.0/16</code></td></tr>
+<tr><td><code>mnger</code></td><td><code>mnger-1</code></td><td>n/a</td><td><code>10.41.0.0/16</code></td></tr>
 <tr><td><code>pasta</code></td><td><code>pasta-1</code> <code>pasta-2</code></td><td><code>pasta.local</code></td><td><code>10.51.0.0/16</code> <code>10.52.0.0/16</code></td></tr>
 <tr><td><code>pizza</code></td><td><code>pizza-1</code> <code>pizza-2</code></td><td><code>pizza.local</code></td><td><code>10.61.0.0/16</code> <code>10.62.0.0/16</code></td></tr>
 </tbody>
@@ -203,7 +203,7 @@ create <code>pizza</code>.</p>
 each one uses a different SPIFFE trust domain and each cluster within a cell
 gets its own intermediate CA. The kind clusters are also created with the
 kubeadm DNS domain set to <code>&lt;cell&gt;.local</code>, so in-cluster FQDNs look like
-<code>peer.swarm-ambient-n1.svc.pasta.local</code> instead of the usual <code>cluster.local</code>.</p>
+<code>&lt;service&gt;.&lt;namespace&gt;.svc.&lt;cell&gt;.local</code> instead of the usual <code>cluster.local</code>.</p>
 <p>Clusters run on <a href="#kind">kind</a>, all attached to the same Docker
 <code>kind</code> network. Every cluster gets non-overlapping pod and service CIDRs and
 <code>setup-flat-network</code> installs static routes between the sibling clusters of a
@@ -446,7 +446,7 @@ ones exist depends on <code>--cell-count</code>:</p>
 <tr><th>Cluster</th><th>Cell</th><th>Pod CIDR</th><th>Service CIDR</th><th>DNS domain</th></tr>
 </thead>
 <tbody>
-<tr><td><code>mnger-1</code></td><td><code>mngr</code></td><td><code>10.41.0.0/16</code></td><td><code>10.141.0.0/16</code></td><td><code>mngr.local</code></td></tr>
+<tr><td><code>mnger-1</code></td><td><code>mnger</code></td><td><code>10.41.0.0/16</code></td><td><code>10.141.0.0/16</code></td><td><code>mnger.local</code></td></tr>
 <tr><td><code>pasta-1</code></td><td><code>pasta</code></td><td><code>10.51.0.0/16</code></td><td><code>10.151.0.0/16</code></td><td><code>pasta.local</code></td></tr>
 <tr><td><code>pasta-2</code></td><td><code>pasta</code></td><td><code>10.52.0.0/16</code></td><td><code>10.152.0.0/16</code></td><td><code>pasta.local</code></td></tr>
 <tr><td><code>pizza-1</code></td><td><code>pizza</code></td><td><code>10.61.0.0/16</code></td><td><code>10.161.0.0/16</code></td><td><code>pizza.local</code></td></tr>
@@ -557,7 +557,7 @@ section therefore runs a <code>socat</code> forwarder per UI:</p>
 <h2 id="1-the-cluster-zone-is-celllocal"><a class="header" href="#1-the-cluster-zone-is-celllocal">1. The cluster zone is <code>&lt;cell&gt;.local</code></a></h2>
 <p>kind clusters are created with kubeadm <code>networking.dnsDomain: &lt;cell&gt;.local</code>, so
 the <code>kubernetes</code> plugin must serve <code>pasta.local</code> (or <code>pizza.local</code>, or
-<code>mngr.local</code>) instead of the default <code>cluster.local</code>:</p>
+<code>mnger.local</code>) instead of the default <code>cluster.local</code>:</p>
 <pre><code>kubernetes pasta.local in-addr.arpa ip6.arpa {
    pods insecure
    fallthrough in-addr.arpa ip6.arpa

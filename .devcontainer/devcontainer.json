@@ -12,7 +12,8 @@
 	"initializeCommand": {
 		"lazy-load-ssh-keys": "ssh -T git@github.com || true",
 		"create-istio-dir": "mkdir -p ${localWorkspaceFolder}/../istio",
-		"create-k-swarm-dir": "mkdir -p ${localWorkspaceFolder}/../k-swarm"
+		"create-k-swarm-dir": "mkdir -p ${localWorkspaceFolder}/../k-swarm",
+		"create-kiali-charts-dir": "mkdir -p ${localWorkspaceFolder}/../kiali-charts"
 	},
 	"mounts": [
 		// DooD: Docker Desktop's host-services proxy socket. More robust than
@@ -22,7 +23,8 @@
 		"type=bind,source=/run/host-services/ssh-auth.sock,target=/ssh-agent",
 		"type=bind,source=${localEnv:HOME}/.kube/config,target=/root/.kube/config.host",
 		"type=bind,source=${localWorkspaceFolder}/../istio,target=/workspaces/istio",
-		"type=bind,source=${localWorkspaceFolder}/../k-swarm,target=/workspaces/k-swarm"
+		"type=bind,source=${localWorkspaceFolder}/../k-swarm,target=/workspaces/k-swarm",
+		"type=bind,source=${localWorkspaceFolder}/../kiali-charts,target=/workspaces/kiali-charts"
 	],
 	"features": {
 		"ghcr.io/devcontainers/features/docker-in-docker:3": {},
@@ -123,9 +125,10 @@
 		"backup-docker-config": "cp ~/.docker/config.json ~/.docker/config.json.bkp"
 	},
 	"postStartCommand": {
-		// Clone repos if missing. Override defaults with MESHLAB_ISTIO_REPO / MESHLAB_KSWARM_REPO=<owner>/<repo>.
+		// Clone repos if missing. Override defaults with MESHLAB_ISTIO_REPO / MESHLAB_KSWARM_REPO / MESHLAB_KIALI_CHARTS_REPO=<owner>/<repo>.
 		// When a fork is used, an 'upstream' remote pointing at the canonical repo is added automatically.
 		"clone-istio": ".devcontainer/clone-repo.sh istio/istio ${localEnv:MESHLAB_ISTIO_REPO:istio/istio} /workspaces/istio",
-		"clone-k-swarm": ".devcontainer/clone-repo.sh h0tbird/k-swarm ${localEnv:MESHLAB_KSWARM_REPO:h0tbird/k-swarm} /workspaces/k-swarm"
+		"clone-k-swarm": ".devcontainer/clone-repo.sh h0tbird/k-swarm ${localEnv:MESHLAB_KSWARM_REPO:h0tbird/k-swarm} /workspaces/k-swarm",
+		"clone-kiali-charts": ".devcontainer/clone-repo.sh kiali/helm-charts ${localEnv:MESHLAB_KIALI_CHARTS_REPO:kiali/helm-charts} /workspaces/kiali-charts"
 	}
 }

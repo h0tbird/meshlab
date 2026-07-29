@@ -128,7 +128,7 @@ Development Targets
 - Host SSH agent available at `/ssh-agent`.
 - Docker sockets: DinD at `/var/run/docker.sock`, DooD at `/var/run/docker-host.sock` (default).
 - Kind uses DooD; Istio `build-tools` uses DinD.
-- Istio sources are cloned to `../istio` if missing. Both repos mount under `/workspaces`.
+- Sibling sources (`../istio`, `../k-swarm`, `../kiali-charts`) are cloned if missing and mount under `/workspaces`. Point any of them at a fork with `MESHLAB_ISTIO_REPO` / `MESHLAB_KSWARM_REPO` / `MESHLAB_KIALI_CHARTS_REPO`.
 - Each workload cluster's Tilt watches `pilot-discovery` and live-updates on change.
 - Run `make istio-binaries` to build new Istio binaries.
 - Each cell is a flat L3 network: clusters run the default kindnet CNI with kube-proxy, and `setup-flat-network` adds static routes between the sibling clusters of a cell so their pod and service CIDRs are directly routable. The `--network-mode` flag chooses whether Istio piggybacks on that flat network (`single` — no EWGW between sibling clusters) or treats each cluster as its own Istio network and routes between them through the east-west gateway (`multi`).

@@ -2,7 +2,8 @@
 	"folders": [
 		{ "name": "meshlab", "path": "." },
 		{ "name": "istio", "path": "../istio" },
-		{ "name": "k-swarm", "path": "../k-swarm" }
+		{ "name": "k-swarm", "path": "../k-swarm" },
+		{ "name": "kiali-charts", "path": "../kiali-charts" }
 	],
 	"settings": {
 		"remote.defaultExtensionsIfInstalledLocally": [

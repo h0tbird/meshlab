@@ -9,7 +9,7 @@ ones exist depends on `--cell-count`:
 
 | Cluster   | Cell    | Pod CIDR        | Service CIDR     | DNS domain    |
 | --------- | ------- | --------------- | ---------------- | ------------- |
-| `mnger-1` | `mngr`  | `10.41.0.0/16`  | `10.141.0.0/16`  | `mngr.local`  |
+| `mnger-1` | `mnger` | `10.41.0.0/16`  | `10.141.0.0/16`  | `mnger.local` |
 | `pasta-1` | `pasta` | `10.51.0.0/16`  | `10.151.0.0/16`  | `pasta.local` |
 | `pasta-2` | `pasta` | `10.52.0.0/16`  | `10.152.0.0/16`  | `pasta.local` |
 | `pizza-1` | `pizza` | `10.61.0.0/16`  | `10.161.0.0/16`  | `pizza.local` |

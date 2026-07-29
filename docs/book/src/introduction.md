@@ -12,7 +12,7 @@ create `pizza`.
 
 | Cell    | Clusters            | Trust domain  | Pod CIDRs                     |
 | ------- | ------------------- | ------------- | ----------------------------- |
-| `mngr`  | `mnger-1`           | n/a           | `10.41.0.0/16`                |
+| `mnger` | `mnger-1`           | n/a           | `10.41.0.0/16`                |
 | `pasta` | `pasta-1` `pasta-2` | `pasta.local` | `10.51.0.0/16` `10.52.0.0/16` |
 | `pizza` | `pizza-1` `pizza-2` | `pizza.local` | `10.61.0.0/16` `10.62.0.0/16` |
 
@@ -20,7 +20,7 @@ Although the cells share the same root CA for their cryptographic material,
 each one uses a different SPIFFE trust domain and each cluster within a cell
 gets its own intermediate CA. The kind clusters are also created with the
 kubeadm DNS domain set to `<cell>.local`, so in-cluster FQDNs look like
-`peer.swarm-ambient-n1.svc.pasta.local` instead of the usual `cluster.local`.
+`<service>.<namespace>.svc.<cell>.local` instead of the usual `cluster.local`.
 
 Clusters run on [kind](./components/kind.md), all attached to the same Docker
 `kind` network. Every cluster gets non-overlapping pod and service CIDRs and

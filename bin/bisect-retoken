@@ -1,0 +1,413 @@
+#!/bin/bash
+#
+# git-bisect-ready reproduction of the istiod remote-secret re-tokening memory
+# leak documented in docs/issues/istiod-retoken-memory-leak.md.
+#
+# For the istio commit currently checked out in ${ISTIO_DIR} it:
+#
+#   1. builds pilot-discovery,
+#   2. waits until Tilt has live-synced that exact binary into the istiod pod
+#      of kind-${SRC_CLUSTER} and the process has restarted,
+#   3. lets istiod settle until its goroutine count is flat,
+#   4. runs bin/retoken to rotate the remote-secret token N times,
+#   5. derives leaked goroutines per rotation from retoken's metrics.csv.
+#
+# Exit codes (git bisect semantics):
+#   0    leak absent            -> git bisect good
+#   1    leak present           -> git bisect bad
+#   125  commit cannot be tested -> git bisect skip
+#
+#   Usage: bisect-retoken
+#
+#     cd /workspaces/istio
+#     git bisect start <bad-rev> <good-rev>
+#     git bisect run /workspaces/meshlab/bin/bisect-retoken
+#
+# Run it once by hand first, on a known-bad commit, to confirm the lab is in a
+# testable shape and the verdict comes out as expected.
+#
+# Knobs (environment):
+#   ISTIO_DIR      istio worktree under bisect              (/workspaces/istio)
+#   SRC_CLUSTER    cluster holding the remote secret        (pasta-1)
+#   DST_CLUSTER    cluster the remote secret points at      (pasta-2)
+#   ITERATIONS     re-tokenings per measurement             (40)
+#   INTERVAL       seconds between re-tokenings             (5)
+#   SAMPLE_EVERY   sample every N re-tokenings              (10)
+#   THRESHOLD      leaked goroutines per rotation to fail   (5)
+#   SETTLE         seconds to idle after istiod restarts    (60)
+#   BUILD          build the binary, false to reuse out/    (true)
+#   BUILD_CMD      how to build pilot-discovery             (make -C <meshlab> istio-binaries)
+#   SYNC_TIMEOUT   seconds to wait for Tilt to sync         (900)
+#   OUTROOT        where per-commit run directories land    (/tmp/bisect-retoken)
+#   GRAFANA_URL    grafana to annotate, empty to disable     (http://127.0.0.1:8084)
+#   GRAFANA_DASH   dashboard uid the annotations attach to   (adtlb8r, "Memory leak")
+#
+# Every phase is annotated in grafana, so watching the "Memory leak" dashboard
+# while a bisect runs shows which commit is being built, when istiod came back,
+# which window the rotations cover and how each commit was judged.
+#
+# The verdict of every run is appended to ${OUTROOT}/results.csv, so a bisect
+# that turns up no transition still leaves behind the numbers proving the
+# behaviour is uniform across the range.
+
+set -Eeuo pipefail
+
+ISTIO_DIR="${ISTIO_DIR:-/workspaces/istio}"
+SRC_CLUSTER="${SRC_CLUSTER:-pasta-1}"
+DST_CLUSTER="${DST_CLUSTER:-pasta-2}"
+ITERATIONS="${ITERATIONS:-40}"
+INTERVAL="${INTERVAL:-5}"
+SAMPLE_EVERY="${SAMPLE_EVERY:-10}"
+THRESHOLD="${THRESHOLD:-5}"
+SETTLE="${SETTLE:-60}"
+BUILD="${BUILD:-true}"
+SYNC_TIMEOUT="${SYNC_TIMEOUT:-900}"
+READY_TIMEOUT="${READY_TIMEOUT:-300}"
+STABLE_TIMEOUT="${STABLE_TIMEOUT:-300}"
+STABLE_DELTA="${STABLE_DELTA:-25}"
+OUTROOT="${OUTROOT:-/tmp/bisect-retoken}"
+GRAFANA_URL="${GRAFANA_URL:-http://127.0.0.1:8084}"
+GRAFANA_DASH="${GRAFANA_DASH:-adtlb8r}"
+
+MESHLAB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+RETOKEN="${MESHLAB_DIR}/bin/retoken"
+BUILD_CMD="${BUILD_CMD:-make -C ${MESHLAB_DIR} istio-binaries}"
+SRC="kubectl --context kind-${SRC_CLUSTER} -n istio-system"
+RESULTS="${OUTROOT}/results.csv"
+
+MPORT=""
+MPF_PID=""
+ANN_ID=""
+MEASURE_ANN=""
+
+#------------------------------------------------------------------------------
+# Grafana annotations
+#
+# Best effort throughout: a lab without grafana, or with it published somewhere
+# else, must never turn a measurement into a skip. Annotations are attached to
+# ${GRAFANA_DASH} so they show up on the built-in annotation layer without
+# touching the dashboard, and tagged so other dashboards can query them.
+#------------------------------------------------------------------------------
+
+# Annotates now with $1 and the extra tags in $2.., leaving the new annotation
+# id in ANN_ID for annotate_end.
+annotate () {
+  local text="$1"; shift
+  local payload
+  ANN_ID=""
+  [[ -n "${GRAFANA_URL}" ]] && command -v jq >/dev/null || return 0
+
+  payload="$(jq -nc \
+    --arg text "${text}" \
+    --arg dash "${GRAFANA_DASH}" \
+    --argjson time "$(date +%s%3N)" \
+    '{time: $time, text: $text, tags: $ARGS.positional}
+     + (if $dash == "" then {} else {dashboardUID: $dash} end)' \
+    --args bisect-retoken "${COMMIT:-unknown}" "$@")" || return 0
+
+  ANN_ID="$(curl -sf --max-time 5 -X POST "${GRAFANA_URL}/api/annotations" \
+    -H 'Content-Type: application/json' -d "${payload}" 2>/dev/null |
+    jq -r '.id // empty')" || ANN_ID=""
+  return 0
+}
+
+# Turns the annotation $1 into a region ending now, relabelling it with $2.
+annotate_end () {
+  local id="$1" text="${2:-}" payload
+  [[ -n "${GRAFANA_URL}" && -n "${id}" ]] && command -v jq >/dev/null || return 0
+
+  payload="$(jq -nc --arg text "${text}" --argjson end "$(date +%s%3N)" \
+    '{timeEnd: $end} + (if $text == "" then {} else {text: $text} end)')" || return 0
+
+  curl -sf --max-time 5 -X PATCH "${GRAFANA_URL}/api/annotations/${id}" \
+    -H 'Content-Type: application/json' -d "${payload}" >/dev/null 2>&1 || true
+  return 0
+}
+
+#------------------------------------------------------------------------------
+# Verdicts
+#
+# Anything that is not a clean measurement must end up as 125, never as a
+# non-zero that bisect would read as "bad". The ERR trap is the safety net for
+# that; it is disarmed just before the real verdict is emitted.
+#------------------------------------------------------------------------------
+
+skip () {
+  echo "SKIP: $*" >&2
+  annotate_end "${MEASURE_ANN}" ""
+  annotate "${COMMIT:-?} skipped: $*" verdict skip
+  exit 125
+}
+
+trap 'skip "unexpected failure at line ${LINENO}"' ERR
+trap 'stop_metrics' EXIT
+
+#------------------------------------------------------------------------------
+# istiod plumbing
+#------------------------------------------------------------------------------
+
+# Prints the first free local TCP port at or above $1.
+free_port () {
+  local port=$1
+  while ss -ltnH "sport = :${port}" | grep -q .; do
+    port=$(( port + 1 ))
+  done
+  echo "${port}"
+}
+
+# Prints the name of the (single) istiod pod, empty if there is none.
+istiod_pod () {
+  ${SRC} get pods -l app=istiod -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true
+}
+
+# Prints the sha256 of the pilot-discovery binary actually running in the pod.
+container_sha () {
+  local pod
+  pod="$(istiod_pod)"
+  [[ -n "${pod}" ]] || return 0
+  ${SRC} exec "${pod}" -c discovery -- sha256sum /usr/local/bin/pilot-discovery 2>/dev/null |
+    awk '{print $1}' || true
+}
+
+# Holds a single port-forward to istiod's monitoring port open for the whole
+# pre-flight phase. retoken forwards its own ports, so this one is closed again
+# before the measurement starts.
+start_metrics () {
+  stop_metrics
+  MPORT="$(free_port 19090)"
+  ${SRC} port-forward --address 127.0.0.1 "deploy/${ISTIOD}" "${MPORT}:15014" \
+    >>"${RUNDIR}/port-forward.log" 2>&1 &
+  MPF_PID=$!
+
+  for _ in {1..30}; do
+    if curl -sf "http://127.0.0.1:${MPORT}/metrics" | grep -q '^go_goroutines '; then
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
+
+stop_metrics () {
+  [[ -n "${MPF_PID}" ]] || return 0
+  kill "${MPF_PID}" 2>/dev/null || true
+  wait "${MPF_PID}" 2>/dev/null || true
+  MPF_PID=""
+}
+
+# Prints the value of the metric line whose name (with labels) matches $1.
+metric () {
+  curl -sf "http://127.0.0.1:${MPORT}/metrics" | awk -v k="$1" '$1 == k {v = $2} END {print v + 0}'
+}
+
+#------------------------------------------------------------------------------
+# Pre-flight
+#------------------------------------------------------------------------------
+
+preflight () {
+  local cmd
+  for cmd in kubectl curl awk ss yq base64 sha256sum; do
+    command -v "${cmd}" >/dev/null || skip "${cmd} not found"
+  done
+
+  [[ -x "${RETOKEN}" ]] || skip "${RETOKEN} is not executable"
+  [[ -d "${ISTIO_DIR}/.git" ]] || skip "${ISTIO_DIR} is not a git worktree"
+
+  ${SRC} get ns istio-system >/dev/null 2>&1 || skip "kind-${SRC_CLUSTER} unreachable"
+  kubectl --context "kind-${DST_CLUSTER}" get ns istio-system >/dev/null 2>&1 ||
+    skip "kind-${DST_CLUSTER} unreachable"
+
+  ${SRC} get secret "istio-remote-secret-${DST_CLUSTER}" >/dev/null 2>&1 ||
+    skip "no istio-remote-secret-${DST_CLUSTER} in kind-${SRC_CLUSTER}, nothing to re-token"
+
+  ISTIOD="$(${SRC} get deploy -l app=istiod -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
+  [[ -n "${ISTIOD}" ]] || skip "no istiod deployment in kind-${SRC_CLUSTER}"
+
+  local image
+  image="$(${SRC} get deploy "${ISTIOD}" -o jsonpath='{.spec.template.spec.containers[0].image}')"
+  [[ "${image}" == pilot-discovery-dev:* ]] ||
+    skip "${ISTIOD} runs ${image}, not the Tilt-managed pilot-discovery-dev image"
+
+  pgrep -f "tilt up --context kind-${SRC_CLUSTER}" >/dev/null ||
+    skip "tilt is not running for kind-${SRC_CLUSTER}, the built binary would never reach istiod"
+}
+
+#------------------------------------------------------------------------------
+# Build and deploy the commit under test
+#------------------------------------------------------------------------------
+
+# Builds pilot-discovery for the checked out commit. A commit that does not
+# build is a commit that cannot be tested.
+build () {
+  if [[ "${BUILD}" != "true" ]]; then
+    echo "build: skipped (BUILD=${BUILD})"
+    return 0
+  fi
+
+  echo "build: ${BUILD_CMD}"
+  annotate "build ${COMMIT}: ${SUBJECT}" build
+  local ann="${ANN_ID}"
+  if ! (cd "${ISTIO_DIR}" && ${BUILD_CMD}) >"${RUNDIR}/build.log" 2>&1; then
+    annotate_end "${ann}" "build ${COMMIT} failed"
+    tail -20 "${RUNDIR}/build.log" >&2
+    skip "build failed, see ${RUNDIR}/build.log"
+  fi
+  annotate_end "${ann}" "build ${COMMIT}: ${SUBJECT}"
+}
+
+# Waits until the istiod container runs the binary we just built and its
+# process has restarted. Tilt live-syncs the binary and restarts the process in
+# place, so an unchanged binary produces no restart at all: in that case the pod
+# is deleted to guarantee every measurement starts from a cold istiod.
+deploy () {
+  local want pod deadline ann
+
+  want="$(sha256sum "${BINARY}" | awk '{print $1}')"
+  echo "deploy: waiting for ${want:0:12} in ${ISTIOD}"
+  annotate "deploy ${COMMIT} to ${ISTIOD}" deploy
+  ann="${ANN_ID}"
+
+  if [[ "${want}" == "${PRE_SHA}" ]]; then
+    echo "deploy: binary unchanged, restarting istiod to get a cold process"
+    pod="$(istiod_pod)"
+    [[ -z "${pod}" ]] || ${SRC} delete pod "${pod}" --wait=false >/dev/null
+    sleep 5
+  fi
+
+  deadline=$(( SECONDS + SYNC_TIMEOUT ))
+  while (( SECONDS < deadline )); do
+    if [[ "$(container_sha)" == "${want}" ]]; then
+      break
+    fi
+    sleep 10
+  done
+  [[ "$(container_sha)" == "${want}" ]] ||
+    skip "tilt did not sync ${want:0:12} into ${ISTIOD} within ${SYNC_TIMEOUT}s"
+
+  ${SRC} wait --for=condition=Ready pod -l app=istiod --timeout="${READY_TIMEOUT}s" >/dev/null ||
+    skip "istiod did not become ready with the binary of ${COMMIT}"
+
+  start_metrics || skip "no istiod metrics after deploying ${COMMIT}"
+
+  # The binary in the container is the one we built, but only the version stamp
+  # proves the build actually recompiled this commit rather than reusing out/.
+  local version
+  version="$(curl -sf "http://127.0.0.1:${MPORT}/metrics" |
+    sed -n 's/^pilot_info{version="\([^"]*\)".*/\1/p')"
+  echo "deploy: pilot_info version ${version}"
+  if [[ "${BUILD}" == "true" && "${version}" != *"${COMMIT_FULL}"* ]]; then
+    skip "istiod reports ${version}, expected a build of ${COMMIT_FULL}"
+  fi
+  annotate_end "${ann}" "istiod ${COMMIT} up: ${version}"
+}
+
+# A freshly restarted istiod climbs for a while as proxies reconnect and caches
+# fill. Measuring during that ramp would read as a leak, so wait for the
+# goroutine count to go flat before touching the remote secret.
+settle () {
+  echo "settle: idling ${SETTLE}s"
+  annotate "settle ${COMMIT}: waiting for istiod to go idle" settle
+  local ann="${ANN_ID}"
+  sleep "${SETTLE}"
+
+  local prev="" cur deadline=$(( SECONDS + STABLE_TIMEOUT ))
+  while (( SECONDS < deadline )); do
+    cur="$(metric go_goroutines)"
+    if [[ -n "${prev}" ]] && (( cur - prev <= STABLE_DELTA && prev - cur <= STABLE_DELTA )); then
+      echo "settle: goroutines flat at ${cur}"
+      annotate_end "${ann}" "settle ${COMMIT}: flat at ${cur} goroutines"
+      return 0
+    fi
+    prev="${cur}"
+    sleep 15
+  done
+  skip "goroutine count never stabilised (last ${cur:-?}), istiod is not idle"
+}
+
+#------------------------------------------------------------------------------
+# Measure
+#------------------------------------------------------------------------------
+
+measure () {
+  UPDATES_BEFORE="$(metric 'remote_cluster_secret_events_total{event="update"}')"
+  POD_BEFORE="$(istiod_pod)"
+  stop_metrics
+
+  echo "measure: ${ITERATIONS} rotations every ${INTERVAL}s"
+  annotate "rotating ${ITERATIONS} tokens every ${INTERVAL}s on ${COMMIT}" measure
+  MEASURE_ANN="${ANN_ID}"
+  SRC_CLUSTER="${SRC_CLUSTER}" DST_CLUSTER="${DST_CLUSTER}" \
+  ITERATIONS="${ITERATIONS}" INTERVAL="${INTERVAL}" SAMPLE_EVERY="${SAMPLE_EVERY}" \
+  PROFILE=false OUTDIR="${RUNDIR}/retoken" \
+    "${RETOKEN}" patch >"${RUNDIR}/retoken.log" 2>&1 ||
+    { tail -20 "${RUNDIR}/retoken.log" >&2; skip "retoken failed, see ${RUNDIR}/retoken.log"; }
+
+  start_metrics || skip "no istiod metrics after the rotations"
+  UPDATES_AFTER="$(metric 'remote_cluster_secret_events_total{event="update"}')"
+
+  # A run that did not actually rotate anything, or that straddled an istiod
+  # restart, says nothing about this commit.
+  [[ "$(istiod_pod)" == "${POD_BEFORE}" ]] ||
+    skip "istiod restarted during the run, measurement is not comparable"
+  (( UPDATES_AFTER - UPDATES_BEFORE >= ITERATIONS / 2 )) ||
+    skip "istiod saw $(( UPDATES_AFTER - UPDATES_BEFORE )) secret updates for ${ITERATIONS} rotations"
+}
+
+#------------------------------------------------------------------------------
+# Entry point
+#------------------------------------------------------------------------------
+
+preflight
+
+COMMIT_FULL="$(git -C "${ISTIO_DIR}" rev-parse HEAD)"
+COMMIT="${COMMIT_FULL:0:12}"
+SUBJECT="$(git -C "${ISTIO_DIR}" log -1 --format=%s | cut -c1-60)"
+ARCH="$(dpkg --print-architecture)"
+BINARY="${ISTIO_DIR}/out/linux_${ARCH}/pilot-discovery"
+RUNDIR="${OUTROOT}/${COMMIT}-$(date -u +%Y%m%dT%H%M%SZ)"
+
+mkdir -p "${RUNDIR}"
+[[ -f "${RESULTS}" ]] ||
+  echo "timestamp,commit,verdict,rotations,goroutines_per_rotation,heap_mb_per_rotation,rundir" >"${RESULTS}"
+
+echo "commit:  ${COMMIT} (${SUBJECT})"
+echo "output:  ${RUNDIR}"
+[[ -z "${GRAFANA_URL}" ]] || echo "grafana: annotating ${GRAFANA_URL} dashboard ${GRAFANA_DASH:-<none>}"
+echo
+
+PRE_SHA="$(container_sha)"
+build
+deploy
+settle
+measure
+
+CSV="${RUNDIR}/retoken/metrics.csv"
+[[ -s "${CSV}" ]] || skip "retoken produced no metrics.csv"
+
+read -r ROTATIONS GOROUTINES_PER HEAP_PER <<<"$(awk -F, '
+  NR == 2 { fi = $2; fg = $4; fh = $5 }
+  END {
+    di = $2 - fi
+    if (di < 1) di = 1
+    printf "%d %.2f %.3f\n", di, ($4 - fg) / di, ($5 - fh) / 1048576 / di
+  }' "${CSV}")"
+
+(( ROTATIONS >= ITERATIONS / 2 )) || skip "only ${ROTATIONS} rotations recorded in ${CSV}"
+
+LEAKING="$(awk -v g="${GOROUTINES_PER}" -v t="${THRESHOLD}" 'BEGIN { print (g >= t) ? 1 : 0 }')"
+VERDICT=$([[ "${LEAKING}" == "1" ]] && echo leak || echo clean)
+
+echo
+echo "commit ${COMMIT}: ${ROTATIONS} rotations, ${GOROUTINES_PER} goroutines and ${HEAP_PER} MB heap per rotation"
+echo "verdict: ${VERDICT} (threshold ${THRESHOLD} goroutines per rotation)"
+
+annotate_end "${MEASURE_ANN}" "${COMMIT} ${VERDICT}: ${GOROUTINES_PER} goroutines per rotation over ${ROTATIONS} rotations"
+annotate "${COMMIT} ${VERDICT}: ${GOROUTINES_PER} goroutines and ${HEAP_PER} MB heap per rotation" verdict "${VERDICT}"
+
+printf '%s,%s,%s,%s,%s,%s,%s\n' \
+  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${COMMIT}" "${VERDICT}" \
+  "${ROTATIONS}" "${GOROUTINES_PER}" "${HEAP_PER}" "${RUNDIR}" >>"${RESULTS}"
+
+trap - ERR
+[[ "${LEAKING}" == "1" ]] && exit 1
+exit 0

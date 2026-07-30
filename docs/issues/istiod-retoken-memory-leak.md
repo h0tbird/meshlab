@@ -53,6 +53,26 @@ Nothing else in either cluster changes. This is exactly what an external token
 rotator (cert-manager, sealed-secrets, a CronJob, a bound-token refresher…) does
 in production.
 
+### Bisecting
+
+[`bin/bisect-retoken`](../../bin/bisect-retoken) wraps the above into a single
+pass/fail probe for one istio commit: it builds `pilot-discovery`, waits until
+Tilt has live-synced that exact binary into istiod and the goroutine count has
+gone flat, runs `retoken`, and turns the goroutines-per-rotation slope into a
+verdict — `0` when clean, `1` when leaking, `125` when the commit cannot be
+built or measured.
+
+```sh
+cd /workspaces/istio
+git bisect start <bad-rev> <good-rev>
+git bisect run /workspaces/meshlab/bin/bisect-retoken
+```
+
+Every run appends its numbers to `/tmp/bisect-retoken/results.csv`, so a bisect
+that finds no transition still leaves proof that the behaviour is uniform. Each
+phase — build, deploy, settle, rotate, verdict — is also annotated on the
+"Memory leak" dashboard, so a running bisect narrates itself in Grafana.
+
 The run reported below ran **2026-07-29 13:03:28Z → 13:20:23Z** against pod
 `istiod-1-30-3-7f8b7fcd6f-tkdwq`, which had been restarted and left to settle
 beforehand and recorded **0 restarts** throughout.
@@ -399,15 +419,15 @@ case. This was not isolated separately from the handler leak.
 
 ## Dashboard
 
-`grafana/memory-leak.json` (Grafana dashboard `adtlb8r`, *Memory leak*) gained
-six panels for this investigation:
+`grafana/memory-leak.json` (Grafana dashboard `adtlb8r`, *Memory leak*) is
+dedicated to this investigation:
 
 | Panel | What it shows |
 |---|---|
 | Goroutines | `go_goroutines` — the clearest leak signal |
 | Go heap / stack / RSS | `go_memstats_heap_inuse_bytes`, `go_memstats_stack_inuse_bytes`, `process_resident_memory_bytes` |
 | Remote cluster secret events | `rate(remote_cluster_secret_events_total[…])` by event |
-| Remote cluster sync status | `istiod_remote_cluster_sync_status`, `istiod_managed_clusters` |
+| Managed clusters | `istiod_managed_clusters` — the control variable, flat while the leak grows; `istiod_remote_cluster_sync_status` alongside it as an exhibit of the stuck-on-`closed` bug |
 | Leak per re-tokening | growth rate ÷ secret-update rate — bytes and goroutines per rotation |
 | Live heap objects | `go_memstats_heap_objects` |
 

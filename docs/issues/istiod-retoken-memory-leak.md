@@ -33,7 +33,7 @@
 
 ```sh
 # in the meshlab devcontainer, against a freshly restarted istiod
-OUTDIR=/tmp/leak ITERATIONS=200 INTERVAL=5 SAMPLE_EVERY=10 bin/retoken patch
+OUTDIR=/tmp/leak ITERATIONS=200 INTERVAL=5 SAMPLE_EVERY=10 bin/retoken
 ```
 
 [`bin/retoken`](../../bin/retoken) discovers the istiod deployment, forwards its
@@ -55,23 +55,23 @@ in production.
 
 ### Bisecting
 
-[`bin/bisect-retoken`](../../bin/bisect-retoken) wraps the above into a single
-pass/fail probe for one istio commit: it builds `pilot-discovery`, waits until
-Tilt has live-synced that exact binary into istiod and the goroutine count has
-gone flat, runs `retoken`, and turns the goroutines-per-rotation slope into a
-verdict — `0` when clean, `1` when leaking, `125` when the commit cannot be
-built or measured.
+`bin/retoken bisect` turns the same measurement into a single pass/fail probe
+for one istio commit: it builds `pilot-discovery`, waits until Tilt has
+live-synced that exact binary into istiod and the goroutine count has gone flat,
+rotates the token, and reads the goroutines-per-rotation slope as a verdict —
+`0` when clean, `1` when leaking, `125` when the commit cannot be built or
+measured.
 
 ```sh
 cd /workspaces/istio
 git bisect start <bad-rev> <good-rev>
-git bisect run /workspaces/meshlab/bin/bisect-retoken
+git bisect run /workspaces/meshlab/bin/retoken bisect
 ```
 
-Every run appends its numbers to `/tmp/bisect-retoken/results.csv`, so a bisect
-that finds no transition still leaves proof that the behaviour is uniform. Each
-phase — build, deploy, settle, rotate, verdict — is also annotated on the
-"Memory leak" dashboard, so a running bisect narrates itself in Grafana.
+Every run appends its numbers to `/tmp/retoken-results.csv`, so a bisect that
+finds no transition still leaves proof that the behaviour is uniform. Each phase
+— build, deploy, settle, rotate, verdict — is also annotated on the "Memory
+leak" dashboard, so a running bisect narrates itself in Grafana.
 
 The run reported below ran **2026-07-29 13:03:28Z → 13:20:23Z** against pod
 `istiod-1-30-3-7f8b7fcd6f-tkdwq`, which had been restarted and left to settle

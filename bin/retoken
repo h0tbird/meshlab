@@ -1,81 +1,208 @@
 #!/bin/bash
 #
-# Reproduces and measures the istiod memory leak triggered by re-tokening the
-# multicluster remote secret. Changing the token changes the kubeconfig SHA, so
-# istiod treats it as a cluster Update and rebuilds the whole remote-cluster
-# stack (new kube.Client, informers, ~25 KRT collections). The teardown is
-# incomplete, so each rotation leaks heap and goroutines.
+# Reproduces, measures and bisects the istiod memory leak triggered by
+# re-tokening the multicluster remote secret. Changing the token changes the
+# kubeconfig SHA, so istiod treats it as a cluster Update and rebuilds the whole
+# remote-cluster stack (new kube.Client, informers, ~25 KRT collections). The
+# teardown is incomplete, so each rotation leaks heap and goroutines.
 #
 # See docs/issues/istiod-retoken-memory-leak.md for the analysis.
 #
-#   Usage: retoken [patch|recreate]
+#   Usage: retoken [rotate|bisect]
+#
+#     rotate  (default) rotate the token, sample istiod, report the leak
+#     bisect  the same measurement, but for the istio commit checked out in
+#             ISTIO_DIR: build it, wait for Tilt to sync it into istiod, let
+#             istiod settle, rotate, then judge the commit
+#
+# Bisecting exits the way git bisect expects:
+#
+#   0    clean            -> good
+#   1    leaking          -> bad
+#   125  not measurable   -> skip
+#
+#     cd /workspaces/istio
+#     git bisect start <bad-rev> <good-rev>
+#     git bisect run /workspaces/meshlab/bin/retoken bisect
 #
 # Knobs (environment):
-#   SRC_CLUSTER    cluster holding the remote secret       (pasta-1)
-#   DST_CLUSTER    cluster the remote secret points at     (pasta-2)
-#   ITERATIONS     number of re-tokenings                  (200)
-#   INTERVAL       seconds to wait between re-tokenings    (5)
-#   SAMPLE_EVERY   sample every N re-tokenings             (10)
-#   PROFILE        collect pprof profiles                  (true)
-#   OUTDIR         where samples and metrics.csv land      (/tmp/retoken-<ts>)
-#   DEBUG_PORT     local port forwarded to istiod :8080    (first free >= 9090)
-#   METRICS_PORT   local port forwarded to istiod :15014   (first free above it)
+#   SRC_CLUSTER    cluster holding the remote secret         (pasta-1)
+#   DST_CLUSTER    cluster the remote secret points at       (pasta-2)
+#   METHOD         re-token by patch or recreate             (patch)
+#   ITERATIONS     number of re-tokenings                    (200, 40 bisecting)
+#   INTERVAL       seconds between re-tokenings              (5)
+#   SAMPLE_EVERY   sample every N re-tokenings               (10)
+#   PROFILE        collect pprof profiles                    (true, false bisecting)
+#   OUTDIR         where samples and metrics.csv land        (under /tmp)
+#   DEBUG_PORT     local port forwarded to istiod :8080      (first free >= 9090)
+#   METRICS_PORT   local port forwarded to istiod :15014     (first free above it)
+#   GRAFANA_URL    grafana to annotate, empty to disable     (http://127.0.0.1:8084)
+#   GRAFANA_DASH   dashboard uid the annotations attach to   (adtlb8r, "Memory leak")
+#
+# Bisecting only:
+#   ISTIO_DIR      istio worktree under bisect               (/workspaces/istio)
+#   THRESHOLD      leaked goroutines per rotation to fail    (5)
+#   BUILD          build the binary, false to reuse out/     (true)
+#   BUILD_CMD      how to build pilot-discovery              (make -C <meshlab> istio-binaries)
+#   DEPLOY_TIMEOUT seconds to wait for tilt and readiness    (900)
+#   SETTLE         seconds to idle before measuring          (60)
+#   SETTLE_TIMEOUT seconds to wait for goroutines to flatten (300)
+#   SETTLE_DELTA   goroutine delta that counts as flat       (25)
+#   RESULTS        verdict log, one row per commit           (/tmp/retoken-results.csv)
 #
 # Quick smoke test (~1 min), enough to see the trend:
 #   ITERATIONS=20 SAMPLE_EVERY=5 INTERVAL=2 retoken
 
-set -euo pipefail
+set -Eeuo pipefail
+
+MODE="${1:-rotate}"
+[[ "${MODE}" == "rotate" || "${MODE}" == "bisect" ]] ||
+  { echo "Usage: $0 [rotate|bisect]" >&2; exit 1; }
+
+bisecting () { [[ "${MODE}" == "bisect" ]]; }
 
 SRC_CLUSTER="${SRC_CLUSTER:-pasta-1}"
 DST_CLUSTER="${DST_CLUSTER:-pasta-2}"
-ITERATIONS="${ITERATIONS:-200}"
+METHOD="${METHOD:-patch}"
 INTERVAL="${INTERVAL:-5}"
 SAMPLE_EVERY="${SAMPLE_EVERY:-10}"
-PROFILE="${PROFILE:-${HEAP_PROFILE:-true}}"
-OUTDIR="${OUTDIR:-/tmp/retoken-$(date -u +%Y%m%dT%H%M%SZ)}"
 DEBUG_PORT="${DEBUG_PORT:-}"
 METRICS_PORT="${METRICS_PORT:-}"
+GRAFANA_URL="${GRAFANA_URL:-http://127.0.0.1:8084}"
+GRAFANA_DASH="${GRAFANA_DASH:-adtlb8r}"
+
+# A bisect run is one probe among hundreds, so it trades resolution for speed:
+# fewer rotations, no profiles.
+if bisecting; then
+  ITERATIONS="${ITERATIONS:-40}"
+  PROFILE="${PROFILE:-false}"
+else
+  ITERATIONS="${ITERATIONS:-200}"
+  PROFILE="${PROFILE:-true}"
+fi
+
+ISTIO_DIR="${ISTIO_DIR:-/workspaces/istio}"
+THRESHOLD="${THRESHOLD:-5}"
+BUILD="${BUILD:-true}"
+DEPLOY_TIMEOUT="${DEPLOY_TIMEOUT:-900}"
+SETTLE="${SETTLE:-60}"
+SETTLE_TIMEOUT="${SETTLE_TIMEOUT:-300}"
+SETTLE_DELTA="${SETTLE_DELTA:-25}"
+RESULTS="${RESULTS:-/tmp/retoken-results.csv}"
+
+MESHLAB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+BUILD_CMD="${BUILD_CMD:-make -C ${MESHLAB_DIR} istio-binaries}"
 
 SRC="kubectl --context kind-${SRC_CLUSTER} -n istio-system"
 DST="kubectl --context kind-${DST_CLUSTER} -n istio-system"
 SECRET="istio-remote-secret-${DST_CLUSTER}"
+STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+
+COMMIT=""      # the istio commit under bisect, empty when rotating
+ISTIOD=""      # istiod deployment name
+POD=""         # istiod pod the measurement must not outlive
+PF_PID=""      # kubectl port-forward
+REGION=""      # open grafana annotation
 
 #------------------------------------------------------------------------------
-# Implementation 1: Patch the existing secret (default)
-#-------------------------------------------------------------------------------
+# Aborting
+#
+# Bisecting, anything short of a clean measurement has to be a skip: a non-zero
+# exit would be read as "this commit leaks". The ERR trap is the safety net for
+# everything not checked explicitly, and is disarmed just before the verdict.
+#------------------------------------------------------------------------------
 
-retoken_patch () {
-  # New KUBECONFIG for ${DST_CLUSTER} with updated token
-  KUBECONFIG_B64=$(${SRC} get secret "${SECRET}" -o yaml | yq ".data.${DST_CLUSTER}" |
-  base64 -d | yq ".users[0].user.token = \"$(${DST} create token istio-reader-service-account)\"" | base64 -w0)
+die () {
+  trap - ERR
+  if bisecting; then
+    echo "SKIP: $*" >&2
+    endregion ""
+    annotate "${COMMIT:+${COMMIT} }skipped: $*" verdict skip >/dev/null
+    exit 125
+  fi
+  echo "error: $*" >&2
+  exit 1
+}
 
-  # Edit secret ${SECRET} in ${SRC_CLUSTER}
-  ${SRC} patch secret "${SECRET}" -p "{\"data\":{\"${DST_CLUSTER}\":\"${KUBECONFIG_B64}\"}}" >/dev/null
+# Some conditions ruin a verdict but still leave a rotate run worth reading.
+fail () {
+  if bisecting; then die "$*"; fi
+  echo "WARNING: $*, the numbers below are not comparable" >&2
 }
 
 #------------------------------------------------------------------------------
-# Implementation 2: Delete and recreate the secret
-#-------------------------------------------------------------------------------
+# Grafana annotations
+#
+# Best effort throughout: a lab without grafana, or with it published somewhere
+# else, must never turn a measurement into a skip. Each phase opens a region on
+# ${GRAFANA_DASH}, so a running bisect narrates itself on the dashboard it is
+# being judged by.
+#------------------------------------------------------------------------------
 
-retoken_recreate () {
-  # Get the current secret as YAML
-  SECRET_YAML=$(${SRC} get secret "${SECRET}" -o yaml)
+# Annotates now with $1, tagged with $2.., and prints the new annotation id.
+annotate () {
+  local text="$1" payload; shift
+  [[ -n "${GRAFANA_URL}" ]] && command -v jq >/dev/null || return 0
 
-  # Extract and update the KUBECONFIG with a new token
-  KUBECONFIG_B64=$(echo "$SECRET_YAML" | yq ".data.${DST_CLUSTER}" |
-  base64 -d | yq ".users[0].user.token = \"$(${DST} create token istio-reader-service-account)\"" | base64 -w0)
+  payload="$(jq -nc --arg text "${text}" --arg dash "${GRAFANA_DASH}" \
+    --argjson time "$(date +%s%3N)" \
+    '{time: $time, text: $text, tags: $ARGS.positional}
+     + (if $dash == "" then {} else {dashboardUID: $dash} end)' \
+    --args retoken "${MODE}" ${COMMIT:+"${COMMIT}"} "$@")" || return 0
 
-  # Delete the existing secret
+  curl -sf --max-time 5 -X POST "${GRAFANA_URL}/api/annotations" \
+    -H 'Content-Type: application/json' -d "${payload}" 2>/dev/null |
+    jq -r '.id // empty' || true
+}
+
+# Opens the phase region $1 labelled $2, closing any region still open.
+region () {
+  endregion ""
+  REGION="$(annotate "$2" "$1")"
+}
+
+# Ends the open region now, relabelling it $1 when non-empty.
+endregion () {
+  local text="${1:-}" payload
+  [[ -n "${REGION}" ]] || return 0
+
+  payload="$(jq -nc --arg text "${text}" --argjson end "$(date +%s%3N)" \
+    '{timeEnd: $end} + (if $text == "" then {} else {text: $text} end)')" || true
+  curl -sf --max-time 5 -X PATCH "${GRAFANA_URL}/api/annotations/${REGION}" \
+    -H 'Content-Type: application/json' -d "${payload}" >/dev/null 2>&1 || true
+  REGION=""
+}
+
+#------------------------------------------------------------------------------
+# Re-tokening
+#------------------------------------------------------------------------------
+
+# Prints the kubeconfig embedded in ${SECRET}, base64, with a freshly minted
+# ${DST_CLUSTER} token spliced into it.
+new_kubeconfig () {
+  ${SRC} get secret "${SECRET}" -o yaml | yq ".data.${DST_CLUSTER}" | base64 -d |
+    yq ".users[0].user.token = \"$(${DST} create token istio-reader-service-account)\"" | base64 -w0
+}
+
+rotate_patch () {
+  ${SRC} patch secret "${SECRET}" \
+    -p "{\"data\":{\"${DST_CLUSTER}\":\"$(new_kubeconfig)\"}}" >/dev/null
+}
+
+rotate_recreate () {
+  local secret kubeconfig
+  secret="$(${SRC} get secret "${SECRET}" -o yaml)"
+  kubeconfig="$(new_kubeconfig)"
   ${SRC} delete secret "${SECRET}" >/dev/null
-
-  # Recreate the secret with updated token (strip resourceVersion and other metadata)
-  echo "$SECRET_YAML" | yq ".data.${DST_CLUSTER} = \"$KUBECONFIG_B64\" | del(.metadata.resourceVersion) | del(.metadata.uid) | del(.metadata.creationTimestamp)" |
-  ${SRC} apply -f - >/dev/null
+  echo "${secret}" |
+    yq ".data.${DST_CLUSTER} = \"${kubeconfig}\"
+        | del(.metadata.resourceVersion) | del(.metadata.uid) | del(.metadata.creationTimestamp)" |
+    ${SRC} apply -f - >/dev/null
 }
 
 #------------------------------------------------------------------------------
-# Telemetry
-#-------------------------------------------------------------------------------
+# istiod plumbing
+#------------------------------------------------------------------------------
 
 # Prints the first free local TCP port at or above $1.
 free_port () {
@@ -86,117 +213,322 @@ free_port () {
   echo "${port}"
 }
 
-# Forwards istiod's debug (8080) and monitoring (15014) ports, tearing the
-# forward down on exit. Tilt and friends squat on the usual ports, so pick free
-# ones and confirm the far end really is istiod before trusting any sample.
-start_port_forward () {
+# Prints the name of the (single) istiod pod, empty if there is none.
+istiod_pod () {
+  ${SRC} get pods -l app=istiod -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true
+}
+
+# Prints the sha256 of the pilot-discovery binary actually running in the pod.
+container_sha () {
+  local pod
+  pod="$(istiod_pod)"
+  [[ -n "${pod}" ]] || return 0
+  ${SRC} exec "${pod}" -c discovery -- sha256sum /usr/local/bin/pilot-discovery 2>/dev/null |
+    awk '{print $1}' || true
+}
+
+# Forwards istiod's debug (8080) and monitoring (15014) ports for the rest of
+# the run. Tilt and friends squat on the usual ports, so pick free ones and
+# confirm the far end really is istiod before trusting any sample.
+port_forward () {
   DEBUG_PORT="${DEBUG_PORT:-$(free_port 9090)}"
   METRICS_PORT="${METRICS_PORT:-$(free_port $(( DEBUG_PORT + 1 )))}"
 
   ${SRC} port-forward --address 127.0.0.1 "deploy/${ISTIOD}" \
     "${DEBUG_PORT}:8080" "${METRICS_PORT}:15014" >"${OUTDIR}/port-forward.log" 2>&1 &
   PF_PID=$!
-  trap 'kill ${PF_PID} 2>/dev/null || true' EXIT
 
   for _ in {1..30}; do
-    if curl -sf "http://127.0.0.1:${METRICS_PORT}/metrics" | grep -q '^go_goroutines '; then
+    if scrape 2>/dev/null | grep -q '^go_goroutines '; then
       echo "port-forward: debug ${DEBUG_PORT}->8080, monitoring ${METRICS_PORT}->15014"
       return 0
     fi
     sleep 1
   done
-
-  echo "error: no istiod metrics on 127.0.0.1:${METRICS_PORT}, see ${OUTDIR}/port-forward.log" >&2
-  exit 1
+  die "no istiod metrics on 127.0.0.1:${METRICS_PORT}, see ${OUTDIR}/port-forward.log"
 }
 
-# Prints "<goroutines> <heap_inuse_bytes> <rss_bytes>".
-read_metrics () {
-  curl -sf "http://127.0.0.1:${METRICS_PORT}/metrics" | awk '
-    $1 == "go_goroutines"                  { g = $2 }
-    $1 == "go_memstats_heap_inuse_bytes"   { h = $2 }
-    $1 == "process_resident_memory_bytes"  { r = $2 }
-    END { printf "%.0f %.0f %.0f\n", g+0, h+0, r+0 }'
+stop_forward () {
+  [[ -n "${PF_PID}" ]] || return 0
+  kill "${PF_PID}" 2>/dev/null || true
+  wait "${PF_PID}" 2>/dev/null || true
+  PF_PID=""
 }
+
+# Prints istiod's whole /metrics.
+scrape () {
+  curl -sf "http://127.0.0.1:${METRICS_PORT}/metrics"
+}
+
+# Prints the value of the metric line whose name (with labels) matches $1.
+metric () {
+  scrape | awk -v k="$1" '$1 == k { v = $2 } END { print v + 0 }'
+}
+
+#------------------------------------------------------------------------------
+# Pre-flight
+#------------------------------------------------------------------------------
+
+preflight () {
+  local cmd image
+  for cmd in kubectl curl awk ss yq base64; do
+    command -v "${cmd}" >/dev/null || die "${cmd} not found"
+  done
+
+  ${SRC} get ns istio-system >/dev/null 2>&1 || die "kind-${SRC_CLUSTER} unreachable"
+  ${DST} get ns istio-system >/dev/null 2>&1 || die "kind-${DST_CLUSTER} unreachable"
+  ${SRC} get secret "${SECRET}" >/dev/null 2>&1 ||
+    die "no ${SECRET} in kind-${SRC_CLUSTER}, nothing to re-token"
+
+  ISTIOD="$(${SRC} get deploy -l app=istiod -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
+  [[ -n "${ISTIOD}" ]] || die "no istiod deployment in kind-${SRC_CLUSTER}"
+
+  declare -f "rotate_${METHOD}" >/dev/null || die "unknown METHOD ${METHOD}, want patch or recreate"
+
+  bisecting || return 0
+
+  command -v sha256sum >/dev/null || die "sha256sum not found"
+  image="$(${SRC} get deploy "${ISTIOD}" -o jsonpath='{.spec.template.spec.containers[0].image}')"
+  [[ "${image}" == pilot-discovery-dev:* ]] ||
+    die "${ISTIOD} runs ${image}, not the Tilt-managed pilot-discovery-dev image"
+  pgrep -f "tilt up --context kind-${SRC_CLUSTER}" >/dev/null ||
+    die "tilt is not running for kind-${SRC_CLUSTER}, the built binary would never reach istiod"
+}
+
+#------------------------------------------------------------------------------
+# Build and deploy the commit under test
+#------------------------------------------------------------------------------
+
+# A commit that does not build is a commit that cannot be tested.
+build () {
+  if [[ "${BUILD}" != "true" ]]; then
+    echo "build: skipped (BUILD=${BUILD})"
+    return 0
+  fi
+
+  echo "build: ${BUILD_CMD}"
+  region build "build ${COMMIT}: ${SUBJECT}"
+  (cd "${ISTIO_DIR}" && ${BUILD_CMD}) >"${OUTDIR}/build.log" 2>&1 || {
+    tail -20 "${OUTDIR}/build.log" >&2
+    die "build failed, see ${OUTDIR}/build.log"
+  }
+  endregion "built ${COMMIT}: ${SUBJECT}"
+}
+
+# Waits until the istiod container runs the binary we just built. Tilt live-syncs
+# it and restarts the process in place, so an unchanged binary produces no
+# restart at all: delete the pod in that case, so every measurement starts from
+# a cold istiod.
+deploy () {
+  local want pod deadline
+  want="$(sha256sum "${BINARY}" | awk '{print $1}')"
+  region deploy "deploy ${COMMIT} to ${ISTIOD}"
+  echo "deploy: waiting for ${want:0:12} in ${ISTIOD}"
+
+  if [[ "${want}" == "${PRE_SHA}" ]]; then
+    echo "deploy: binary unchanged, restarting istiod to get a cold process"
+    pod="$(istiod_pod)"
+    [[ -z "${pod}" ]] || ${SRC} delete pod "${pod}" --wait=false >/dev/null
+    sleep 5
+  fi
+
+  deadline=$(( SECONDS + DEPLOY_TIMEOUT ))
+  while [[ "$(container_sha)" != "${want}" ]]; do
+    (( SECONDS < deadline )) ||
+      die "tilt did not sync ${want:0:12} into ${ISTIOD} within ${DEPLOY_TIMEOUT}s"
+    sleep 10
+  done
+
+  ${SRC} wait --for=condition=Ready pod -l app=istiod --timeout="${DEPLOY_TIMEOUT}s" >/dev/null ||
+    die "istiod did not become ready with the binary of ${COMMIT}"
+}
+
+# The right binary is in the container, but only the version stamp proves the
+# build recompiled this commit rather than reusing a stale out/.
+check_version () {
+  local version
+  version="$(scrape | sed -n 's/^pilot_info{version="\([^"]*\)".*/\1/p')"
+  echo "deploy: pilot_info version ${version}"
+  [[ "${BUILD}" != "true" || "${version}" == *"${COMMIT_FULL}"* ]] ||
+    die "istiod reports ${version}, expected a build of ${COMMIT_FULL}"
+  endregion "istiod ${COMMIT} up: ${version}"
+}
+
+# A freshly restarted istiod climbs for a while as proxies reconnect and caches
+# fill. Measuring during that ramp reads as a leak, so wait for the goroutine
+# count to go flat before touching the remote secret.
+settle () {
+  local prev="" cur deadline
+  echo "settle: idling ${SETTLE}s"
+  region settle "settle ${COMMIT}: waiting for istiod to go idle"
+  sleep "${SETTLE}"
+
+  deadline=$(( SECONDS + SETTLE_TIMEOUT ))
+  while (( SECONDS < deadline )); do
+    cur="$(metric go_goroutines)"
+    if [[ -n "${prev}" ]] && (( cur - prev <= SETTLE_DELTA && prev - cur <= SETTLE_DELTA )); then
+      echo "settle: goroutines flat at ${cur}"
+      endregion "settle ${COMMIT}: flat at ${cur} goroutines"
+      return 0
+    fi
+    prev="${cur}"
+    sleep 15
+  done
+  die "goroutine count never stabilised (last ${cur:-?}), istiod is not idle"
+}
+
+#------------------------------------------------------------------------------
+# Measure
+#------------------------------------------------------------------------------
 
 # Records one CSV row and, when profiling, one heap and one goroutine profile.
 take_sample () {
-  local sample=$1 iteration=$2 elapsed=${SECONDS}
+  local sample=$1 iteration=$2 elapsed=${SECONDS} goroutines heap rss
 
-  read -r goroutines heap rss <<<"$(read_metrics)"
+  read -r goroutines heap rss <<<"$(scrape | awk '
+    $1 == "go_goroutines"                 { g = $2 }
+    $1 == "go_memstats_heap_inuse_bytes"  { h = $2 }
+    $1 == "process_resident_memory_bytes" { r = $2 }
+    END { printf "%.0f %.0f %.0f\n", g + 0, h + 0, r + 0 }')"
+
   printf '%s,%s,%s,%s,%s,%s\n' \
     "${sample}" "${iteration}" "${elapsed}" "${goroutines}" "${heap}" "${rss}" >>"${OUTDIR}/metrics.csv"
+  awk -v s="${sample}" -v i="${iteration}" -v t="${elapsed}" \
+      -v g="${goroutines}" -v h="${heap}" -v r="${rss}" \
+    'BEGIN { printf "sample %-3s iteration %-4s %5ss  goroutines %-6s heap %6.1f MB  rss %6.1f MB\n",
+             s, i, t, g, h / 1048576, r / 1048576 }'
 
-  awk -v s="${sample}" -v i="${iteration}" -v t="${elapsed}" -v g="${goroutines}" -v h="${heap}" -v r="${rss}" \
-    'BEGIN{printf "sample %-3s iteration %-4s %5ss  goroutines %-6s heap %6.1f MB  rss %6.1f MB\n", s, i, t, g, h/1048576, r/1048576}'
-
-  if [[ "${PROFILE}" == "true" ]]; then
-    curl -sf "http://127.0.0.1:${DEBUG_PORT}/debug/pprof/heap?gc=1" > "${OUTDIR}/heap.sample-${sample}.pb.gz"
-    curl -sf "http://127.0.0.1:${DEBUG_PORT}/debug/pprof/goroutine" > "${OUTDIR}/goroutine.sample-${sample}.pb.gz"
-  fi
+  [[ "${PROFILE}" == "true" ]] || return 0
+  curl -sf "http://127.0.0.1:${DEBUG_PORT}/debug/pprof/heap?gc=1" >"${OUTDIR}/heap.sample-${sample}.pb.gz"
+  curl -sf "http://127.0.0.1:${DEBUG_PORT}/debug/pprof/goroutine" >"${OUTDIR}/goroutine.sample-${sample}.pb.gz"
 }
 
-# Derives the per-rotation leak rate from the first and last CSV rows.
+# The measurement itself.
+rotate () {
+  local i sample=1 updates
+
+  POD="$(istiod_pod)"
+  updates="$(metric 'remote_cluster_secret_events_total{event="update"}')"
+  echo "${METHOD}: ${ITERATIONS} rotations every ${INTERVAL}s against ${ISTIOD}/${POD}"
+  region measure "rotating ${ITERATIONS} tokens every ${INTERVAL}s"
+
+  SECONDS=0
+  take_sample 0 0
+  for (( i = 1; i <= ITERATIONS; i++ )); do
+    "rotate_${METHOD}"
+    sleep "${INTERVAL}"
+    if (( i % SAMPLE_EVERY == 0 )); then
+      take_sample "${sample}" "${i}"
+      sample=$(( sample + 1 ))
+    fi
+  done
+  LAST_SAMPLE=$(( sample - 1 ))
+
+  # A run that rotated nothing, or that straddled an istiod restart, says
+  # nothing about this istiod.
+  updates=$(( $(metric 'remote_cluster_secret_events_total{event="update"}') - updates ))
+  [[ "$(istiod_pod)" == "${POD}" ]] || fail "istiod restarted during the run"
+  (( updates >= ITERATIONS / 2 )) ||
+    fail "istiod saw ${updates} secret updates for ${ITERATIONS} rotations"
+}
+
+# Reads the run's totals out of the first and last rows of metrics.csv.
+analyze () {
+  (( $(wc -l <"${OUTDIR}/metrics.csv") > 2 )) || die "not enough samples in ${OUTDIR}/metrics.csv"
+
+  read -r ROTATIONS G_FIRST G_LAST H_FIRST H_LAST GOROUTINES_PER HEAP_PER <<<"$(
+    awk -F, 'NR == 2 { fi = $2; fg = $4; fh = $5 }
+      END {
+        d = $2 - fi; if (d < 1) d = 1
+        printf "%d %d %d %.1f %.1f %.2f %.3f\n", d, fg, $4,
+          fh / 1048576, $5 / 1048576, ($4 - fg) / d, ($5 - fh) / 1048576 / d
+      }' "${OUTDIR}/metrics.csv")"
+}
+
 summarize () {
-  local last_sample=$1
-
   echo
-  [[ "$(${SRC} get pods -l app=istiod -o jsonpath='{.items[0].metadata.name}')" == "${POD}" ]] ||
-    echo "WARNING: istiod restarted during the run, the numbers below are not comparable"
-
-  awk -F, 'NR==2{fi=$2;fg=$4;fh=$5} END{
-    di=$2-fi; if (di<1) di=1
-    printf "rotations:   %d\n", di
-    printf "goroutines:  %d -> %d  (%+.1f per rotation)\n", fg, $4, ($4-fg)/di
-    printf "heap inuse:  %.1f MB -> %.1f MB  (%+.2f MB per rotation)\n", fh/1048576, $5/1048576, ($5-fh)/1048576/di
-  }' "${OUTDIR}/metrics.csv"
+  printf 'rotations:   %s\n' "${ROTATIONS}"
+  printf 'goroutines:  %s -> %s  (%+.1f per rotation)\n' "${G_FIRST}" "${G_LAST}" "${GOROUTINES_PER}"
+  printf 'heap inuse:  %s MB -> %s MB  (%+.2f MB per rotation)\n' "${H_FIRST}" "${H_LAST}" "${HEAP_PER}"
+  endregion "${COMMIT:+${COMMIT}: }${GOROUTINES_PER} goroutines and ${HEAP_PER} MB heap per rotation"
 
   [[ "${PROFILE}" == "true" ]] || return 0
   cat <<EOF
 
 Samples and metrics.csv are in ${OUTDIR}
 
-  go tool pprof -http=:9999 -diff_base ${OUTDIR}/heap.sample-0.pb.gz ${OUTDIR}/heap.sample-${last_sample}.pb.gz
-  go tool pprof -inuse_space -top -nodecount=25 ${OUTDIR}/heap.sample-${last_sample}.pb.gz
-  go tool pprof -peek 'NewTypedRingGrowing' ${OUTDIR}/heap.sample-${last_sample}.pb.gz
-  go tool pprof -top -diff_base ${OUTDIR}/goroutine.sample-0.pb.gz ${OUTDIR}/goroutine.sample-${last_sample}.pb.gz
+  go tool pprof -http=:9999 -diff_base ${OUTDIR}/heap.sample-0.pb.gz ${OUTDIR}/heap.sample-${LAST_SAMPLE}.pb.gz
+  go tool pprof -inuse_space -top -nodecount=25 ${OUTDIR}/heap.sample-${LAST_SAMPLE}.pb.gz
+  go tool pprof -peek 'NewTypedRingGrowing' ${OUTDIR}/heap.sample-${LAST_SAMPLE}.pb.gz
+  go tool pprof -top -diff_base ${OUTDIR}/goroutine.sample-0.pb.gz ${OUTDIR}/goroutine.sample-${LAST_SAMPLE}.pb.gz
 EOF
 }
 
+# Judges the commit and leaves the evidence behind: a bisect that finds no
+# transition still ends with the numbers proving the behaviour is uniform.
+verdict () {
+  local leaking result
+  (( ROTATIONS >= ITERATIONS / 2 )) || die "only ${ROTATIONS} of ${ITERATIONS} rotations recorded"
+
+  leaking="$(awk -v g="${GOROUTINES_PER}" -v t="${THRESHOLD}" 'BEGIN { print (g >= t) ? 1 : 0 }')"
+  result=clean
+  [[ "${leaking}" == "0" ]] || result=leak
+  echo "verdict:     ${result} (threshold ${THRESHOLD} goroutines per rotation)"
+
+  annotate "${COMMIT} ${result}: ${GOROUTINES_PER} goroutines and ${HEAP_PER} MB heap per rotation" \
+    verdict "${result}" >/dev/null
+
+  [[ -f "${RESULTS}" ]] ||
+    echo "timestamp,commit,verdict,rotations,goroutines_per_rotation,heap_mb_per_rotation,outdir" >"${RESULTS}"
+  printf '%s,%s,%s,%s,%s,%s,%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${COMMIT}" "${result}" \
+    "${ROTATIONS}" "${GOROUTINES_PER}" "${HEAP_PER}" "${OUTDIR}" >>"${RESULTS}"
+
+  trap - ERR
+  [[ "${result}" == "clean" ]] || exit 1
+  exit 0
+}
+
 #------------------------------------------------------------------------------
-# Entry Point
-#-------------------------------------------------------------------------------
+# Entry point
+#------------------------------------------------------------------------------
 
-# Validate the retoken function exists
-RETOKEN="retoken_${1:-patch}"
-if ! declare -f "${RETOKEN}" > /dev/null; then
-  echo "Usage: $0 [patch|recreate]"
-  exit 1
+trap 'die "unexpected failure at line ${LINENO}"' ERR
+trap 'stop_forward' EXIT
+
+if bisecting; then
+  [[ -d "${ISTIO_DIR}/.git" ]] || die "${ISTIO_DIR} is not a git worktree"
+  COMMIT_FULL="$(git -C "${ISTIO_DIR}" rev-parse HEAD)"
+  COMMIT="${COMMIT_FULL:0:12}"
+  SUBJECT="$(git -C "${ISTIO_DIR}" log -1 --format=%s | cut -c1-60)"
+  BINARY="${ISTIO_DIR}/out/linux_$(dpkg --print-architecture)/pilot-discovery"
+  OUTDIR="${OUTDIR:-/tmp/retoken-bisect/${COMMIT}-${STAMP}}"
+  echo "commit: ${COMMIT} (${SUBJECT})"
+else
+  OUTDIR="${OUTDIR:-/tmp/retoken-${STAMP}}"
 fi
-
-ISTIOD=$(${SRC} get deploy -l app=istiod -o jsonpath='{.items[0].metadata.name}')
-POD=$(${SRC} get pods -l app=istiod -o jsonpath='{.items[0].metadata.name}')
-[[ -n "${ISTIOD}" ]] || { echo "error: no istiod deployment in kind-${SRC_CLUSTER}" >&2; exit 1; }
 
 mkdir -p "${OUTDIR}"
 echo "sample,iteration,elapsed_s,goroutines,heap_inuse_bytes,rss_bytes" >"${OUTDIR}/metrics.csv"
-
-echo "${RETOKEN}: ${ITERATIONS} rotations every ${INTERVAL}s against ${ISTIOD}/${POD} in kind-${SRC_CLUSTER}"
 echo "output: ${OUTDIR}"
 echo
 
-start_port_forward
-SECONDS=0
-take_sample 0 0
+preflight
 
-sample=1
-for i in $(seq 1 "${ITERATIONS}"); do
-  ${RETOKEN}
-  sleep "${INTERVAL}"
-  if (( i % SAMPLE_EVERY == 0 )); then
-    take_sample "${sample}" "${i}"
-    sample=$(( sample + 1 ))
-  fi
-done
+if bisecting; then
+  PRE_SHA="$(container_sha)"
+  build
+  deploy
+fi
 
-summarize "$(( sample - 1 ))"
+port_forward
+
+if bisecting; then
+  check_version
+  settle
+fi
+
+rotate
+analyze
+summarize
+
+if bisecting; then verdict; fi

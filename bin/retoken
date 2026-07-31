@@ -49,6 +49,7 @@
 #   SETTLE_TIMEOUT seconds to wait for goroutines to flatten (300)
 #   SETTLE_DELTA   goroutine delta that counts as flat       (25)
 #   RESULTS        verdict log, one row per commit           (/tmp/retoken-results.csv)
+#   FIXUPS         commits to carry on top of the one tested (9d9ac3fd86)
 #
 # Quick smoke test (~1 min), enough to see the trend:
 #   ITERATIONS=20 SAMPLE_EVERY=5 INTERVAL=2 retoken
@@ -90,6 +91,13 @@ SETTLE_TIMEOUT="${SETTLE_TIMEOUT:-300}"
 SETTLE_DELTA="${SETTLE_DELTA:-25}"
 RESULTS="${RESULTS:-/tmp/retoken-results.csv}"
 
+# A commit that cannot survive the measurement is unbisectable rather than good
+# or bad, so carry the upstream fixes that make it measurable: without
+# 9d9ac3fd86, which makes kubeController.Close idempotent, every commit from
+# c55428035e onwards dies with "panic: close of closed channel" on the first
+# rotation. Fixups are applied before the build and reverted on exit.
+FIXUPS="${FIXUPS:-9d9ac3fd860179e51b45bc20b3d06000120c952a}"
+
 MESHLAB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_CMD="${BUILD_CMD:-make -C ${MESHLAB_DIR} istio-binaries}"
 
@@ -99,10 +107,13 @@ SECRET="istio-remote-secret-${DST_CLUSTER}"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 
 COMMIT=""      # the istio commit under bisect, empty when rotating
+RELEASE=""     # the release that first shipped ${COMMIT}
 ISTIOD=""      # istiod deployment name
 POD=""         # istiod pod the measurement must not outlive
 PF_PID=""      # kubectl port-forward
 REGION=""      # open grafana annotation
+START_TIME=""  # istiod's process start time, a change means it restarted
+FIXED=()       # files a fixup patched, reverted on exit
 
 #------------------------------------------------------------------------------
 # Aborting
@@ -148,7 +159,7 @@ annotate () {
     --argjson time "$(date +%s%3N)" \
     '{time: $time, text: $text, tags: $ARGS.positional}
      + (if $dash == "" then {} else {dashboardUID: $dash} end)' \
-    --args retoken "${MODE}" ${COMMIT:+"${COMMIT}"} "$@")" || return 0
+    --args retoken "${MODE}" ${COMMIT:+"${COMMIT}"} ${RELEASE:+"${RELEASE}"} "$@")" || return 0
 
   curl -sf --max-time 5 -X POST "${GRAFANA_URL}/api/annotations" \
     -H 'Content-Type: application/json' -d "${payload}" 2>/dev/null |
@@ -255,14 +266,27 @@ stop_forward () {
   PF_PID=""
 }
 
-# Prints istiod's whole /metrics.
+# Prints istiod's whole /metrics, non-zero when istiod is not answering. Failing
+# quietly matters: called from $( ), the ERR trap fires in the subshell only, so
+# the caller would carry on reading zeros instead of giving up.
 scrape () {
-  curl -sf "http://127.0.0.1:${METRICS_PORT}/metrics"
+  curl -sf --max-time 10 "http://127.0.0.1:${METRICS_PORT}/metrics" || return 1
 }
 
 # Prints the value of the metric line whose name (with labels) matches $1.
 metric () {
-  scrape | awk -v k="$1" '$1 == k { v = $2 } END { print v + 0 }'
+  local raw
+  raw="$(scrape)" || return 1
+  awk -v k="$1" '$1 == k { v = $2 } END { print v + 0 }' <<<"${raw}"
+}
+
+# Ends the run when istiod stops answering, naming the panic when there was one.
+istiod_died () {
+  local pod="${POD:-deploy/${ISTIOD}}" panic
+  panic="$({ ${SRC} logs "${pod}" -c discovery --tail=3000 2>/dev/null
+             ${SRC} logs "${pod}" -c discovery --tail=3000 --previous 2>/dev/null; } |
+           grep -m1 '^panic: ' || true)"
+  die "istiod ${1:-stopped serving metrics}${panic:+, ${panic}}, see ${OUTDIR}/port-forward.log"
 }
 
 #------------------------------------------------------------------------------
@@ -299,6 +323,32 @@ preflight () {
 # Build and deploy the commit under test
 #------------------------------------------------------------------------------
 
+# Patches ${FIXUPS} that the commit under test does not already contain into the
+# worktree. The build stamps -Dirty as a result, which check_version tolerates.
+apply_fixups () {
+  local commit file
+  for commit in ${FIXUPS}; do
+    git -C "${ISTIO_DIR}" merge-base --is-ancestor "${commit}" HEAD 2>/dev/null && continue
+    echo "build: carrying fixup ${commit:0:12} ($(git -C "${ISTIO_DIR}" log -1 --format=%s "${commit}" | cut -c1-50))"
+    while read -r file; do
+      [[ -z "${file}" ]] || FIXED+=("${file}")
+    done < <(git -C "${ISTIO_DIR}" show --pretty= --name-only "${commit}")
+    git -C "${ISTIO_DIR}" show "${commit}" | git -C "${ISTIO_DIR}" apply --3way - ||
+      die "fixup ${commit:0:12} does not apply to ${COMMIT}"
+  done
+}
+
+# git bisect cannot check out the next commit unless the worktree is clean again.
+revert_fixups () {
+  local file
+  for file in "${FIXED[@]:-}"; do
+    [[ -n "${file}" ]] || continue
+    git -C "${ISTIO_DIR}" reset -q HEAD -- "${file}" 2>/dev/null || true
+    git -C "${ISTIO_DIR}" checkout HEAD -- "${file}" 2>/dev/null || rm -f "${ISTIO_DIR}/${file}"
+  done
+  FIXED=()
+}
+
 # A commit that does not build is a commit that cannot be tested.
 build () {
   if [[ "${BUILD}" != "true" ]]; then
@@ -306,8 +356,9 @@ build () {
     return 0
   fi
 
-  echo "build: ${BUILD_CMD}"
   region build "build ${COMMIT}: ${SUBJECT}"
+  apply_fixups
+  echo "build: ${BUILD_CMD}"
   (cd "${ISTIO_DIR}" && ${BUILD_CMD}) >"${OUTDIR}/build.log" 2>&1 || {
     tail -20 "${OUTDIR}/build.log" >&2
     die "build failed, see ${OUTDIR}/build.log"
@@ -346,8 +397,9 @@ deploy () {
 # The right binary is in the container, but only the version stamp proves the
 # build recompiled this commit rather than reusing a stale out/.
 check_version () {
-  local version
-  version="$(scrape | sed -n 's/^pilot_info{version="\([^"]*\)".*/\1/p')"
+  local raw version
+  raw="$(scrape)" || istiod_died
+  version="$(sed -n 's/^pilot_info{version="\([^"]*\)".*/\1/p' <<<"${raw}")"
   echo "deploy: pilot_info version ${version}"
   [[ "${BUILD}" != "true" || "${version}" == *"${COMMIT_FULL}"* ]] ||
     die "istiod reports ${version}, expected a build of ${COMMIT_FULL}"
@@ -365,7 +417,7 @@ settle () {
 
   deadline=$(( SECONDS + SETTLE_TIMEOUT ))
   while (( SECONDS < deadline )); do
-    cur="$(metric go_goroutines)"
+    cur="$(metric go_goroutines)" || istiod_died
     if [[ -n "${prev}" ]] && (( cur - prev <= SETTLE_DELTA && prev - cur <= SETTLE_DELTA )); then
       echo "settle: goroutines flat at ${cur}"
       endregion "settle ${COMMIT}: flat at ${cur} goroutines"
@@ -383,13 +435,20 @@ settle () {
 
 # Records one CSV row and, when profiling, one heap and one goroutine profile.
 take_sample () {
-  local sample=$1 iteration=$2 elapsed=${SECONDS} goroutines heap rss
+  local sample=$1 iteration=$2 elapsed=${SECONDS} raw goroutines heap rss started
 
-  read -r goroutines heap rss <<<"$(scrape | awk '
+  raw="$(scrape)" || istiod_died
+  read -r goroutines heap rss started <<<"$(awk '
     $1 == "go_goroutines"                 { g = $2 }
     $1 == "go_memstats_heap_inuse_bytes"  { h = $2 }
     $1 == "process_resident_memory_bytes" { r = $2 }
-    END { printf "%.0f %.0f %.0f\n", g + 0, h + 0, r + 0 }')"
+    $1 == "process_start_time_seconds"    { s = $2 }
+    END { printf "%.0f %.0f %.0f %.0f\n", g + 0, h + 0, r + 0, s + 0 }' <<<"${raw}")"
+
+  # Tilt restarts the process inside the container, so a crash and its restart
+  # leave the pod untouched: only the process start time gives it away.
+  START_TIME="${START_TIME:-${started}}"
+  [[ "${started}" == "${START_TIME}" ]] || istiod_died "restarted mid-run"
 
   printf '%s,%s,%s,%s,%s,%s\n' \
     "${sample}" "${iteration}" "${elapsed}" "${goroutines}" "${heap}" "${rss}" >>"${OUTDIR}/metrics.csv"
@@ -405,10 +464,10 @@ take_sample () {
 
 # The measurement itself.
 rotate () {
-  local i sample=1 updates
+  local i sample=1 updates seen
 
   POD="$(istiod_pod)"
-  updates="$(metric 'remote_cluster_secret_events_total{event="update"}')"
+  updates="$(metric 'remote_cluster_secret_events_total{event="update"}')" || istiod_died
   echo "${METHOD}: ${ITERATIONS} rotations every ${INTERVAL}s against ${ISTIOD}/${POD}"
   region measure "rotating ${ITERATIONS} tokens every ${INTERVAL}s"
 
@@ -426,7 +485,8 @@ rotate () {
 
   # A run that rotated nothing, or that straddled an istiod restart, says
   # nothing about this istiod.
-  updates=$(( $(metric 'remote_cluster_secret_events_total{event="update"}') - updates ))
+  seen="$(metric 'remote_cluster_secret_events_total{event="update"}')" || istiod_died
+  updates=$(( seen - updates ))
   [[ "$(istiod_pod)" == "${POD}" ]] || fail "istiod restarted during the run"
   (( updates >= ITERATIONS / 2 )) ||
     fail "istiod saw ${updates} secret updates for ${ITERATIONS} rotations"
@@ -475,12 +535,12 @@ verdict () {
   [[ "${leaking}" == "0" ]] || result=leak
   echo "verdict:     ${result} (threshold ${THRESHOLD} goroutines per rotation)"
 
-  annotate "${COMMIT} ${result}: ${GOROUTINES_PER} goroutines and ${HEAP_PER} MB heap per rotation" \
+  annotate "${COMMIT} (${RELEASE}) ${result}: ${GOROUTINES_PER} goroutines and ${HEAP_PER} MB heap per rotation" \
     verdict "${result}" >/dev/null
 
   [[ -f "${RESULTS}" ]] ||
-    echo "timestamp,commit,verdict,rotations,goroutines_per_rotation,heap_mb_per_rotation,outdir" >"${RESULTS}"
-  printf '%s,%s,%s,%s,%s,%s,%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${COMMIT}" "${result}" \
+    echo "timestamp,commit,release,verdict,rotations,goroutines_per_rotation,heap_mb_per_rotation,outdir" >"${RESULTS}"
+  printf '%s,%s,%s,%s,%s,%s,%s,%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${COMMIT}" "${RELEASE}" "${result}" \
     "${ROTATIONS}" "${GOROUTINES_PER}" "${HEAP_PER}" "${OUTDIR}" >>"${RESULTS}"
 
   trap - ERR
@@ -493,16 +553,21 @@ verdict () {
 #------------------------------------------------------------------------------
 
 trap 'die "unexpected failure at line ${LINENO}"' ERR
-trap 'stop_forward' EXIT
+trap 'stop_forward; revert_fixups' EXIT
 
 if bisecting; then
   [[ -d "${ISTIO_DIR}/.git" ]] || die "${ISTIO_DIR} is not a git worktree"
   COMMIT_FULL="$(git -C "${ISTIO_DIR}" rev-parse HEAD)"
   COMMIT="${COMMIT_FULL:0:12}"
   SUBJECT="$(git -C "${ISTIO_DIR}" log -1 --format=%s | cut -c1-60)"
+  # The lowest tag containing the commit is the release that first shipped it.
+  RELEASE="$(git -C "${ISTIO_DIR}" tag --contains "${COMMIT_FULL}" --sort=v:refname 2>/dev/null || true)"
+  RELEASE="${RELEASE%%$'\n'*}"
+  RELEASE="${RELEASE:-unreleased}"
   BINARY="${ISTIO_DIR}/out/linux_$(dpkg --print-architecture)/pilot-discovery"
   OUTDIR="${OUTDIR:-/tmp/retoken-bisect/${COMMIT}-${STAMP}}"
   echo "commit: ${COMMIT} (${SUBJECT})"
+  echo "release: ${RELEASE}"
 else
   OUTDIR="${OUTDIR:-/tmp/retoken-${STAMP}}"
 fi

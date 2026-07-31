@@ -36,6 +36,14 @@ COMPONENT_VERSION='X.Y.Z'  # https://artifacthub.io/packages/helm/...
 | `KUBERNETES_REPLICATOR_CHART_VERSION` | kubernetes-replicator | https://artifacthub.io/packages/helm/kubernetes-replicator/kubernetes-replicator |
 | `ISTIO_CHART_VERSION` | Istio | https://artifacthub.io/packages/helm/istio-official/base |
 | `KIALI_CHART_VERSION` | Kiali Operator | https://artifacthub.io/packages/helm/kiali/kiali-operator |
+| `GATEWAY_API_VERSION` | Gateway API CRDs | https://github.com/kubernetes-sigs/gateway-api/releases |
+
+`GATEWAY_API_VERSION` is not a plain "take the latest" bump: it must stay within
+the Gateway API minor that the pinned `ISTIO_CHART_VERSION` is built against
+(see `sigs.k8s.io/gateway-api` in the matching `istio/istio` tag's `go.mod`).
+A newer bundle can drop API versions istiod still watches (v1.5.0 removed
+`TLSRoute v1alpha2`), which makes istiod hang on informer sync and never
+become ready.
 
 ---
 

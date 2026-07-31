@@ -13,6 +13,7 @@ independent sections run in parallel.
 | `add-registries-to-containerd` | Points each cluster's containerd at zot. |
 | `setup-kubeconfig` | Rebuilds the in-container kubeconfig with only the `kind-*` contexts, plus an in-cluster variant. |
 | `setup-flat-network` | Adds the static routes that make each cell a [flat L3 network](./components/flat-network.md). |
+| `install-gateway-api` | Applies the Gateway API CRDs, pinned to the bundle the pinned Istio version supports. |
 | `install-k8s-gateway` | Installs `k8s_gateway` so `demo.lab` names resolve to `LoadBalancer` IPs. |
 | `setup-coredns` | Rewrites the [CoreDNS](./components/coredns.md) Corefile for the `<cell>.local` zone and forwards `demo.lab`. |
 | `setup-argocd` | Installs [Argo CD](./components/argocd.md) on the manager cluster. |

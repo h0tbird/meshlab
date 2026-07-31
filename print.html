@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "latte";
             const default_dark_theme = "mocha";
-            window.path_to_searchindex_js = "searchindex-40944d49.js";
+            window.path_to_searchindex_js = "searchindex-8b263b24.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-f1907180.js"></script>
@@ -272,6 +272,7 @@ container.</p>
 of the bootstrap graph. Useful flags:</p>
 <pre><code class="language-console">meshlab create --cell-count 2          # also create the pizza cell
 meshlab create --network-mode single   # one Istio network per cell (no east-west gateways)
+MODE=sidecar meshlab create            # sidecar only: no ambient profile, ztunnel or ambient peers
 </code></pre>
 <p>Watch the clusters converge from a second terminal:</p>
 <pre><code class="language-console">meshlab watch     # loops `ml short`
@@ -812,10 +813,10 @@ other through remote secrets.</p>
 <tbody>
 <tr><td><code>istio-base</code></td><td><code>base</code></td><td>CRDs and cluster roles.</td></tr>
 <tr><td><code>istio-cni</code></td><td><code>cni</code></td><td>Required by ambient.</td></tr>
-<tr><td><code>istio-istiod</code></td><td><code>istiod</code></td><td><code>profile: ambient</code>, revisioned.</td></tr>
-<tr><td><code>istio-ztunnel</code></td><td><code>ztunnel</code></td><td>The ambient L4 node proxy.</td></tr>
+<tr><td><code>istio-istiod</code></td><td><code>istiod</code></td><td><code>profile: ambient</code> when <code>MODE=ambient</code>, revisioned.</td></tr>
+<tr><td><code>istio-ztunnel</code></td><td><code>ztunnel</code></td><td>The ambient L4 node proxy, <strong><code>MODE=ambient</code> only</strong>.</td></tr>
 <tr><td><code>istio-nsgw</code></td><td><code>gateway</code></td><td>North-south (ingress) gateway, with a custom bootstrap from <code>conf/istio</code>.</td></tr>
-<tr><td><code>istio-ewgw</code></td><td><code>charts/ewgw</code> (local)</td><td>East-west gateways, <strong><code>--network-mode multi</code> only</strong>.</td></tr>
+<tr><td><code>istio-ewgw</code></td><td><code>charts/ewgw</code> (local)</td><td>East-west gateways, <strong><code>--network-mode multi</code> only</strong>. The sidecar gateway (TLS 15443) is always deployed; the ambient one (HBONE 15008) only with <code>MODE=ambient</code>.</td></tr>
 <tr><td><code>istio-issuers</code></td><td><code>charts/issuers</code> (local)</td><td>See <a href="#cert-manager">cert-manager</a>.</td></tr>
 </tbody>
 </table>
@@ -1015,6 +1016,9 @@ k --context kind-mnger-1 -n monitoring get secrets
 <code>swarmctl</code> CLI to fill the mesh with synthetic peers that continuously call each
 other, so there is always real east-west traffic to observe.</p>
 <h2 id="what-gets-deployed"><a class="header" href="#what-gets-deployed">What gets deployed</a></h2>
+<p>The <code>MODE</code> environment variable picks the data plane. <code>ambient</code> (the default)
+is really <em>mixed</em>: ambient peers on top of the sidecar ones. <code>sidecar</code> disables
+ambient altogether and leaves only the sidecar peers.</p>
 <p>On every workload cluster (<code>pasta-*</code>, and <code>pizza-*</code> with <code>--cell-count 2</code>):</p>
 <div class="table-wrapper">
 <table>
@@ -1023,8 +1027,8 @@ other, so there is always real east-west traffic to observe.</p>
 </thead>
 <tbody>
 <tr><td><code>swarm-informer</code></td><td>The informer that tells the peers about each other.</td></tr>
-<tr><td><code>swarm-ambient-n1</code></td><td>A <code>peer</code> Deployment (2 replicas) + Service, ambient data plane.</td></tr>
-<tr><td><code>swarm-ambient-n2</code></td><td>Same, ambient.</td></tr>
+<tr><td><code>swarm-ambient-n1</code></td><td>A <code>peer</code> Deployment (2 replicas) + Service, ambient data plane. <code>MODE=ambient</code> only.</td></tr>
+<tr><td><code>swarm-ambient-n2</code></td><td>Same, ambient. <code>MODE=ambient</code> only.</td></tr>
 <tr><td><code>swarm-sidecar-n1</code></td><td>Same, sidecar data plane.</td></tr>
 <tr><td><code>swarm-sidecar-n2</code></td><td>Same, sidecar.</td></tr>
 </tbody>
@@ -1032,11 +1036,11 @@ other, so there is always real east-west traffic to observe.</p>
 </div>
 <p>Namespaces follow <code>swarm-&lt;dataplane-mode&gt;-n&lt;index&gt;</code>; every workload pod is the
 <code>peer</code> app (<code>app=peer</code>), so it is a full 8-peer mesh per cell (2 clusters × 2
-modes × 2 namespaces).</p>
+modes × 2 namespaces), or 4 peers with <code>MODE=sidecar</code>.</p>
 <p>The exact invocations live in <code>bin/meshlab</code> (<code>deploy-workloads</code>) and boil down
 to:</p>
-<pre><code class="language-console">swarmctl --context 'pasta-*|pizza-*' i --istio-revision stable --dataplane-mode ambient --ingress-mode none --multi-cluster
-swarmctl --context 'pasta-*|pizza-*' w 1:2 --istio-revision stable --dataplane-mode ambient --ingress-mode none --multi-cluster --log-responses --disable-keepalives
+<pre><code class="language-console">swarmctl --context 'pasta-*|pizza-*' i --istio-revision stable --dataplane-mode $MODE --ingress-mode none --multi-cluster
+swarmctl --context 'pasta-*|pizza-*' w 1:2 --istio-revision stable --dataplane-mode ambient --ingress-mode none --multi-cluster --log-responses --disable-keepalives  # MODE=ambient only
 swarmctl --context 'pasta-*|pizza-*' w 1:2 --istio-revision stable --dataplane-mode sidecar --ingress-mode none --multi-cluster --log-responses --disable-keepalives
 </code></pre>
 <p>Two flags are worth calling out:</p>

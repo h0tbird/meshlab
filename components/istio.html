@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "latte";
             const default_dark_theme = "mocha";
-            window.path_to_searchindex_js = "../searchindex-40944d49.js";
+            window.path_to_searchindex_js = "../searchindex-8b263b24.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f1907180.js"></script>
@@ -196,10 +196,10 @@ other through remote secrets.</p>
 <tbody>
 <tr><td><code>istio-base</code></td><td><code>base</code></td><td>CRDs and cluster roles.</td></tr>
 <tr><td><code>istio-cni</code></td><td><code>cni</code></td><td>Required by ambient.</td></tr>
-<tr><td><code>istio-istiod</code></td><td><code>istiod</code></td><td><code>profile: ambient</code>, revisioned.</td></tr>
-<tr><td><code>istio-ztunnel</code></td><td><code>ztunnel</code></td><td>The ambient L4 node proxy.</td></tr>
+<tr><td><code>istio-istiod</code></td><td><code>istiod</code></td><td><code>profile: ambient</code> when <code>MODE=ambient</code>, revisioned.</td></tr>
+<tr><td><code>istio-ztunnel</code></td><td><code>ztunnel</code></td><td>The ambient L4 node proxy, <strong><code>MODE=ambient</code> only</strong>.</td></tr>
 <tr><td><code>istio-nsgw</code></td><td><code>gateway</code></td><td>North-south (ingress) gateway, with a custom bootstrap from <code>conf/istio</code>.</td></tr>
-<tr><td><code>istio-ewgw</code></td><td><code>charts/ewgw</code> (local)</td><td>East-west gateways, <strong><code>--network-mode multi</code> only</strong>.</td></tr>
+<tr><td><code>istio-ewgw</code></td><td><code>charts/ewgw</code> (local)</td><td>East-west gateways, <strong><code>--network-mode multi</code> only</strong>. The sidecar gateway (TLS 15443) is always deployed; the ambient one (HBONE 15008) only with <code>MODE=ambient</code>.</td></tr>
 <tr><td><code>istio-issuers</code></td><td><code>charts/issuers</code> (local)</td><td>See <a href="./cert-manager.html">cert-manager</a>.</td></tr>
 </tbody>
 </table>

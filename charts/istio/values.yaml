@@ -5,3 +5,9 @@
 #            network), east-west gateway omitted. Cells remain isolated.
 # Overridden at deploy time by `bin/meshlab --network-mode=...`.
 networkMode: multi
+
+# Dataplane mode used by the istio ApplicationSets:
+#   ambient - istiod/CNI use the ambient profile and ztunnel is deployed.
+#   sidecar - no ambient profile, no ztunnel, sidecar injection only.
+# Overridden at deploy time by `MODE=... bin/meshlab`.
+dataplaneMode: ambient

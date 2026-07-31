@@ -475,7 +475,7 @@ install-applicationsets() {
   helm template ./charts/cert-manager --set "chartVersion=${CERT_MANAGER_CHART_VERSION}" | k0 "${ssa[@]}" &
   helm template ./charts/kubernetes-replicator --set "chartVersion=${KUBERNETES_REPLICATOR_CHART_VERSION}" | k0 "${ssa[@]}" &
   helm template ./charts/metrics-server --set "chartVersion=${METRICS_SERVER_CHART_VERSION}" | k0 "${ssa[@]}" &
-  helm template ./charts/istio --set "chartVersion=${ISTIO_CHART_VERSION}" --set "networkMode=${NETWORK_MODE}" | k0 "${ssa[@]}" &
+  helm template ./charts/istio --set "chartVersion=${ISTIO_CHART_VERSION}" --set "networkMode=${NETWORK_MODE}" --set "dataplaneMode=${MODE}" | k0 "${ssa[@]}" &
   helm template ./charts/kiali --set "chartVersion=${KIALI_CHART_VERSION}" | k0 "${ssa[@]}" &
   join
 }; SECTIONS+=( install-applicationsets )
@@ -604,6 +604,24 @@ bootstrap-dag() {
 	          parameters:
 	          - name: selectors
 	            value: name=istio-ewgw
+	EOF
+    )
+  fi
+
+  # charts/istio only renders the istio-ztunnel ApplicationSet in ambient
+  # mode, so in sidecar mode the task would sync a selector matching no app.
+  local ztunnel_task=''
+  if [[ "${MODE}" == "ambient" ]]; then
+    ztunnel_task=$(cat <<- 'EOF'
+	      - name: istio-ztunnel
+	        dependencies: [istio-istiod]
+	        templateRef:
+	          name: argocd-sync-and-wait
+	          template: argocd-sync-and-wait
+	        arguments:
+	          parameters:
+	          - name: selectors
+	            value: name=istio-ztunnel
 	EOF
     )
   fi
@@ -749,15 +767,6 @@ bootstrap-dag() {
 	          parameters:
 	          - name: selectors
 	            value: name=kiali-operator
-	      - name: istio-ztunnel
-	        dependencies: [istio-istiod]
-	        templateRef:
-	          name: argocd-sync-and-wait
-	          template: argocd-sync-and-wait
-	        arguments:
-	          parameters:
-	          - name: selectors
-	            value: name=istio-ztunnel
 	      - name: istio-nsgw
 	        dependencies: [istio-istiod]
 	        templateRef:
@@ -767,6 +776,7 @@ bootstrap-dag() {
 	          parameters:
 	          - name: selectors
 	            value: name=istio-nsgw
+	${ztunnel_task}
 	${ewgw_task}
 	EOF
 }; SECTIONS+=( bootstrap-dag )
@@ -892,9 +902,13 @@ tilt-up() {
 deploy-workloads() {
   blue "───[ Deploy workloads ]─────────────────────────────────────────────────"
 
-  # Deploy swarmctl ambient workloads
-  go run -C ../k-swarm ./cmd/swarmctl --context 'pasta-*|pizza-*' i --yes --istio-revision stable --image-tag main --dataplane-mode ambient --ingress-mode none --multi-cluster
-  go run -C ../k-swarm ./cmd/swarmctl --context 'pasta-*|pizza-*' w 1:2 --yes --istio-revision stable --image-tag main --dataplane-mode ambient --ingress-mode none --multi-cluster --log-responses --disable-keepalives
+  # Deploy the swarmctl informer
+  go run -C ../k-swarm ./cmd/swarmctl --context 'pasta-*|pizza-*' i --yes --istio-revision stable --image-tag main --dataplane-mode "${MODE}" --ingress-mode none --multi-cluster
+
+  # MODE=ambient is really mixed: ambient peers on top of the sidecar ones.
+  if [[ "${MODE}" == "ambient" ]]; then
+    go run -C ../k-swarm ./cmd/swarmctl --context 'pasta-*|pizza-*' w 1:2 --yes --istio-revision stable --image-tag main --dataplane-mode ambient --ingress-mode none --multi-cluster --log-responses --disable-keepalives
+  fi
 
   # Deploy swarmctl sidecar workloads
   go run -C ../k-swarm ./cmd/swarmctl --context 'pasta-*|pizza-*' w 1:2 --yes --istio-revision stable --image-tag main --dataplane-mode sidecar --ingress-mode none --multi-cluster --log-responses --disable-keepalives
@@ -1032,9 +1046,15 @@ create() {
 export CELL_COUNT="${CELL_COUNT:-1}"
 export NETWORK_MODE="${NETWORK_MODE:-multi}"
 
+# Dataplane mode for the whole lab (istiod/CNI profile, ztunnel, east-west
+# gateway and the swarmctl workloads). Env-only, e.g. `MODE=sidecar meshlab create`.
+export MODE="${MODE:-ambient}"
+
 # Tiny validators (assert, with a friendly error).
 _uint()  { [[ "$1" =~ ^[0-9]+$ ]] || { echo "expected non-negative integer, got '$1'" >&2; exit 1; }; }
 _oneof() { local v=$1; shift; [[ " $* " == *" $v "* ]] || { echo "expected one of: $*, got '$v'" >&2; exit 1; }; }
+
+_oneof "${MODE}" ambient sidecar
 
 # Parse `create` flags (called by the main case statement below). Flags must be passed before any positional arguments.
 parse_create_args() {
@@ -1063,5 +1083,5 @@ case "${1:-}" in
   __run-section) measure "${2:?Usage: meshlab __run-section <section>}"; exit 0 ;;
   list) printf '%s\n' "${SECTIONS[@]}"; exit 0 ;;
   completion) completion "${2:-}"; exit 0 ;;
-  *) echo "Usage: $(basename "$0") <create [--cell-count N] [--network-mode multi|single]|delete|watch|list|run SECTION [--cell-count N]|completion <shell>>"; exit 1 ;;
+  *) echo "Usage: MODE=[ambient|sidecar] $(basename "$0") <create [--cell-count N] [--network-mode multi|single]|delete|watch|list|run SECTION [--cell-count N]|completion <shell>>"; exit 1 ;;
 esac

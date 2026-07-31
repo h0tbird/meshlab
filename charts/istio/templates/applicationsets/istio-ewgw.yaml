@@ -26,6 +26,7 @@ spec:
           releaseName: istio-ewgw
           valuesObject:
             network: {{`'{{name}}'`}}
+            dataplaneMode: {{ .Values.dataplaneMode }}
       destination:
         server: {{`'{{server}}'`}}
         namespace: istio-system

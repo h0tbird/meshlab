@@ -1,2 +1,6 @@
 ---
 network: ""
+
+# Selects whether the ambient east-west gateway (HBONE 15008) is deployed
+# alongside the sidecar one (TLS 15443). Set by the istio-ewgw ApplicationSet.
+dataplaneMode: ambient

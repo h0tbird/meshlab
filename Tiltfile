@@ -20,6 +20,20 @@ version_dot = '1.30.3'
 image_ref = 'pilot-discovery-dev'
 cluster_name = k8s_context().removeprefix('kind-')
 
+# Must match the MODE the lab was created with, so this mirror of the istiod
+# Deployment does not drift from what ArgoCD applies.
+mode = os.getenv('MODE', 'ambient')
+
+ambient_env = """        - name: AMBIENT_ENABLE_BAGGAGE
+          value: "true"
+        - name: AMBIENT_ENABLE_MULTI_NETWORK
+          value: "true"
+""" if mode == 'ambient' else ''
+
+pilot_ambient_env = """        - name: PILOT_ENABLE_AMBIENT
+          value: "true"
+""" if mode == 'ambient' else ''
+
 #------------------------------------------------------------------------------
 # Determine architecture and binary path
 #------------------------------------------------------------------------------
@@ -147,11 +161,7 @@ spec:
           value: /var/run/secrets/remote/config
         - name: CA_TRUSTED_NODE_ACCOUNTS
           value: istio-system/ztunnel
-        - name: AMBIENT_ENABLE_BAGGAGE
-          value: "true"
-        - name: AMBIENT_ENABLE_MULTI_NETWORK
-          value: "true"
-        - name: AUTO_RELOAD_PLUGIN_CERTS
+{ambient_env}        - name: AUTO_RELOAD_PLUGIN_CERTS
           value: "true"
         - name: ENABLE_NATIVE_SIDECARS
           value: "true"
@@ -159,9 +169,7 @@ spec:
           value: istiod.{cluster_name}
         - name: PILOT_ENABLE_ALPHA_GATEWAY_API
           value: "true"
-        - name: PILOT_ENABLE_AMBIENT
-          value: "true"
-        - name: PILOT_ENABLE_WORKLOAD_ENTRY_AUTOREGISTRATION
+{pilot_ambient_env}        - name: PILOT_ENABLE_WORKLOAD_ENTRY_AUTOREGISTRATION
           value: "true"
         - name: PILOT_ENABLE_WORKLOAD_ENTRY_HEALTHCHECKS
           value: "true"
@@ -258,7 +266,7 @@ spec:
           defaultMode: 420
           name: istio-ca-root-cert
           optional: true
-""".format(image_ref=image_ref, version_dash=version_dash, version_dot=version_dot, cluster_name=cluster_name)))
+""".format(image_ref=image_ref, version_dash=version_dash, version_dot=version_dot, cluster_name=cluster_name, ambient_env=ambient_env, pilot_ambient_env=pilot_ambient_env)))
 
 #------------------------------------------------------------------------------
 # Configure the k8s resource

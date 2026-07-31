@@ -37,6 +37,7 @@ of the bootstrap graph. Useful flags:
 ```console
 meshlab create --cell-count 2          # also create the pizza cell
 meshlab create --network-mode single   # one Istio network per cell (no east-west gateways)
+MODE=sidecar meshlab create            # sidecar only: no ambient profile, ztunnel or ambient peers
 ```
 
 Watch the clusters converge from a second terminal:

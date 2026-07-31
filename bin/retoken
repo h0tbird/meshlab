@@ -326,26 +326,39 @@ preflight () {
 # Patches ${FIXUPS} that the commit under test does not already contain into the
 # worktree. The build stamps -Dirty as a result, which check_version tolerates.
 apply_fixups () {
-  local commit file
+  local commit file patch
   for commit in ${FIXUPS}; do
     git -C "${ISTIO_DIR}" merge-base --is-ancestor "${commit}" HEAD 2>/dev/null && continue
     echo "build: carrying fixup ${commit:0:12} ($(git -C "${ISTIO_DIR}" log -1 --format=%s "${commit}" | cut -c1-50))"
     while read -r file; do
       [[ -z "${file}" ]] || FIXED+=("${file}")
     done < <(git -C "${ISTIO_DIR}" show --pretty= --name-only "${commit}")
-    git -C "${ISTIO_DIR}" show "${commit}" | git -C "${ISTIO_DIR}" apply --3way - ||
+
+    # A --3way apply consults the index and refuses a file it reads as dirty,
+    # which a file bisect checked out a moment ago still looks like. Refreshing
+    # the stat cache settles that; a plain apply needs no index at all, only
+    # context that matches, which for a fixup carried a few commits it does.
+    patch="$(git -C "${ISTIO_DIR}" show "${commit}")"
+    git -C "${ISTIO_DIR}" update-index -q --refresh >/dev/null 2>&1 || true
+    git -C "${ISTIO_DIR}" apply --3way - <<<"${patch}" 2>/dev/null ||
+      { restore_fixed; git -C "${ISTIO_DIR}" apply - <<<"${patch}"; } ||
       die "fixup ${commit:0:12} does not apply to ${COMMIT}"
   done
 }
 
-# git bisect cannot check out the next commit unless the worktree is clean again.
-revert_fixups () {
+# Puts every file a fixup touched back the way HEAD has it.
+restore_fixed () {
   local file
   for file in "${FIXED[@]:-}"; do
     [[ -n "${file}" ]] || continue
     git -C "${ISTIO_DIR}" reset -q HEAD -- "${file}" 2>/dev/null || true
     git -C "${ISTIO_DIR}" checkout HEAD -- "${file}" 2>/dev/null || rm -f "${ISTIO_DIR}/${file}"
   done
+}
+
+# git bisect cannot check out the next commit unless the worktree is clean again.
+revert_fixups () {
+  restore_fixed
   FIXED=()
 }
 

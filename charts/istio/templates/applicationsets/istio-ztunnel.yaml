@@ -1,3 +1,4 @@
+{{- if eq .Values.dataplaneMode "ambient" -}}
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
@@ -32,3 +33,4 @@ spec:
       destination:
         server: {{`'{{server}}'`}}
         namespace: istio-system
+{{- end }}

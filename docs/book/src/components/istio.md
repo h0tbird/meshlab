@@ -14,10 +14,10 @@ All from the official charts at
 | ----------- | ----- | ----- |
 | `istio-base` | `base` | CRDs and cluster roles. |
 | `istio-cni` | `cni` | Required by ambient. |
-| `istio-istiod` | `istiod` | `profile: ambient`, revisioned. |
-| `istio-ztunnel` | `ztunnel` | The ambient L4 node proxy. |
+| `istio-istiod` | `istiod` | `profile: ambient` when `MODE=ambient`, revisioned. |
+| `istio-ztunnel` | `ztunnel` | The ambient L4 node proxy, **`MODE=ambient` only**. |
 | `istio-nsgw` | `gateway` | North-south (ingress) gateway, with a custom bootstrap from `conf/istio`. |
-| `istio-ewgw` | `charts/ewgw` (local) | East-west gateways, **`--network-mode multi` only**. |
+| `istio-ewgw` | `charts/ewgw` (local) | East-west gateways, **`--network-mode multi` only**. The sidecar gateway (TLS 15443) is always deployed; the ambient one (HBONE 15008) only with `MODE=ambient`. |
 | `istio-issuers` | `charts/issuers` (local) | See [cert-manager](./cert-manager.md). |
 
 istiod is deployed with the revision derived from the version (dots replaced by

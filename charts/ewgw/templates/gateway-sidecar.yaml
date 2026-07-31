@@ -9,6 +9,8 @@
 # A Service labeled topology.istio.io/network=<network> that listens on
 # port 15443 is the signal pilot uses to register the gateway as a cross-
 # network gateway for sidecar mTLS.
+#
+# Deployed in both dataplane modes: sidecar peers exist in either case.
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:

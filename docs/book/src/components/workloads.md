@@ -7,26 +7,30 @@ other, so there is always real east-west traffic to observe.
 
 ## What gets deployed
 
+The `MODE` environment variable picks the data plane. `ambient` (the default)
+is really *mixed*: ambient peers on top of the sidecar ones. `sidecar` disables
+ambient altogether and leaves only the sidecar peers.
+
 On every workload cluster (`pasta-*`, and `pizza-*` with `--cell-count 2`):
 
 | Namespace          | Contents                                     |
 | ------------------ | -------------------------------------------- |
 | `swarm-informer`   | The informer that tells the peers about each other. |
-| `swarm-ambient-n1` | A `peer` Deployment (2 replicas) + Service, ambient data plane. |
-| `swarm-ambient-n2` | Same, ambient. |
+| `swarm-ambient-n1` | A `peer` Deployment (2 replicas) + Service, ambient data plane. `MODE=ambient` only. |
+| `swarm-ambient-n2` | Same, ambient. `MODE=ambient` only. |
 | `swarm-sidecar-n1` | Same, sidecar data plane. |
 | `swarm-sidecar-n2` | Same, sidecar. |
 
 Namespaces follow `swarm-<dataplane-mode>-n<index>`; every workload pod is the
 `peer` app (`app=peer`), so it is a full 8-peer mesh per cell (2 clusters × 2
-modes × 2 namespaces).
+modes × 2 namespaces), or 4 peers with `MODE=sidecar`.
 
 The exact invocations live in `bin/meshlab` (`deploy-workloads`) and boil down
 to:
 
 ```console
-swarmctl --context 'pasta-*|pizza-*' i --istio-revision stable --dataplane-mode ambient --ingress-mode none --multi-cluster
-swarmctl --context 'pasta-*|pizza-*' w 1:2 --istio-revision stable --dataplane-mode ambient --ingress-mode none --multi-cluster --log-responses --disable-keepalives
+swarmctl --context 'pasta-*|pizza-*' i --istio-revision stable --dataplane-mode $MODE --ingress-mode none --multi-cluster
+swarmctl --context 'pasta-*|pizza-*' w 1:2 --istio-revision stable --dataplane-mode ambient --ingress-mode none --multi-cluster --log-responses --disable-keepalives  # MODE=ambient only
 swarmctl --context 'pasta-*|pizza-*' w 1:2 --istio-revision stable --dataplane-mode sidecar --ingress-mode none --multi-cluster --log-responses --disable-keepalives
 ```
 

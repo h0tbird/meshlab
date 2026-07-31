@@ -24,7 +24,9 @@ spec:
         helm:
           releaseName: istio-istiod
           valuesObject:
+{{- if eq .Values.dataplaneMode "ambient" }}
             profile: ambient
+{{- end }}
             revision: {{ .Values.chartVersion | replace "." "-" }}
             revisionTags: [ "stable", "canary", "default" ]
             pilot:
@@ -47,6 +49,7 @@ spec:
                 # are otherwise rejected with UnsupportedProtocol.
                 PILOT_ENABLE_ALPHA_GATEWAY_API: "true"
                 ISTIOD_CUSTOM_HOST: {{`'istiod.{{name}}'`}}
+{{- if eq .Values.dataplaneMode "ambient" }}
                 # Master switch for ambient cross-cluster endpoint
                 # discovery. Despite the name, this is required even in
                 # single-network mode (flat L3 via kindnet + static
@@ -56,6 +59,7 @@ spec:
                 # remote-secret federation.
                 AMBIENT_ENABLE_MULTI_NETWORK: "true"
                 AMBIENT_ENABLE_BAGGAGE: "true"
+{{- end }}
             global:
             # hub: ghcr.io/h0tbird
             # tag: 1.28.3-patch.1-dev

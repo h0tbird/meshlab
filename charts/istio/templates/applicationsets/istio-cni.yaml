@@ -24,7 +24,9 @@ spec:
         helm:
           releaseName: istio-cni
           valuesObject:
+{{- if eq .Values.dataplaneMode "ambient" }}
             profile: ambient
+{{- end }}
             cni:
               pullPolicy: IfNotPresent
               excludeNamespaces:

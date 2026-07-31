@@ -50,9 +50,12 @@ spec:
                 # bounced back to /login. "Main Org." is Grafana's built-in
                 # default org.
                 org_name: Main Org.
-                # Editor (not Viewer) so anonymous clients — including the
-                # mcp-grafana MCP server — can create and update dashboards.
-                org_role: Editor
+                # Admin (not Editor) so anonymous clients — including the
+                # mcp-grafana MCP server — can create and update dashboards and
+                # share them externally: dashboards.public:write is only bound
+                # to the Admin basic role in OSS, so an Editor gets "You don't
+                # have permission to create a shared dashboard".
+                org_role: Admin
               feature_toggles:
                 provisioning: true
                 kubernetesDashboards: true

@@ -12,7 +12,8 @@
       "command": "prometheus-mcp-server",
       "env": {
         "PROMETHEUS_MCP_SERVER_PROMETHEUS_URL": "http://127.0.0.1:8083",
-        "PROMETHEUS_MCP_SERVER_WEB_LISTEN_ADDRESS": "127.0.0.1:19464"
+        "PROMETHEUS_MCP_SERVER_WEB_LISTEN_ADDRESS": "127.0.0.1:19464",
+        "PROMETHEUS_MCP_SERVER_DANGEROUS_ENABLE_TSDB_ADMIN_TOOLS": "true"
       }
     }
   }

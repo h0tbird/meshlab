@@ -42,6 +42,7 @@
 # Bisecting only:
 #   ISTIO_DIR      istio worktree under bisect               (/workspaces/istio)
 #   THRESHOLD      leaked goroutines per rotation to fail    (5)
+#   HEAP_THRESHOLD leaked heap MB per rotation to fail       (1)
 #   BUILD          build the binary, false to reuse out/     (true)
 #   BUILD_CMD      how to build pilot-discovery              (make -C <meshlab> istio-binaries)
 #   DEPLOY_TIMEOUT seconds to wait for tilt and readiness    (900)
@@ -84,6 +85,7 @@ fi
 
 ISTIO_DIR="${ISTIO_DIR:-/workspaces/istio}"
 THRESHOLD="${THRESHOLD:-5}"
+HEAP_THRESHOLD="${HEAP_THRESHOLD:-1}"
 BUILD="${BUILD:-true}"
 DEPLOY_TIMEOUT="${DEPLOY_TIMEOUT:-900}"
 SETTLE="${SETTLE:-60}"
@@ -543,10 +545,19 @@ verdict () {
   local leaking result
   (( ROTATIONS >= ITERATIONS / 2 )) || die "only ${ROTATIONS} of ${ITERATIONS} rotations recorded"
 
-  leaking="$(awk -v g="${GOROUTINES_PER}" -v t="${THRESHOLD}" 'BEGIN { print (g >= t) ? 1 : 0 }')"
+  # Either dimension is enough to condemn the commit: on the 1.29 line the
+  # rebuilt remote-cluster stack is collected but its heap is not, so the leak
+  # shows up as megabytes with the goroutine count perfectly flat.
+  leaking="$(awk -v g="${GOROUTINES_PER}" -v gt="${THRESHOLD}" \
+                 -v h="${HEAP_PER}" -v ht="${HEAP_THRESHOLD}" '
+    BEGIN {
+      if (g >= gt) r = "goroutines"
+      if (h >= ht) r = r ? r " and heap" : "heap"
+      print r
+    }')"
   result=clean
-  [[ "${leaking}" == "0" ]] || result=leak
-  echo "verdict:     ${result} (threshold ${THRESHOLD} goroutines per rotation)"
+  [[ -z "${leaking}" ]] || result="leak"
+  echo "verdict:     ${result}${leaking:+ (${leaking})}, thresholds ${THRESHOLD} goroutines and ${HEAP_THRESHOLD} MB heap per rotation"
 
   annotate "${COMMIT} (${RELEASE}) ${result}: ${GOROUTINES_PER} goroutines and ${HEAP_PER} MB heap per rotation" \
     verdict "${result}" >/dev/null

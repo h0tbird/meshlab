@@ -48,6 +48,10 @@ spec:
               extraFlags:
                 - web.enable-remote-write-receiver
                 - web.enable-lifecycle
+                # Unlocks the delete_series and clean_tombstones endpoints, so a
+                # leak run can start from an empty TSDB instead of reading its
+                # slope across the leftovers of the previous one.
+                - web.enable-admin-api
             serverFiles:
               prometheus.yml:
                 scrape_configs:

@@ -34,9 +34,13 @@ readonly VAULT_CHART_VERSION='0.34.0'                  # https://artifacthub.io/
 readonly CERT_MANAGER_CHART_VERSION='v1.21.0'          # https://artifacthub.io/packages/helm/cert-manager/cert-manager
 readonly KUBERNETES_REPLICATOR_CHART_VERSION='2.12.4'  # https://artifacthub.io/packages/helm/kubernetes-replicator/kubernetes-replicator
 readonly METRICS_SERVER_CHART_VERSION='3.13.1'         # https://artifacthub.io/packages/helm/metrics-server/metrics-server
-readonly ISTIO_CHART_VERSION='1.30.3'                  # https://artifacthub.io/packages/helm/istio-official/base
+readonly ISTIO_CHART_VERSION='1.29.0'                  # https://artifacthub.io/packages/helm/istio-official/base
 readonly KIALI_CHART_VERSION='2.29.0'                  # https://artifacthub.io/packages/helm/kiali/kiali-operator
 readonly ZOT_VERSION='2.1.18'                          # https://github.com/project-zot/zot/releases
+
+# Istio 1.29.x is built against Gateway API 1.4.x and watches TLSRoute v1alpha2,
+# which v1.5.0 no longer serves: istiod would hang waiting for that informer.
+readonly GATEWAY_API_VERSION='v1.4.1'                  # https://github.com/kubernetes-sigs/gateway-api/releases
 
 #------------------------------------------------------------------------------
 # [i] Cleanup
@@ -80,7 +84,8 @@ cloud-provider-kind() {
     --name kindccm \
     --network kind \
     --volume /var/run/docker.sock:/var/run/docker.sock \
-    "registry.k8s.io/cloud-provider-kind/cloud-controller-manager:v${KINDCCM_VERSION}"
+    "registry.k8s.io/cloud-provider-kind/cloud-controller-manager:v${KINDCCM_VERSION}" \
+    --gateway-channel disabled  # install-gateway-api owns the CRDs instead
 }; SECTIONS+=( cloud-provider-kind )
 
 #------------------------------------------------------------------------------
@@ -286,6 +291,21 @@ setup-flat-network() {
     done
   ) & done; join
 }; SECTIONS+=( setup-flat-network )
+
+#------------------------------------------------------------------------------
+# [i] Install the Gateway API CRDs
+#------------------------------------------------------------------------------
+
+install-gateway-api() {
+  blue "───[ Gateway API ]──────────────────────────────────────────────────────"
+  local url="https://github.com/kubernetes-sigs/gateway-api/releases/download"
+  url+="/${GATEWAY_API_VERSION}/standard-install.yaml"
+  for cluster in $(all_clusters); do (
+    retry kubectl --context "kind-${cluster}" \
+      apply --server-side --force-conflicts -f "${url}" |
+    sed "s/^/${cluster}: /"
+  ) & done; join
+}; SECTIONS+=( install-gateway-api )
 
 #------------------------------------------------------------------------------
 # [i] Install k8s_gateway

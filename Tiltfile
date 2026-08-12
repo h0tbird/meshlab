@@ -15,8 +15,8 @@ allow_k8s_contexts([
 # Variables
 #------------------------------------------------------------------------------
 
-version_dash = '1-30-3'
-version_dot = '1.30.3'
+version_dash = '1-31-0-alpha-2'
+version_dot = '1.31.0-alpha.2'
 image_ref = 'pilot-discovery-dev'
 cluster_name = k8s_context().removeprefix('kind-')
 

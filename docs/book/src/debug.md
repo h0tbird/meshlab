@@ -56,11 +56,11 @@ For a one-off image swap (for a persistent change, edit the istiod
 `ApplicationSet` — otherwise Argo CD will revert it):
 
 ```console
-k --context kind-pasta-1 -n istio-system set image deployment/istiod-1-30-3 \
-  discovery=ghcr.io/h0tbird/pilot:1.30.3-dev
+k --context kind-pasta-1 -n istio-system set image deployment/istiod-1-31-0-alpha-2 \
+  discovery=ghcr.io/h0tbird/pilot:1.31.0-alpha.2-dev
 
 k --context kind-pasta-1 -n swarm-sidecar-n1 patch deployment peer --type merge -p \
-  '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"ghcr.io/h0tbird/proxyv2:1.30.3-dev"}}}}}'
+  '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"ghcr.io/h0tbird/proxyv2:1.31.0-alpha.2-dev"}}}}}'
 ```
 
 For iterating on `pilot-discovery` itself, prefer Tilt — see
@@ -71,9 +71,9 @@ For iterating on `pilot-discovery` itself, prefer Tilt — see
 `hack/launch.json` holds the matching VS Code launch configuration.
 
 ```console
-k --context kind-pasta-1 -n istio-system exec -it deployment/istiod-1-30-3 -- \
+k --context kind-pasta-1 -n istio-system exec -it deployment/istiod-1-31-0-alpha-2 -- \
   dlv dap --listen=:40000 --log=true
-k --context kind-pasta-1 -n istio-system port-forward deployment/istiod-1-30-3 40000:40000
+k --context kind-pasta-1 -n istio-system port-forward deployment/istiod-1-31-0-alpha-2 40000:40000
 ```
 
 To attach to a proxy, first relax `ptrace_scope` in the debug-variant proxy

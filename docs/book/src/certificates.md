@@ -22,9 +22,9 @@ k --context kind-pasta-1 -n istio-system get secret cacerts \
 Connect to `istiod` and inspect the certificate bundle it presents (`15012` is
 the mTLS xDS/CA port):
 ```console
-k --context kind-pasta-1 -n istio-system port-forward svc/istiod-1-30-3 15012:15012 &
+k --context kind-pasta-1 -n istio-system port-forward svc/istiod-1-31-0-alpha-2 15012:15012 &
 step certificate inspect --bundle --insecure \
-  --servername istiod-1-30-3.istio-system.svc https://127.0.0.1:15012
+  --servername istiod-1-31-0-alpha-2.istio-system.svc https://127.0.0.1:15012
 ```
 
 Inspect the certificate chain of a given workload:

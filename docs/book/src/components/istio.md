@@ -21,9 +21,9 @@ All from the official charts at
 | `istio-issuers` | `charts/issuers` (local) | See [cert-manager](./cert-manager.md). |
 
 istiod is deployed with the revision derived from the version (dots replaced by
-dashes, e.g. `1-30-3`) and the revision tags `stable`, `canary` and `default`.
-Workloads therefore opt in with `istio.io/rev: stable` rather than a raw
-revision.
+dashes, e.g. `1-31-0-alpha-2`) and the revision tags `stable`, `canary` and
+`default`. Workloads therefore opt in with `istio.io/rev: stable` rather than a
+raw revision.
 
 ## Per-cell / per-cluster settings
 
@@ -89,5 +89,5 @@ istioctl --context kind-pasta-1 analyze -n swarm-sidecar-n1
 
 Access the `istiod` ControlZ UI (note the revisioned deployment name):
 ```console
-istioctl --context kind-pasta-1 dashboard controlz deployment/istiod-1-30-3.istio-system
+istioctl --context kind-pasta-1 dashboard controlz deployment/istiod-1-31-0-alpha-2.istio-system
 ```

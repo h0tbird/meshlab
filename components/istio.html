@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "latte";
             const default_dark_theme = "mocha";
-            window.path_to_searchindex_js = "../searchindex-8b263b24.js";
+            window.path_to_searchindex_js = "../searchindex-725bdd54.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f1907180.js"></script>
@@ -205,9 +205,9 @@ other through remote secrets.</p>
 </table>
 </div>
 <p>istiod is deployed with the revision derived from the version (dots replaced by
-dashes, e.g. <code>1-30-3</code>) and the revision tags <code>stable</code>, <code>canary</code> and <code>default</code>.
-Workloads therefore opt in with <code>istio.io/rev: stable</code> rather than a raw
-revision.</p>
+dashes, e.g. <code>1-31-0-alpha-2</code>) and the revision tags <code>stable</code>, <code>canary</code> and
+<code>default</code>. Workloads therefore opt in with <code>istio.io/rev: stable</code> rather than a
+raw revision.</p>
 <h2 id="per-cell--per-cluster-settings"><a class="header" href="#per-cell--per-cluster-settings">Per-cell / per-cluster settings</a></h2>
 <p>The <code>ApplicationSet</code> generator injects <code>{{name}}</code> (cluster) and
 <code>{{metadata.labels.cell}}</code> (cell) into the istiod values:</p>
@@ -264,7 +264,7 @@ istioctl --context kind-pasta-1 ztunnel-config service
 <pre><code class="language-console">istioctl --context kind-pasta-1 analyze -n swarm-sidecar-n1
 </code></pre>
 <p>Access the <code>istiod</code> ControlZ UI (note the revisioned deployment name):</p>
-<pre><code class="language-console">istioctl --context kind-pasta-1 dashboard controlz deployment/istiod-1-30-3.istio-system
+<pre><code class="language-console">istioctl --context kind-pasta-1 dashboard controlz deployment/istiod-1-31-0-alpha-2.istio-system
 </code></pre>
 
                     </main>

@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "latte";
             const default_dark_theme = "mocha";
-            window.path_to_searchindex_js = "searchindex-8b263b24.js";
+            window.path_to_searchindex_js = "searchindex-725bdd54.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-f1907180.js"></script>
@@ -217,19 +217,19 @@ k --context kind-pasta-1 label node pasta-1-control-plane \
 <h2 id="custom-istiod--proxy-images"><a class="header" href="#custom-istiod--proxy-images">Custom istiod / proxy images</a></h2>
 <p>For a one-off image swap (for a persistent change, edit the istiod
 <code>ApplicationSet</code> — otherwise Argo CD will revert it):</p>
-<pre><code class="language-console">k --context kind-pasta-1 -n istio-system set image deployment/istiod-1-30-3 \
-  discovery=ghcr.io/h0tbird/pilot:1.30.3-dev
+<pre><code class="language-console">k --context kind-pasta-1 -n istio-system set image deployment/istiod-1-31-0-alpha-2 \
+  discovery=ghcr.io/h0tbird/pilot:1.31.0-alpha.2-dev
 
 k --context kind-pasta-1 -n swarm-sidecar-n1 patch deployment peer --type merge -p \
-  '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"ghcr.io/h0tbird/proxyv2:1.30.3-dev"}}}}}'
+  '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyImage":"ghcr.io/h0tbird/proxyv2:1.31.0-alpha.2-dev"}}}}}'
 </code></pre>
 <p>For iterating on <code>pilot-discovery</code> itself, prefer Tilt — see
 <a href="./development.html">Development</a>.</p>
 <h2 id="attaching-a-debugger-to-istiod"><a class="header" href="#attaching-a-debugger-to-istiod">Attaching a debugger to istiod</a></h2>
 <p><code>hack/launch.json</code> holds the matching VS Code launch configuration.</p>
-<pre><code class="language-console">k --context kind-pasta-1 -n istio-system exec -it deployment/istiod-1-30-3 -- \
+<pre><code class="language-console">k --context kind-pasta-1 -n istio-system exec -it deployment/istiod-1-31-0-alpha-2 -- \
   dlv dap --listen=:40000 --log=true
-k --context kind-pasta-1 -n istio-system port-forward deployment/istiod-1-30-3 40000:40000
+k --context kind-pasta-1 -n istio-system port-forward deployment/istiod-1-31-0-alpha-2 40000:40000
 </code></pre>
 <p>To attach to a proxy, first relax <code>ptrace_scope</code> in the debug-variant proxy
 container:</p>

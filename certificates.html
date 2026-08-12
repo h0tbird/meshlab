@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "latte";
             const default_dark_theme = "mocha";
-            window.path_to_searchindex_js = "searchindex-8b263b24.js";
+            window.path_to_searchindex_js = "searchindex-725bdd54.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-f1907180.js"></script>
@@ -196,9 +196,9 @@ workload certificates istiod mints, with a per-cell trust domain
 </code></pre>
 <p>Connect to <code>istiod</code> and inspect the certificate bundle it presents (<code>15012</code> is
 the mTLS xDS/CA port):</p>
-<pre><code class="language-console">k --context kind-pasta-1 -n istio-system port-forward svc/istiod-1-30-3 15012:15012 &amp;
+<pre><code class="language-console">k --context kind-pasta-1 -n istio-system port-forward svc/istiod-1-31-0-alpha-2 15012:15012 &amp;
 step certificate inspect --bundle --insecure \
-  --servername istiod-1-30-3.istio-system.svc https://127.0.0.1:15012
+  --servername istiod-1-31-0-alpha-2.istio-system.svc https://127.0.0.1:15012
 </code></pre>
 <p>Inspect the certificate chain of a given workload:</p>
 <pre><code class="language-console">istioctl --context kind-pasta-1 pc secret deploy/peer.swarm-sidecar-n1 -o json |

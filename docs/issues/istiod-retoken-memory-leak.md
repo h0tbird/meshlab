@@ -1,5 +1,8 @@
 # istiod memory leak on remote-secret re-tokening (Istio 1.30.3)
 
+> **Update:** the leak was tracked down and fixed on 1.31.0-alpha.2 — see
+> [Fixing the istiod re-tokening leak](istiod-retoken-memory-leak-fix.md).
+
 > Does frequent re-tokening of a multicluster remote secret leak memory in `istiod`?
 >
 > **Yes.** Every token rotation rebuilds the whole remote-cluster stack and the

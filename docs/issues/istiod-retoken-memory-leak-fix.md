@@ -230,13 +230,59 @@ Temporary `XXXX` instrumentation (to be removed before upstreaming):
 `pkg/kube/multicluster/{cluster,clusterstore,component,secretcontroller}.go`, and
 the counters/logs in `pkg/kube/krt/{collection,debug,processor,nestedjoinmerge}.go`.
 
+## Retest against upstream (2026-08-17)
+
+Upstream picked up two of the three causes after the issues were reported:
+
+| Cause | Upstream PR | Merge commit | Status |
+|---|---|---|---|
+| 1. `Fetch` dependencies registered one-way | [#61253](https://github.com/istio/istio/pull/61253) | `1a22e33fce` | merged to `master` |
+| 2. `krt.DebugHandler` append-only | — | — | **not fixed** |
+| 3. wrong stop channel in `GlobalNodeLocalityWithCluster` | [#61255](https://github.com/istio/istio/pull/61255) | `8dc789c5cf` | merged to `master` |
+
+Upstream fixes cause 1 differently: `dependencyState` gained
+`collectionDependencyHandlers map[collectionUID]HandlerRegistration`, and
+`manyCollection.runQueue` unregisters every entry (plus the primary registration)
+when the collection stops. It does **not** prune entries whose *dependency* has
+stopped, which is the mirror-image case: a long-lived collection that `Fetch`es a
+per-cluster collection keeps the registration — and therefore the dead cluster's
+client and informer caches — forever.
+
+Measured on `1.31.0-alpha.2` + both upstream cherry-picks, 20 rotations at 10 s,
+heap sampled with `?gc=1`, diff of sample 0 vs sample 4:
+
+| Build | goroutines / rotation | retained over 20 rotations | per rotation |
+|---|---|---|---|
+| upstream fixes only | −0.1 | 55.0 MB | 2.75 MB |
+| \+ debug registry pruning | −0.1 | 44.3 MB | 2.21 MB |
+| \+ stale dependency registration pruning | −0.1 | 16.7 MB | 0.83 MB |
+
+The goroutine leak is fully fixed upstream (was +30.8 per rotation). What upstream
+still retains, and what each remaining fix recovers:
+
+- Ring buffers (`buffer.NewTypedRingGrowing`, 1024 slots per listener): 14.25 MB
+  over 20 rotations with upstream only, 1.56 MB with the debug registry pruning —
+  the debug registry was holding dead collections whose listeners had already been
+  unregistered and whose goroutines had already exited.
+- `PartialObjectMetadata` (94.6% of the `ObjectMeta.Unmarshal` growth): 18.5 MB
+  with upstream only, 16.1 MB with the debug fix, **negative** (freed) once stale
+  dependency registrations are pruned — these are the discarded clusters' metadata
+  informer caches, pinned by registrations held in `collectionDependencyHandlers`.
+
+With both remaining fixes the diff is dominated by the gRPC `sizedBufferPool`
+(3.5 MB) and TLS/HTTP2 buffers, i.e. pool churn rather than retention.
+
+Branches (each rebased on the upstream fixes, no `XXXX` instrumentation):
+
+| Branch | Commit |
+|---|---|
+| `fix/krt-debug-registry-leak` | `krt: prune stopped collections from the debug registry` |
+| `fix/krt-stale-dependency-registrations` | `krt: drop dependency registrations on stopped collections` |
+
 ## What is still there
 
-- ~0.14 MB per rotation of `ObjectMeta` is still retained. Suspects are the
-  `dependencyState` bookkeeping of long-lived collections (`*dependency` values
-  keep a `filter`, which for `FilterIndex` holds an index bound to the dead
-  collection) and per-rotation `Secret` payloads. Two orders of magnitude below
-  the original leak; not chased further.
+- ~0.8 MB per rotation of heap diff remains, almost entirely gRPC buffer pools and
+  TLS/HTTP2 buffers. Not retention; not chased further.
 - **Diagnosis 5 of the original write-up** (orphaned `pendingSwap` when rotations
   outpace sync) is untouched. It is a real hazard at short intervals but was not
   what leaked here.

@@ -65,18 +65,18 @@ RUN echo "source <(meshlab completion zsh)" >> /root/.zshrc && \
     echo "source <(meshlab completion zsh)" >> /home/vscode/.zshrc
 
 # Install Go (https://go.dev/dl/)
-RUN VERSION="1.26.6" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="1.27.0" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL https://go.dev/dl/go${VERSION}.linux-${ARCH}.tar.gz | tar -xzC /usr/local && \
     echo 'export PATH=$PATH:/usr/local/go/bin' >> /etc/zsh/zshenv && \
     echo 'export PATH=$PATH:$HOME/go/bin' >> /etc/zsh/zshenv
 
 # Install kind (https://github.com/kubernetes-sigs/kind/releases)
-RUN VERSION="v0.32.0" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="v0.33.0" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL -o /usr/local/bin/kind https://github.com/kubernetes-sigs/kind/releases/download/${VERSION}/kind-linux-${ARCH} && \
     chmod +x /usr/local/bin/kind && echo "source <(kind completion zsh)" >> /etc/zsh/zshrc
 
 # Install kubectl (https://cdn.dl.k8s.io/release/stable.txt)
-RUN VERSION="v1.36.3" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="v1.37.0" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL -o /usr/local/bin/kubectl https://dl.k8s.io/release/${VERSION}/bin/linux/${ARCH}/kubectl && \
     chmod +x /usr/local/bin/kubectl && ln -s /usr/local/bin/kubectl /usr/local/bin/k && \
     echo "source <(kubectl completion zsh)" >> /etc/zsh/zshrc
@@ -88,22 +88,22 @@ RUN VERSION="v4.2.4" && \
     echo "source <(helm completion zsh)" >> /etc/zsh/zshrc
 
 # Install yq (https://github.com/mikefarah/yq/releases)
-RUN VERSION="v4.53.3" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="v4.53.6" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL -o /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/${VERSION}/yq_linux_${ARCH} && \
     chmod +x /usr/local/bin/yq && echo "source <(yq completion zsh)" >> /etc/zsh/zshrc
 
 # Install argocd (https://github.com/argoproj/argo-cd/releases)
-RUN VERSION="v3.5.1" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="v3.5.2" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/download/${VERSION}/argocd-linux-${ARCH} && \
     chmod +x /usr/local/bin/argocd && echo "source <(argocd completion zsh)" >> /etc/zsh/zshrc
 
 # Install argo (https://github.com/argoproj/argo-workflows/releases)
-RUN VERSION="v4.1.1" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="v4.1.2" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL https://github.com/argoproj/argo-workflows/releases/download/${VERSION}/argo-linux-${ARCH}.gz | gunzip -c > /usr/local/bin/argo && \
     chmod +x /usr/local/bin/argo && echo "source <(argo completion zsh)" >> /etc/zsh/zshrc
 
 # Install istioctl (https://github.com/istio/istio/releases)
-RUN VERSION="1.31.0-alpha.2" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="1.30.4" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL -o /tmp/istio.tar.gz https://github.com/istio/istio/releases/download/${VERSION}/istio-${VERSION}-linux-${ARCH}.tar.gz && \
     tar -xC /usr/local/bin --strip-components 2 -f /tmp/istio.tar.gz istio-${VERSION}/bin/istioctl && rm -f /tmp/istio.tar.gz && \
     echo "source <(istioctl completion zsh)" >> /etc/zsh/zshrc
@@ -128,7 +128,7 @@ RUN VERSION="v2.5.0" && ARCH=$(archmap 'arm64' 'amd64') && \
     tar -xzC /usr/local/bin cmctl && echo "source <(cmctl completion zsh)" >> /etc/zsh/zshrc
 
 # Install gh (https://github.com/cli/cli/releases)
-RUN VERSION="2.97.0" && ARCH=$(archmap 'arm64' 'amd64') && cd /tmp && \
+RUN VERSION="2.98.0" && ARCH=$(archmap 'arm64' 'amd64') && cd /tmp && \
     $CURL -O https://github.com/cli/cli/releases/download/v${VERSION}/gh_${VERSION}_linux_${ARCH}.deb && \
     dpkg -i gh_${VERSION}_linux_${ARCH}.deb && rm -f gh_${VERSION}_linux_${ARCH}.deb && \
     echo "source <(gh completion -s zsh)" >> /etc/zsh/zshrc
@@ -154,7 +154,7 @@ RUN VERSION="0.37.7" && ARCH=$(archmap 'arm64' 'x86_64') && \
     tar -xzC /usr/local/bin tilt && echo "source <(tilt completion zsh)" >> /etc/zsh/zshrc
 
 # Install crane (https://github.com/google/go-containerregistry/releases)
-RUN VERSION="v0.21.9" && ARCH=$(archmap 'arm64' 'x86_64') && \
+RUN VERSION="v0.22.0" && ARCH=$(archmap 'arm64' 'x86_64') && \
     $CURL https://github.com/google/go-containerregistry/releases/download/${VERSION}/go-containerregistry_Linux_${ARCH}.tar.gz | \
     tar -xzC /usr/local/bin crane && echo "source <(crane completion zsh)" >> /etc/zsh/zshrc
 
@@ -164,7 +164,7 @@ RUN VERSION="v0.1.10" && ARCH=$(archmap 'arm64' 'x86_64') && \
     tar -xzC /usr/local/bin grafanactl && echo "source <(grafanactl completion zsh)" >> /etc/zsh/zshrc
 
 # Install mcp-grafana (https://github.com/grafana/mcp-grafana/releases)
-RUN VERSION="v1.1.0" && ARCH=$(archmap 'arm64' 'x86_64') && \
+RUN VERSION="v1.3.0" && ARCH=$(archmap 'arm64' 'x86_64') && \
     $CURL https://github.com/grafana/mcp-grafana/releases/download/${VERSION}/mcp-grafana_Linux_${ARCH}.tar.gz | \
     tar -xzC /usr/local/bin mcp-grafana
 

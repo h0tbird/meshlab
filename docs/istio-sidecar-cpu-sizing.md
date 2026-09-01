@@ -20,9 +20,9 @@ Every value is **set explicitly**. The central finding of the investigation
 is that anything left to be inferred resolves to a *node*-sized value, not a
 container-sized one.
 
-All code references are against the `istio` checkout in this workspace
-(branch `1.30.4`, `go.mod` declares `go 1.25.9`), with upstream `master`
-deltas called out where they matter.
+All code references are against upstream Istio
+[`1.30.4`](https://github.com/istio/istio/tree/1.30.4) (`go.mod` declares
+`go 1.25.9`), with upstream `master` deltas called out where they matter.
 
 ---
 
@@ -75,7 +75,7 @@ flowchart TD
 
 ### 1.2 Injection template
 
-[manifests/charts/istio-control/istio-discovery/files/injection-template.yaml](../../istio/manifests/charts/istio-control/istio-discovery/files/injection-template.yaml#L270-L274):
+[manifests/charts/istio-control/istio-discovery/files/injection-template.yaml](https://github.com/istio/istio/blob/1.30.4/manifests/charts/istio-control/istio-discovery/files/injection-template.yaml#L270-L274):
 
 ```yaml
     - name: ISTIO_CPU_LIMIT
@@ -85,7 +85,7 @@ flowchart TD
           divisor: "1"
 ```
 
-and [lines 293-302](../../istio/manifests/charts/istio-control/istio-discovery/files/injection-template.yaml#L293-L302):
+and [lines 293-302](https://github.com/istio/istio/blob/1.30.4/manifests/charts/istio-control/istio-discovery/files/injection-template.yaml#L293-L302):
 
 ```yaml
     - name: GOMEMLIMIT
@@ -101,7 +101,7 @@ and [lines 293-302](../../istio/manifests/charts/istio-control/istio-discovery/f
 ```
 
 The `resources` block itself is the `"resources"` template at
-[lines 1-27](../../istio/manifests/charts/istio-control/istio-discovery/files/injection-template.yaml#L1-L27),
+[lines 1-27](https://github.com/istio/istio/blob/1.30.4/manifests/charts/istio-control/istio-discovery/files/injection-template.yaml#L1-L27),
 which maps `sidecar.istio.io/proxyCPU` → `requests.cpu` and
 `sidecar.istio.io/proxyCPULimit` → `limits.cpu`. **The request is written
 into the pod spec and then never read again by Istio.**
@@ -127,7 +127,7 @@ only, because they never launch Envoy; the legacy in-mesh gateway charts get
 
 ### 1.3 `pilot-agent`
 
-[pilot/cmd/pilot-agent/config/config.go](../../istio/pilot/cmd/pilot-agent/config/config.go#L62-L83):
+[pilot/cmd/pilot-agent/config/config.go](https://github.com/istio/istio/blob/1.30.4/pilot/cmd/pilot-agent/config/config.go#L62-L83):
 
 ```go
 	// Concurrency wasn't explicitly set
@@ -154,7 +154,7 @@ only, because they never launch Envoy; the legacy in-mesh gateway charts get
 	}
 ```
 
-and [line 179](../../istio/pilot/cmd/pilot-agent/config/config.go#L179-L183):
+and [line 179](https://github.com/istio/istio/blob/1.30.4/pilot/cmd/pilot-agent/config/config.go#L179-L183):
 
 ```go
 var CPULimit = env.Register(
@@ -175,17 +175,17 @@ Precedence, highest first:
 Note `mesh.DefaultProxyConfig()` leaves `Concurrency` **nil** — there is no
 built-in default of 2 any more. `pkg/kube/inject/template.go` even strips it
 back to nil when it equals the default
-([template.go:352](../../istio/pkg/kube/inject/template.go#L352-L354)).
+([template.go:352](https://github.com/istio/istio/blob/1.30.4/pkg/kube/inject/template.go#L352-L354)).
 
 ### 1.4 Handoff to Envoy
 
-[pkg/istio-agent/agent.go:330](../../istio/pkg/istio-agent/agent.go#L330):
+[pkg/istio-agent/agent.go:330](https://github.com/istio/istio/blob/1.30.4/pkg/istio-agent/agent.go#L330):
 
 ```go
 	a.envoyOpts.Concurrency = a.proxyConfig.Concurrency.GetValue()
 ```
 
-[pkg/envoy/proxy.go:168-170](../../istio/pkg/envoy/proxy.go#L168-L170):
+[pkg/envoy/proxy.go:168-170](https://github.com/istio/istio/blob/1.30.4/pkg/envoy/proxy.go#L168-L170):
 
 ```go
 	if e.Concurrency > 0 {
@@ -232,7 +232,7 @@ it is silently and confidently wrong, and it is not visible anywhere except
 an `Infof` log line: `cpu limit detected as 64, setting concurrency`.
 
 The test fixture
-[pkg/kube/inject/testdata/inject/traffic-annotations.yaml](../../istio/pkg/kube/inject/testdata/inject/traffic-annotations.yaml#L13-L14)
+[pkg/kube/inject/testdata/inject/traffic-annotations.yaml](https://github.com/istio/istio/blob/1.30.4/pkg/kube/inject/testdata/inject/traffic-annotations.yaml#L13-L14)
 still carries a stale comment ("We set 4 CPUs here and concurrency=0 below.
 Expect concurrency to be set to 4") from the pre-1.18 behaviour; the
 `.injected` golden shows only `requests.cpu: "4"` and no limits, so at
@@ -296,10 +296,10 @@ upstream deliberately removed**, not a new idea.
 No. `go.uber.org/automaxprocs` appears **nowhere** in `go.mod` or `go.sum`.
 The only `runtime.GOMAXPROCS(0)` *reads* in non-test code are:
 
-- [pilot/pkg/features/tuning.go:49,68](../../istio/pilot/pkg/features/tuning.go#L45-L70)
+- [pilot/pkg/features/tuning.go:49,68](https://github.com/istio/istio/blob/1.30.4/pilot/pkg/features/tuning.go#L45-L70)
   — istiod-side `PILOT_PUSH_THROTTLE` and `PILOT_MAX_REQUESTS_PER_SECOND`
   heuristics.
-- [pkg/queue/delay.go:121](../../istio/pkg/queue/delay.go#L121)
+- [pkg/queue/delay.go:121](https://github.com/istio/istio/blob/1.30.4/pkg/queue/delay.go#L121)
 
 Nothing in `pilot-agent` ever calls `runtime.GOMAXPROCS(n)` to set it, and
 nothing in `pkg/istio-agent` reads `/sys/fs/cgroup`.
@@ -359,7 +359,7 @@ and scaling with `R` buys nothing.
 ### 3.1 What `pilot-agent` actually does
 
 `pilot-agent` is deliberately thin. Its responsibilities, from
-[pkg/istio-agent/agent.go](../../istio/pkg/istio-agent/agent.go):
+[pkg/istio-agent/agent.go](https://github.com/istio/istio/blob/1.30.4/pkg/istio-agent/agent.go):
 
 | Responsibility | CPU character |
 | --- | --- |
@@ -374,7 +374,7 @@ and scaling with `R` buys nothing.
 
 ### 3.2 The xDS hot path
 
-[pkg/istio-agent/xds_proxy.go](../../istio/pkg/istio-agent/xds_proxy.go) is
+[pkg/istio-agent/xds_proxy.go](https://github.com/istio/istio/blob/1.30.4/pkg/istio-agent/xds_proxy.go) is
 a straightforward relay. The important structural detail is that receive and
 send run in **different goroutines**:
 
@@ -411,7 +411,7 @@ pipelining and GC concurrency, not fan-out.
 
 - **SDS / cert rotation.** Default workload key is **RSA-2048**
   (`WORKLOAD_RSA_KEY_SIZE=2048`,
-  [options.go:88-93](../../istio/pilot/cmd/pilot-agent/options/options.go#L88-L93);
+  [options.go:88-93](https://github.com/istio/istio/blob/1.30.4/pilot/cmd/pilot-agent/options/options.go#L88-L93);
   `ECC_SIGNATURE_ALGORITHM` defaults to empty). `rsa.GenerateKey` is
   single-threaded regardless of `GOMAXPROCS`, so the *generation* is
   unaffected — but at `GOMAXPROCS=1` it blocks everything else in the agent
@@ -423,7 +423,7 @@ pipelining and GC concurrency, not fan-out.
   arriving mid-push queues behind the xDS marshal. For a sidecar doing
   heavy DNS this is the most user-visible risk of `GOMAXPROCS=1`.
 - **Status server / readiness.** `/stats/prometheus` merging is `io.Copy`
-  ([status/server.go:598-620](../../istio/pilot/cmd/pilot-agent/status/server.go#L598-L620)),
+  ([status/server.go:598-620](https://github.com/istio/istio/blob/1.30.4/pilot/cmd/pilot-agent/status/server.go#L598-L620)),
   so it is I/O-bound. But the readiness endpoint shares the same runtime; a
   long stop-the-world-ish stall could in principle push a readiness probe
   over its timeout.
@@ -460,7 +460,7 @@ want.
 `pilot-agent` is the container entrypoint and **forks Envoy as a child
 process**:
 
-[pkg/envoy/proxy.go:205-222](../../istio/pkg/envoy/proxy.go#L205-L222):
+[pkg/envoy/proxy.go:205-222](https://github.com/istio/istio/blob/1.30.4/pkg/envoy/proxy.go#L205-L222):
 
 ```go
 func (e *envoy) Run(abort <-chan error) error {
@@ -596,7 +596,7 @@ independently tunable value (`R >= 6 ? R - 1 : clamp(2, round(R), 8)`)
 rather than folding it into the base formula.
 
 Also note the default Istio sidecar today is `requests 100m / limits 2000m`
-([values.yaml:399-405](../../istio/manifests/charts/istio-control/istio-discovery/values.yaml#L399-L405))
+([values.yaml:399-405](https://github.com/istio/istio/blob/1.30.4/manifests/charts/istio-control/istio-discovery/values.yaml#L399-L405))
 → concurrency 2. Any policy that produces 1 for the common case is a
 throughput regression relative to the status quo.
 
@@ -608,7 +608,7 @@ throughput regression relative to the status quo.
   expressed against `concurrency: 2`.
 - `concurrency: 0` is a special value meaning "one thread per host CPU" and
   is validated as ≥ 0
-  ([validation.go:3198-3201](../../istio/pkg/config/validation/validation.go#L3198-L3201)).
+  ([validation.go:3198-3201](https://github.com/istio/istio/blob/1.30.4/pkg/config/validation/validation.go#L3198-L3201)).
   Do not accidentally produce 0.
 - Istio Ambient's ztunnel is a separate discussion — none of this applies
   there.
@@ -663,7 +663,7 @@ the contract:
 
 | Goal | How |
 | --- | --- |
-| No CPU limit on the sidecar | Set `sidecar.istio.io/proxyCPU` only, and ensure `global.proxy.resources.limits` is unset. Careful: the `"resources"` template is all-or-nothing — if *any* of the four annotations is set, `global.proxy.resources` is ignored entirely ([injection-template.yaml:1-27](../../istio/manifests/charts/istio-control/istio-discovery/files/injection-template.yaml#L1-L27), cf. [#35905](https://github.com/istio/istio/issues/35905)). |
+| No CPU limit on the sidecar | Set `sidecar.istio.io/proxyCPU` only, and ensure `global.proxy.resources.limits` is unset. Careful: the `"resources"` template is all-or-nothing — if *any* of the four annotations is set, `global.proxy.resources` is ignored entirely ([injection-template.yaml:1-27](https://github.com/istio/istio/blob/1.30.4/manifests/charts/istio-control/istio-discovery/files/injection-template.yaml#L1-L27), cf. [#35905](https://github.com/istio/istio/issues/35905)). |
 | Pin Envoy concurrency | `meshConfig.defaultConfig.concurrency: N` mesh-wide, or per-pod `proxy.istio.io/config: '{"concurrency": N}'`, or a `ProxyConfig` CR with a workload selector. **Mandatory** in the no-limit model — otherwise you get node-allocatable concurrency. |
 | Pin `pilot-agent` `GOMAXPROCS` | On 1.30 the chart already injects `GOMAXPROCS` from `limits.cpu`, and a duplicate `env` entry in the pod spec will **not** reliably win — you must override the template. On master (post-#60755) the chart no longer sets it, so a plain `env: GOMAXPROCS` on the sidecar (via custom injection template or a mutating policy) is enough. |
 | Cheaper cert rotation under low `GOMAXPROCS` | `ECC_SIGNATURE_ALGORITHM=ECDSA`, `ECC_CURVE=P256` in `proxyMetadata`. |
@@ -695,7 +695,7 @@ otherwise monopolise half the agent's parallelism
 `proxyMetadata` reaches the agent as environment variables, but on 1.30 the
 injection template **already** emits a `GOMAXPROCS` env var derived from
 `limits.cpu`
-([injection-template.yaml:298](../../istio/manifests/charts/istio-control/istio-discovery/files/injection-template.yaml#L298)).
+([injection-template.yaml:298](https://github.com/istio/istio/blob/1.30.4/manifests/charts/istio-control/istio-discovery/files/injection-template.yaml#L298)).
 A duplicate `env` entry is not a reliable way to win that race, so on 1.30
 the value has to be replaced in a **custom injection template** (or by a
 mutating policy such as Kyverno).
@@ -787,14 +787,14 @@ the Go 1.25 runtime already does internally. Use it to:
 
 - gate the existing `CPULimit`-derived concurrency on `hasLimit`,
 - turn the current `Warnf` at
-  [config.go:78-83](../../istio/pilot/cmd/pilot-agent/config/config.go#L78-L83)
+  [config.go:78-83](https://github.com/istio/istio/blob/1.30.4/pilot/cmd/pilot-agent/config/config.go#L78-L83)
   into an accurate message,
 - unlock step 3.
 
 ### 8.3 Step 3 — agent: request-based sizing
 
 To get `concurrency` derived from the request, `ConstructProxyConfig` in
-[pilot/cmd/pilot-agent/config/config.go](../../istio/pilot/cmd/pilot-agent/config/config.go#L62-L83)
+[pilot/cmd/pilot-agent/config/config.go](https://github.com/istio/istio/blob/1.30.4/pilot/cmd/pilot-agent/config/config.go#L62-L83)
 needs a request-aware fallback. Sketch:
 
 ```go
@@ -829,7 +829,7 @@ if proxyConfig.Concurrency == nil {
 
 The `CPULimit < runtime.NumCPU()` guard is the heuristic form of step 2 and
 is what the existing warning at
-[config.go:78-83](../../istio/pilot/cmd/pilot-agent/config/config.go#L78-L83)
+[config.go:78-83](https://github.com/istio/istio/blob/1.30.4/pilot/cmd/pilot-agent/config/config.go#L78-L83)
 already relies on; with the cgroup probe from §8.2 it becomes an exact
 test. `ISTIO_PROXY_CONCURRENCY_HEADROOM` defaults to `0` — it exists only so
 that operators who want headroom can ask for it explicitly, per
@@ -845,7 +845,7 @@ if _, set := os.LookupEnv("GOMAXPROCS"); !set && CPULimitIsUnbounded() && CPUReq
 ```
 
 Precedent for exactly this pattern exists in
-[pilot/pkg/features/tuning.go](../../istio/pilot/pkg/features/tuning.go#L45-L70),
+[pilot/pkg/features/tuning.go](https://github.com/istio/istio/blob/1.30.4/pilot/pkg/features/tuning.go#L45-L70),
 which already scales istiod behaviour off `runtime.GOMAXPROCS(0)`.
 
 ### 8.4 Step 4 — make it expressible in mesh config
@@ -951,7 +951,7 @@ agent was told `ISTIO_CPU_LIMIT=18` — precisely the node's allocatable CPU
 count. The kubelet substituted node allocatable for the unset
 `limits.cpu` in the `resourceFieldRef`, the agent took the
 "limit detected" branch in
-[config.go:66-71](../../istio/pilot/cmd/pilot-agent/config/config.go#L66-L71),
+[config.go:66-71](https://github.com/istio/istio/blob/1.30.4/pilot/cmd/pilot-agent/config/config.go#L66-L71),
 and passed `--concurrency 18` to Envoy.
 
 So a **50m-request sidecar is running 18 Envoy worker threads and an 18-P
@@ -1009,7 +1009,7 @@ PID   RSS       COMMAND
 ```
 
 Two distinct processes, PID 1 having `fork`/`exec`'d PID 22
-([proxy.go:211](../../istio/pkg/envoy/proxy.go#L211)), sharing one cgroup —
+([proxy.go:211](https://github.com/istio/istio/blob/1.30.4/pkg/envoy/proxy.go#L211)), sharing one cgroup —
 which is why no per-process CPU reservation between them is possible.
 
 Worth noting the memory figures: ~41 MiB for the agent plus ~88 MiB for an

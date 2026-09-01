@@ -1,13 +1,24 @@
-# Istio sidecar CPU sizing: no CPU limit, concurrency and `GOMAXPROCS`
+# Istio sidecar CPU sizing: no CPU limit, explicit concurrency and `GOMAXPROCS`
 
-Investigation of the proposed policy:
+This document specifies the CPU sizing policy for Istio sidecars in meshlab,
+the source-level evidence behind it, and two paths to reach it:
+[Path A](#7-path-a--implement-today-on-stock-istio), which we can implement
+today on stock Istio, and [Path B](#8-path-b--contribute-the-policy-upstream),
+which would make it native in Istio.
+
+## The policy
 
 ```text
-proxy CPU request  = R
-CPU limit          = none
-Envoy concurrency  = max(1, floor(R) - 1)
-pilot-agent GOMAXPROCS = 1
+proxy CPU request  = R              # the provisioned capacity
+proxy CPU limit    = none           # no CFS quota, no throttling
+Envoy concurrency  = clamp(2, round(R), 8)      # explicit, always
+pilot-agent GOMAXPROCS = 2          # explicit; 1 when R < 1
+GOMEMLIMIT             = ~75% of the memory request, explicit
 ```
+
+Every value is **set explicitly**. The central finding of the investigation
+is that anything left to be inferred resolves to a *node*-sized value, not a
+container-sized one.
 
 All code references are against the `istio` checkout in this workspace
 (branch `1.30.4`, `go.mod` declares `go 1.25.9`), with upstream `master`
@@ -15,38 +26,35 @@ deltas called out where they matter.
 
 ---
 
-## TL;DR
+## Why this policy
 
-- **The single biggest incorrect assumption in the proposal is that
-  "no CPU limit" means "Istio does not derive anything from a limit".**
-  It does. The injection template feeds `limits.cpu` through the
-  Kubernetes downward API, and the kubelet **substitutes node allocatable
-  CPU when no limit is set**. On a 64-core node with no CPU limit you get
-  `ISTIO_CPU_LIMIT=64` → `--concurrency 64`, and (on 1.30) `GOMAXPROCS=64`.
-  This is a hard failure of the design unless concurrency is set explicitly.
-  **This is not theoretical — it is already happening in meshlab today; see
-  [§9](#9-empirical-verification-meshlab-kind-pasta-1).**
-- **Istio never looks at the CPU request.** Not in `pilot-agent`, not in
-  the injection template, not in `mesh config`. `requests.cpu` appears
-  nowhere in the proxy configuration path. It was removed in Istio 1.18
-  (PR #43865).
-- Setting `meshConfig.defaultConfig.concurrency` (or the per-pod
-  `proxy.istio.io/config` annotation) is **mandatory** for the "no CPU
-  limit" model, and is exactly what upstream recommends
-  ([#51456](https://github.com/istio/istio/issues/51456)).
-- `GOMAXPROCS=1` for `pilot-agent` is **technically safe but not the value
-  I would pick.** The agent's hot path (xDS proxying) is a
-  marshal/unmarshal pipeline split across two goroutines; `GOMAXPROCS=1`
-  serialises them and roughly doubles worst-case forwarding latency during
-  large pushes. `GOMAXPROCS=2` costs nothing and removes that cliff.
-- `floor(R) - 1` is defensible on large requests but **breaks badly at the
-  small end** (`50m`, `500m`, `1`, `2` CPU) where it collapses to 1 and
-  gives you a single-worker Envoy. `max(1, round(R))` with an explicit
-  floor of 2 is a better default.
-- **`GOMAXPROCS=1` does not reserve CPU for Envoy.** It caps Go-level
-  parallelism only. Envoy's worker threads are ordinary OS threads in the
-  same cgroup competing on equal footing; reducing concurrency by one does
-  not create a reserved core.
+- **Dropping the CPU limit is the right call.** It eliminates CFS
+  throttling, the dominant tail-latency pathology for sidecars, and it is
+  what Istio maintainers recommend
+  ([#51456](https://github.com/istio/istio/issues/51456), and the
+  [#43865](https://github.com/istio/istio/pull/43865) release note).
+- **But dropping the limit does not stop Istio deriving from a limit.** The
+  injection template feeds `limits.cpu` through the Kubernetes downward API,
+  and the kubelet **substitutes node allocatable CPU when no limit is set**.
+  On a 64-core node that yields `ISTIO_CPU_LIMIT=64` → `--concurrency 64`,
+  and on 1.30 `GOMAXPROCS=64`. **This is already happening in meshlab
+  today** — see [§9](#9-empirical-verification-meshlab-kind-pasta-1). Pinning
+  `concurrency` is therefore mandatory, not optional. Full chain in
+  [§1](#1-how-envoy-concurrency-is-determined-today).
+- **Istio never reads the CPU request.** `requests.cpu` appears nowhere in
+  the proxy configuration path; the request-based fallback was deliberately
+  removed in 1.18. Until Path B lands, the request → concurrency mapping has
+  to be computed by us and written in as a literal.
+- **Concurrency is clamped, not offset.** Subtracting a core to "reserve"
+  one for the agent does not work — `pilot-agent` and Envoy share a single
+  cgroup and compete as peer threads — and it regresses the common `R ≤ 2`
+  case to a single-worker Envoy. A floor of 2 and a ceiling of 8 deliver the
+  memory and contention benefits that headroom was really after. See
+  [§5](#5-sizing-envoy-concurrency-from-the-request).
+- **`GOMAXPROCS` must be pinned by hand.** Go 1.25's container awareness is
+  limit-based and therefore inert in a no-limit model. `2` rather than `1`
+  preserves the agent's xDS recv/send pipelining for the cost of one OS
+  thread. See [§3](#3-how-much-parallelism-pilot-agent-needs).
 
 ---
 
@@ -196,7 +204,8 @@ about in [#51456](https://github.com/istio/istio/issues/51456#issuecomment-21552
 
 ### 1.6 **CPU request but no CPU limit — the critical case**
 
-This is where the proposal is wrong.
+This is the regime the policy operates in, and it does not behave the way
+the name suggests.
 
 `resourceFieldRef` on `limits.cpu` does **not** produce an empty value when
 no limit is set. From the Kubernetes
@@ -332,9 +341,8 @@ semantics:
 | master (post-#60755) | Go 1.25 runtime reads cgroup `cpu.max` → `max` (no quota) → falls back to `runtime.NumCPU()` | **64** |
 
 Either way: **64**. The CPU request (`cpu.weight` / `cpu.shares` in the
-cgroup) is invisible to both mechanisms. The user's concern here is
-correct — this is a real problem, and it is the strongest argument in the
-whole proposal.
+cgroup) is invisible to both mechanisms. This is precisely why the policy
+pins `GOMAXPROCS` explicitly instead of relying on any auto-detection.
 
 Note the same applies to `GOMEMLIMIT`, which the chart sets from
 `limits.memory`; with no memory limit it becomes node-allocatable memory,
@@ -343,9 +351,10 @@ effectively disabling the Go soft memory limit (cf.
 
 ---
 
-## 3. Is `GOMAXPROCS=1` safe for `pilot-agent`?
+## 3. How much parallelism `pilot-agent` needs
 
-Short answer: **safe, but leaves a latency cliff on the table. Prefer 2.**
+Short answer: **2.** `1` is safe but leaves a latency cliff on the table,
+and scaling with `R` buys nothing.
 
 ### 3.1 What `pilot-agent` actually does
 
@@ -433,8 +442,14 @@ pipelining and GC concurrency, not fan-out.
 - and still bounds Go parallelism to a tiny, predictable number.
 
 The marginal cost of `2` over `1` is essentially zero (an extra OS thread).
-I would default to **2**, and only use **1** for very small sidecars
-(`R ≤ 500m`).
+The policy therefore uses **2**, dropping to **1** only for sub-core
+sidecars (`R < 1`).
+
+Equally important is the upper bound: `GOMAXPROCS` must **not** scale with
+`R`. The agent has no data parallelism, so a 16-core request does not make
+it faster at `GOMAXPROCS=16` — it only makes its GC and scheduler noisier
+and lets it compete harder with Envoy, which is the opposite of what we
+want.
 
 ---
 
@@ -495,12 +510,17 @@ they don't apply:
 
 ---
 
-## 5. Evaluating `max(1, floor(cpu_request) - 1)`
+## 5. Sizing Envoy concurrency from the request
+
+The policy uses `clamp(2, round(R), 8)`. This section explains that shape,
+and in particular why there is no "reserve a core for the agent" term in
+it.
 
 ### 5.1 The Linux scheduling reality
 
-The premise "reserve a core for `pilot-agent` by giving Envoy one fewer
-worker" does not hold as stated. Under CFS/EEVDF with **no CPU limit**:
+A headroom term such as `floor(R) - 1` is intuitively appealing: give Envoy
+one fewer worker so `pilot-agent` has a core to itself. That is not what
+happens. Under CFS/EEVDF with **no CPU limit**:
 
 - All threads in the container are peers in one cgroup with a single
   `cpu.weight` derived from the CPU **request**.
@@ -514,8 +534,9 @@ worker" does not hold as stated. Under CFS/EEVDF with **no CPU limit**:
   roughly `share/N`, exactly as `N` workers plus an agent would get
   `share/(N+1)`.
 
-So reducing concurrency by one does **not** carve out a core. What it
-actually buys you is different, and still worthwhile:
+So reducing concurrency by one does **not** carve out a core. What bounded
+concurrency actually buys you is different, and still worthwhile — and it
+is what the ceiling of 8 in the policy is there to capture:
 
 1. **Fewer runnable threads competing** → the agent's single thread is a
    larger fraction of the runqueue, so it gets a proportionally larger
@@ -534,29 +555,45 @@ Yes. Envoy worker threads are event loops that will run at 100% if there is
 work. `N-1` workers on a 4-CPU-request container with no limit can consume
 3 full cores *plus* Envoy's main thread doing xDS ingestion, which during a
 config storm is itself CPU-heavy and is *not* one of the `N` workers. So the
-"minus one" does not protect the agent from the thing the user is actually
-worried about — a config storm — because during a config storm the
-contention is Envoy's **main thread** (config ingestion) versus the agent,
-not the workers.
+"minus one" does not protect the agent from the case that motivates it — a
+config storm — because during a config storm the contention is Envoy's
+**main thread** (config ingestion) versus the agent, not the workers.
 
-### 5.3 Behaviour at small requests
+### 5.3 Why the floor is 2 and why there is no `-1`
 
-| `R` | `floor(R) - 1` | `max(1, floor(R)-1)` | `round(R)` | Assessment |
-| --- | --- | --- | --- | --- |
-| `50m` | `-1` | **1** | 1 | Fine, but a 50m sidecar with a real workload will throttle-free-but-starve regardless. |
-| `100m` (Istio default request) | `-1` | **1** | 1 | Same. |
-| `500m` | `-1` | **1** | 1 (`ceil`→1) | Fine. |
-| `1` | `0` | **1** | 1 | Fine. |
-| `2` | `1` | **1** | 2 | **Bad.** Halves throughput vs. today's default (limit 2000m → concurrency 2). Most sidecars live here. |
-| `2500m` | `1` | **1** | 3 (`ceil`) / 2 (`round`) | **Bad.** Big regression. |
-| `4` | `3` | **3** | 4 | Reasonable. |
-| `8` | `7` | **7** | 8 | Reasonable. |
+The decisive argument is behaviour at small requests, which is where most
+sidecars live:
 
-The `-1` term is a **fixed** subtraction applied to a **multiplicative**
-resource. At `R=2` it removes 50% of the workers; at `R=8` it removes 12.5%.
-That is the wrong shape. If you want headroom proportional to the sidecar
-size, `-1` is not it; if you want a fixed reservation, you should express it
-as a fixed reservation and floor the result at a sane minimum.
+| `R` | `max(1, floor(R)-1)` | **`clamp(2, round(R), 8)`** | Assessment |
+| --- | --- | --- | --- |
+| `50m` | 1 | **2** | A 50m sidecar starves either way, but 2 costs nothing. |
+| `100m` (Istio default request) | 1 | **2** | Same. |
+| `500m` | 1 | **2** | Same. |
+| `1` | 1 | **2** | Matches today's effective default. |
+| `2` | 1 | **2** | `-1` would halve throughput vs. today's default (limit 2000m → concurrency 2). Most sidecars live here. |
+| `2500m` | 1 | **3** | `-1` is a large regression; `floor` would also throw away a full core. |
+| `4` | 3 | **4** | |
+| `8` | 7 | **8** | |
+| `16` | 15 | **8** | Ceiling bites; 16 workers on a sidecar is memory, not throughput. |
+
+A `-1` term is a **fixed** subtraction applied to a **multiplicative**
+resource. At `R=2` it removes 50% of the workers; at `R=8` it removes
+12.5%. That is the wrong shape. The policy's three components each do one
+job:
+
+- **Floor of 2** — matches the historical Istio default and today's
+  effective default (2000m limit → concurrency 2). One worker means a
+  single connection-accepting event loop and a hard single-core throughput
+  ceiling. Never regress below it.
+- **`round`, not `floor`** — `2500m` → 3, not 2. `floor` discards up to a
+  full core of provisioned capacity.
+- **Ceiling of 8** — each worker costs memory and cross-thread update work;
+  past roughly 8 the returns on a sidecar are poor. This is the guard that
+  actually protects the agent, not a `-1`.
+
+If a workload genuinely wants headroom, express it as an explicit,
+independently tunable value (`R >= 6 ? R - 1 : clamp(2, round(R), 8)`)
+rather than folding it into the base formula.
 
 Also note the default Istio sidecar today is `requests 100m / limits 2000m`
 ([values.yaml:399-405](../../istio/manifests/charts/istio-control/istio-discovery/values.yaml#L399-L405))
@@ -584,7 +621,7 @@ throughput regression relative to the status quo.
 | --- | --- |
 | [#43865](https://github.com/istio/istio/pull/43865) (1.18) | Moved concurrency detection from injection-time to `pilot-agent`; **removed** the CPU-request fallback; introduced `ISTIO_CPU_LIMIT`. |
 | [#48793](https://github.com/istio/istio/pull/48793) | Added the `concurrency is set to 0 … CPU limit is set lower` warning. |
-| [#51456](https://github.com/istio/istio/issues/51456) | "Ability to disable proxy CPU limits". howardjohn: *"By default, the number of threads Envoy uses is based on `min(CPU limit, num cores on the machine)`. Imagine you run a 256 core machine and no limit — it will use 256 threads … You can explicitly control it, but then you would end up with, say, 2 threads."* Reporter's conclusion: lock `concurrency: 2` and remove limits. **This is the sanctioned pattern.** |
+| [#51456](https://github.com/istio/istio/issues/51456) | "Ability to disable proxy CPU limits". howardjohn: *"By default, the number of threads Envoy uses is based on `min(CPU limit, num cores on the machine)`. Imagine you run a 256 core machine and no limit — it will use 256 threads … You can explicitly control it, but then you would end up with, say, 2 threads."* Reporter's conclusion: lock `concurrency: 2` and remove limits. **This is the upstream-recommended pattern.** |
 | [#40078](https://github.com/istio/istio/issues/40078) | "Disable Default CPU Limits for Istio Proxy". |
 | [#35905](https://github.com/istio/istio/issues/35905) | `sidecar.istio.io/proxyCPU` annotation erases resource limits (the `"resources"` template is all-or-nothing). |
 | [#41351](https://github.com/istio/istio/issues/41351) | "pilot agent and istiod … needs to set GOMAXPROCS to ~ cpu request/limit" — the original motivation for #46253. |
@@ -598,9 +635,31 @@ is no open proposal to do so.
 
 ---
 
-## 7. What would need to change to implement the proposed policy
+## 7. Path A — implement today on stock Istio
 
-### 7.1 Achievable today, no code changes
+Nothing in this section requires an Istio code change. It all works on
+1.30.4 as shipped, and it is what we do now.
+
+### 7.1 Request → concurrency mapping
+
+Because Istio cannot read the CPU request, `clamp(2, round(R), 8)` is
+precomputed and written into the workload as a literal. Treat this table as
+the contract:
+
+| Proxy CPU request `R` | `concurrency` | `GOMAXPROCS` |
+| --- | --- | --- |
+| `< 1` (e.g. `50m`, `100m`, `500m`) | 2 | 1 |
+| `1` | 2 | 2 |
+| `2` | 2 | 2 |
+| `2500m` | 3 | 2 |
+| `4` | 4 | 2 |
+| `6` | 6 | 2 |
+| `8` | 8 | 2 |
+| `≥ 12` | 8 | 2 |
+
+`GOMEMLIMIT` is set to ~75% of the memory request in every case.
+
+### 7.2 How each knob is set
 
 | Goal | How |
 | --- | --- |
@@ -608,8 +667,9 @@ is no open proposal to do so.
 | Pin Envoy concurrency | `meshConfig.defaultConfig.concurrency: N` mesh-wide, or per-pod `proxy.istio.io/config: '{"concurrency": N}'`, or a `ProxyConfig` CR with a workload selector. **Mandatory** in the no-limit model — otherwise you get node-allocatable concurrency. |
 | Pin `pilot-agent` `GOMAXPROCS` | On 1.30 the chart already injects `GOMAXPROCS` from `limits.cpu`, and a duplicate `env` entry in the pod spec will **not** reliably win — you must override the template. On master (post-#60755) the chart no longer sets it, so a plain `env: GOMAXPROCS` on the sidecar (via custom injection template or a mutating policy) is enough. |
 | Cheaper cert rotation under low `GOMAXPROCS` | `ECC_SIGNATURE_ALGORITHM=ECDSA`, `ECC_CURVE=P256` in `proxyMetadata`. |
+| Pin `GOMEMLIMIT` | `proxyMetadata` — the chart derives it from `limits.memory`, which is node-sized when no memory limit is set. |
 
-Recommended concrete configuration for a 4-CPU-request sidecar today:
+### 7.3 Worked example — a 4-core sidecar
 
 ```yaml
 metadata:
@@ -620,17 +680,81 @@ metadata:
     proxy.istio.io/config: |
       concurrency: 4
       proxyMetadata:
+        GOMAXPROCS: "2"
+        GOMEMLIMIT: "805306368"   # 768Mi ≈ 75% of the 1Gi request
         ECC_SIGNATURE_ALGORITHM: ECDSA
 ```
 
-…plus a custom injection template (or a Kyverno/mutating policy) that
-replaces the chart's `GOMAXPROCS` with a literal value.
+`ECC_SIGNATURE_ALGORITHM=ECDSA` (P-256) is part of the policy: with
+`GOMAXPROCS=2`, the default RSA-2048 keygen at cert rotation would
+otherwise monopolise half the agent's parallelism
+([§3.3](#33-the-other-paths-under-gomaxprocs1)).
 
-### 7.2 Requires injector-template changes only
+### 7.4 `GOMAXPROCS` needs a template override on 1.30
 
-These are pure chart changes and would be the cleanest upstream increment:
+`proxyMetadata` reaches the agent as environment variables, but on 1.30 the
+injection template **already** emits a `GOMAXPROCS` env var derived from
+`limits.cpu`
+([injection-template.yaml:298](../../istio/manifests/charts/istio-control/istio-discovery/files/injection-template.yaml#L298)).
+A duplicate `env` entry is not a reliable way to win that race, so on 1.30
+the value has to be replaced in a **custom injection template** (or by a
+mutating policy such as Kyverno).
 
-1. **Expose the CPU request to the agent.** Add alongside `ISTIO_CPU_LIMIT`:
+On upstream `master` this is already fixed: [#60755](https://github.com/istio/istio/pull/60755)
+removes `GOMAXPROCS` from all charts, after which a plain `proxyMetadata`
+entry is sufficient and the override should be dropped.
+
+### 7.5 Guardrails
+
+The failure mode of this policy is silent and expensive, so it needs
+enforcement rather than convention:
+
+1. **A mesh-wide default.** Set `meshConfig.defaultConfig.concurrency` so a
+   workload that misses its annotation still gets a bounded value instead of
+   a node-sized one.
+2. **An admission policy** that rejects an injected pod carrying a proxy CPU
+   request but no explicit `concurrency`.
+3. **An alert** on `envoy_server_concurrency` (or the `concurrency` field of
+   `/server_info`) exceeding the ceiling, which catches template drift after
+   an Istio upgrade.
+
+### 7.6 Risks Path A leaves on the table
+
+1. **Silent node-sized concurrency** if `concurrency` is ever unset — a new
+   namespace, a pod that misses the annotation, a mesh-config rollback.
+   Memory blowup and possible OOMKill; on a 128-core node an unbounded
+   sidecar can allocate GBs. This is what §7.5 exists to prevent.
+2. **Loss of the throttling backstop.** With no CPU limit, a misbehaving
+   sidecar can consume node CPU up to node capacity and degrade its
+   neighbours. The request only guarantees a floor under contention.
+3. **`GOMEMLIMIT` goes node-sized** if the memory limit is dropped too,
+   which is why the policy pins it explicitly.
+4. **Upgrade fragility on 1.30.** The custom injection template of §7.4 has
+   to be re-reconciled on every Istio upgrade, and becomes a stale no-op
+   once #60755 ships.
+5. **VPA/HPA interaction.** Concurrency is read once at process start. If
+   something resizes the CPU request, Envoy keeps its old worker count until
+   restart — environment variables are not updated on in-place resize.
+6. **The mapping is manual.** Every workload carries a hand-computed number
+   that can drift from its request. Path B is what removes this class of
+   error.
+
+---
+
+## 8. Path B — contribute the policy upstream
+
+Path A works, but it makes each workload restate a number Kubernetes
+already knows, and it leaves every other Istio user exposed to the same
+node-allocatable footgun. The upstream fix is to let the agent derive
+concurrency from the CPU request when there is no effective CPU limit,
+in four independent, individually shippable steps.
+
+### 8.1 Step 1 — chart: expose the request, stop hard-coding runtime knobs
+
+Pure chart changes, no Go code, and useful on their own:
+
+1. **Expose the CPU request to the agent.** Add alongside `ISTIO_CPU_LIMIT`
+   in all six templates listed in [§1.2](#12-injection-template):
 
    ```yaml
        - name: ISTIO_CPU_REQUEST
@@ -641,18 +765,33 @@ These are pure chart changes and would be the cleanest upstream increment:
    ```
 
    `requests.cpu` has **no** node-allocatable fallback — if unset it is `0`,
-   which is exactly the "unknown" signal the agent needs.
+   which is exactly the "unknown" signal the agent needs, and the reason
+   this works where `limits.cpu` does not.
 
-2. **Stop unconditionally setting `GOMAXPROCS`** (already done upstream in
-   #60755) so operators can set it themselves.
+2. **Stop unconditionally setting `GOMAXPROCS`** — already merged upstream
+   as #60755 — so operators can set it themselves.
 
 3. **Make the `"resources"` template additive** rather than
    all-or-nothing, so a request-only annotation doesn't silently drop
-   `global.proxy.resources`.
+   `global.proxy.resources` ([#35905](https://github.com/istio/istio/issues/35905)).
 
 4. Optionally add a `values.global.proxy.gomaxprocs` passthrough.
 
-### 7.3 Requires `pilot-agent` changes
+### 8.2 Step 2 — agent: detect "no effective CPU limit" properly
+
+Today the agent cannot distinguish "the limit really is node-sized" from
+"there is no limit and the kubelet substituted node allocatable". Add a
+helper that reads `/sys/fs/cgroup/cpu.max` (v2) or `cpu.cfs_quota_us` (v1)
+and returns `(quota, hasLimit)`, treating `max` as no limit — exactly what
+the Go 1.25 runtime already does internally. Use it to:
+
+- gate the existing `CPULimit`-derived concurrency on `hasLimit`,
+- turn the current `Warnf` at
+  [config.go:78-83](../../istio/pilot/cmd/pilot-agent/config/config.go#L78-L83)
+  into an accurate message,
+- unlock step 3.
+
+### 8.3 Step 3 — agent: request-based sizing
 
 To get `concurrency` derived from the request, `ConstructProxyConfig` in
 [pilot/cmd/pilot-agent/config/config.go](../../istio/pilot/cmd/pilot-agent/config/config.go#L62-L83)
@@ -688,14 +827,13 @@ if proxyConfig.Concurrency == nil {
 }
 ```
 
-Note the `CPULimit < runtime.NumCPU()` guard: that is the only way to
-distinguish "the limit really is node-sized" from "there is no limit and the
-kubelet substituted node allocatable". It is a heuristic, but it is the same
-heuristic the existing warning at
+The `CPULimit < runtime.NumCPU()` guard is the heuristic form of step 2 and
+is what the existing warning at
 [config.go:78-83](../../istio/pilot/cmd/pilot-agent/config/config.go#L78-L83)
-already relies on. A cleaner alternative is for the agent to read
-`/sys/fs/cgroup/cpu.max` directly and treat `max` as "no limit" — this is
-unambiguous and is exactly what the Go 1.25 runtime does.
+already relies on; with the cgroup probe from §8.2 it becomes an exact
+test. `ISTIO_PROXY_CONCURRENCY_HEADROOM` defaults to `0` — it exists only so
+that operators who want headroom can ask for it explicitly, per
+[§5.3](#53-why-the-floor-is-2-and-why-there-is-no--1).
 
 For `GOMAXPROCS`, a `pilot-agent`-side change would be:
 
@@ -710,161 +848,10 @@ Precedent for exactly this pattern exists in
 [pilot/pkg/features/tuning.go](../../istio/pilot/pkg/features/tuning.go#L45-L70),
 which already scales istiod behaviour off `runtime.GOMAXPROCS(0)`.
 
-### 7.4 Change classification summary
+### 8.4 Step 4 — make it expressible in mesh config
 
-| Change | Where | Effort |
-| --- | --- | --- |
-| Pin concurrency explicitly | mesh config / annotation | **none — do this today** |
-| Remove CPU limit | annotations / values | **none** |
-| Pin `GOMAXPROCS` | custom injection template (1.30) or plain env (master) | none / small |
-| `ECC_SIGNATURE_ALGORITHM=ECDSA` | `proxyMetadata` | none |
-| Expose `ISTIO_CPU_REQUEST` | injection templates ×6 | small, chart-only |
-| Make `"resources"` template additive | `injection-template.yaml` | small, chart-only |
-| Request-derived concurrency fallback | `pilot-agent` `config.go` | medium |
-| cgroup `cpu.max` probing to detect "no limit" | `pilot-agent` | medium |
-| Agent-side `GOMAXPROCS` default | `pilot-agent` `app/cmd.go` | small |
-| Per-process CPU reservation between agent and Envoy | **impossible** without splitting containers | n/a |
-
----
-
-## 8. Assessment
-
-### 8.1 Is the design sound?
-
-**The diagnosis is right; the mechanism is half-right and the arithmetic is
-wrong.**
-
-What is correct:
-
-- Removing the CPU limit genuinely eliminates CFS throttling, which is the
-  dominant tail-latency pathology for sidecars. This is upstream-sanctioned.
-- The concern that `pilot-agent`'s `GOMAXPROCS` will be node-sized with no
-  CPU limit is **exactly right** and is not addressed by Go 1.25.
-- Treating the request as "provisioned capacity" and sizing Envoy off it is
-  a reasonable operational model, and it is what Istio itself did before
-  1.18.
-
-What is wrong or risky:
-
-- **"Do not configure `proxyCPULimit`" does not mean Istio sees no limit.**
-  The downward API substitutes node allocatable. Without an explicit
-  `concurrency`, a 4-CPU-request sidecar on a 64-core node gets 64 Envoy
-  workers. This is the single most important correction.
-- **`- 1` does not reserve a core.** It slightly improves the agent's
-  scheduler share and meaningfully reduces memory, but it does not protect
-  against a config storm, because a config storm loads Envoy's *main*
-  thread, not its workers.
-- **`floor()` truncates in the wrong direction** for fractional requests
-  (`2500m` → 2 → 1 worker).
-- **`GOMAXPROCS=1` is a blunt instrument** on the one path in the agent that
-  does have useful two-way parallelism.
-
-### 8.2 Biggest risks
-
-1. **Silent node-sized concurrency** if `concurrency` is ever unset (new
-   namespace, a pod that misses the annotation, a mesh-config rollback).
-   Memory blowup and possible OOMKill; on a 128-core node an unlimited
-   sidecar can allocate GBs. **Mitigate with a mesh-wide default plus a
-   validating policy.**
-2. **Losing the throttling backstop.** With no CPU limit, a misbehaving
-   sidecar can consume node CPU up to node capacity, degrading neighbours.
-   The request only guarantees a floor under contention.
-3. **Concurrency regression at `R ≤ 2`**, which is where most sidecars sit.
-4. **`GOMEMLIMIT` becomes node-sized** if you also drop the memory limit —
-   the Go soft memory limit stops doing anything for the agent.
-5. **Upgrade fragility on 1.30.** The chart sets `GOMAXPROCS`; overriding it
-   requires a custom injection template that you must re-reconcile on every
-   Istio upgrade — and that need disappears on master, so the override
-   becomes a stale no-op or a conflict.
-6. **VPA/HPA interaction.** Concurrency is read once at process start. If
-   something resizes the request, Envoy keeps its old worker count until
-   restart (env vars are not updated on in-place resize).
-
-### 8.3 Recommended Envoy concurrency policy
-
-```text
-concurrency = clamp(2, round(R), 8)
-
-where R = proxy CPU request in cores
-      round() = nearest integer, ties up  (i.e. floor(R + 0.5))
-```
-
-Rationale:
-
-- **Floor of 2.** Matches the historical Istio default and the current
-  effective default (2000m limit). One worker means one connection-accepting
-  event loop and a hard single-core throughput ceiling. Never regress below
-  it.
-- **`round`, not `floor`.** `2500m` → 3, not 2. `floor` throws away up to a
-  full core of provisioned capacity.
-- **Ceiling of 8** (tune to taste). Each worker costs memory and cross-thread
-  update work; beyond ~8 the returns on a sidecar are poor. This is the
-  guard that actually protects you, not `-1`.
-- **No `-1` term.** If you want headroom, express it as an explicit,
-  independently tunable value rather than folding it into the formula. If
-  you keep it, apply it only above a threshold:
-  `concurrency = R >= 6 ? R - 1 : max(2, round(R))`.
-
-Worked examples:
-
-| `R` | Recommended | Proposed (`max(1, floor(R)-1)`) |
-| --- | --- | --- |
-| `50m` | 2 | 1 |
-| `500m` | 2 | 1 |
-| `1` | 2 | 1 |
-| `2` | 2 | 1 |
-| `2500m` | 3 | 1 |
-| `4` | 4 | 3 |
-| `8` | 8 | 7 |
-| `16` | 8 (clamped) | 15 |
-
-### 8.4 Recommended `GOMAXPROCS` policy for `pilot-agent`
-
-```text
-GOMAXPROCS = 2                      for R >= 1
-GOMAXPROCS = 1                      for R <  1
-```
-
-- Set it **explicitly**. Do not rely on Go 1.25's container awareness, which
-  is limit-based and therefore useless in a no-limit model.
-- `2` rather than `1`: preserves xDS recv/send pipelining and keeps the DNS
-  proxy and readiness endpoint responsive during large pushes, at the cost
-  of one OS thread.
-- Do **not** scale it with `R`. The agent has no data parallelism; a 16-core
-  request does not make the agent faster with `GOMAXPROCS=16`, it just makes
-  its GC and scheduler noisier and lets it compete harder with Envoy —
-  which is the exact thing you are trying to prevent.
-- Pair it with `ECC_SIGNATURE_ALGORITHM=ECDSA` so cert rotation doesn't
-  monopolise the small number of Ps.
-- Also pin `GOMEMLIMIT` explicitly (e.g. ~75% of the memory request) rather
-  than letting it fall back to node-allocatable.
-
-### 8.5 A clean upstream proposal
-
-Three independent, individually shippable pieces:
-
-**Step 1 — chart: expose the request, stop hard-coding the runtime knobs.**
-
-- Add `ISTIO_CPU_REQUEST` (from `requests.cpu`, divisor `1`) next to
-  `ISTIO_CPU_LIMIT` in all six templates.
-- Land #60755 (already merged) so `GOMAXPROCS` is operator-controlled.
-- Make the `"resources"` template additive so request-only annotations don't
-  wipe `global.proxy.resources`.
-
-**Step 2 — agent: detect "no effective CPU limit" properly.**
-
-Add a small helper that reads `/sys/fs/cgroup/cpu.max` (v2) or
-`cpu.cfs_quota_us` (v1) and reports `(quota, hasLimit)`. This removes the
-`ISTIO_CPU_LIMIT == node allocatable` ambiguity entirely and mirrors what
-the Go runtime already does internally. Use it to:
-
-- gate the existing `CPULimit`-derived concurrency on `hasLimit`,
-- upgrade the current `Warnf` into an accurate message,
-- unlock step 3.
-
-**Step 3 — agent: request-based sizing, behind explicit configuration.**
-
-Add a `ProxyConfig` field rather than magic behaviour, e.g.:
+The derivation should be opt-in configuration, not magic behaviour. Add a
+`ProxyConfig` field:
 
 ```proto
 message ProxyConfig {
@@ -885,21 +872,42 @@ plus a `proxyAgentGomaxprocs` (or simply document `GOMAXPROCS` in
 `proxyMetadata`) so the agent's Go parallelism is a first-class, documented
 knob.
 
-This keeps the default behaviour byte-identical, makes the "no CPU limit,
-size from request" model expressible in mesh config instead of custom
-injection templates, and fixes the node-allocatable footgun for everyone —
-including users who set no limit today and don't realise they are running
+Default behaviour stays byte-identical, the "no CPU limit, size from
+request" model becomes expressible in mesh config instead of custom
+injection templates, and the node-allocatable footgun is fixed for everyone
+— including users who set no limit today and don't realise they are running
 128-worker sidecars.
+
+### 8.5 Effort summary
+
+| Change | Where | Effort |
+| --- | --- | --- |
+| **Path A** | | |
+| Pin concurrency explicitly | mesh config / annotation | none — do today |
+| Remove the CPU limit | annotations / values | none |
+| Pin `GOMEMLIMIT`, `ECC_SIGNATURE_ALGORITHM` | `proxyMetadata` | none |
+| Pin `GOMAXPROCS` | custom injection template (1.30) or `proxyMetadata` (master) | small |
+| Admission policy + alert | cluster policy | small |
+| **Path B** | | |
+| Expose `ISTIO_CPU_REQUEST` | injection templates ×6 | small, chart-only |
+| Make the `"resources"` template additive | `injection-template.yaml` | small, chart-only |
+| cgroup `cpu.max` probing to detect "no limit" | `pilot-agent` | medium |
+| Request-derived concurrency fallback | `pilot-agent` `config.go` | medium |
+| Agent-side `GOMAXPROCS` default | `pilot-agent` `app/cmd.go` | small |
+| `ProxyConfig.concurrency_source` + clamp fields | `istio/api` + `pilot-agent` | medium |
+| **Neither path** | | |
+| Per-process CPU reservation between agent and Envoy | **impossible** without splitting containers | n/a |
 
 ---
 
 ## 9. Empirical verification (meshlab, `kind-pasta-1`)
 
 The node-allocatable fallback described in [§1](#1-how-envoy-concurrency-is-determined-today)
-was confirmed against a live sidecar in this lab. The pod already runs
-almost exactly the configuration the proposal describes — a small CPU
-request, no CPU limit — so it is a direct reproduction rather than a
-synthetic test.
+was confirmed against a live sidecar in this lab. The pod already has the
+shape the policy targets — a small CPU request and no CPU limit — but
+without the explicit `concurrency` and `GOMAXPROCS` the policy mandates. It
+is therefore a direct reproduction of the failure mode, not a synthetic
+test.
 
 **Subject:** `peer-69466dcdb6-9zth7`, namespace `swarm-sidecar-n1`,
 cluster `kind-pasta-1`, revision `1-30-4`.
@@ -925,14 +933,14 @@ resources:
 
 ### 9.2 What the sidecar actually got
 
-| Signal | Observed | Expected under the proposal |
+| Signal | Observed | Required by the policy |
 | --- | --- | --- |
 | `/sys/fs/cgroup/cpu.max` | `max 100000` | no quota ✅ |
 | `/sys/fs/cgroup/cpu.stat` | `nr_throttled 0`, `throttled_usec 0` | no throttling ✅ |
-| `ISTIO_CPU_LIMIT` | **`18`** | `0` / unset ❌ |
-| Envoy command line | `... --concurrency 18` | `--concurrency 1` ❌ |
-| `localhost:15000/server_info` → `concurrency` | **`18`** | 1 ❌ |
-| `GOMAXPROCS` | **`18`** | `1` ❌ |
+| `ISTIO_CPU_LIMIT` | **`18`** | irrelevant once `concurrency` is pinned |
+| Envoy command line | `... --concurrency 18` | `--concurrency 2` ❌ |
+| `localhost:15000/server_info` → `concurrency` | **`18`** | 2 ❌ |
+| `GOMAXPROCS` | **`18`** | `1` (R < 1) ❌ |
 | `GOMEMLIMIT` | **`33596223488`** (31.3 GiB) | ~48 MiB ❌ |
 | Node `pasta-1-control-plane` allocatable / capacity CPU | `18` / `18` | — |
 
@@ -949,11 +957,10 @@ and passed `--concurrency 18` to Envoy.
 So a **50m-request sidecar is running 18 Envoy worker threads and an 18-P
 Go runtime** — 360× the request in workers. For comparison:
 
-| Policy | Concurrency at `R = 50m` |
+| | Concurrency at `R = 50m` |
 | --- | --- |
 | Observed today | **18** (node-sized) |
-| Proposed `max(1, floor(R) - 1)` | 1 |
-| Recommended `clamp(2, round(R), 8)` | 2 |
+| Policy `clamp(2, round(R), 8)` | 2 |
 
 `GOMEMLIMIT` shows the identical bug in the memory dimension: 31.3 GiB
 derived from a 64Mi request, a ~500× overshoot that renders the Go soft
@@ -970,10 +977,9 @@ Two details worth noting:
   worker threads, at which point the memory cost becomes the dominant
   problem.
 
-This confirms the central correction in
-[§8.1](#81-is-the-design-sound): removing the CPU limit without also
-pinning `concurrency` does not produce a small sidecar — it produces a
-node-sized one.
+This confirms why the policy makes `concurrency` mandatory rather than
+optional: removing the CPU limit without also pinning `concurrency` does
+not produce a small sidecar — it produces a node-sized one.
 
 ### 9.4 Corroborating detail from inside the container
 

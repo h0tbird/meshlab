@@ -1,12 +1,17 @@
 # Istio sidecar CPU sizing: no CPU limit, explicit concurrency and `GOMAXPROCS`
 
-This document specifies the CPU sizing policy for Istio sidecars in meshlab,
-the source-level evidence behind it, and two paths to reach it:
-[Path A](#7-path-a--implement-today-on-stock-istio), which we can implement
+This document explores a CPU sizing policy for Istio sidecars in meshlab,
+the source-level evidence for it, and two paths that could deliver it:
+[Path A](#7-path-a--implement-today-on-stock-istio), which is achievable
 today on stock Istio, and [Path B](#8-path-b--contribute-the-policy-upstream),
 which would make it native in Istio.
 
-## The policy
+> **Status: exploratory.** None of this is implemented. The investigation
+> and the empirical findings in [§9](#9-empirical-verification-meshlab-kind-pasta-1)
+> are real; the policy below is a proposal to evaluate, not a decision that
+> has been taken.
+
+## The proposed policy
 
 ```text
 proxy CPU request  = R              # the provisioned capacity
@@ -16,9 +21,9 @@ pilot-agent GOMAXPROCS = 2          # explicit; 1 when R < 1
 GOMEMLIMIT             = ~75% of the memory request, explicit
 ```
 
-Every value is **set explicitly**. The central finding of the investigation
-is that anything left to be inferred resolves to a *node*-sized value, not a
-container-sized one.
+Every value would be **set explicitly**. The central finding of the
+investigation is that anything left to be inferred resolves to a
+*node*-sized value, not a container-sized one.
 
 All code references are against upstream Istio
 [`1.30.4`](https://github.com/istio/istio/tree/1.30.4) (`go.mod` declares
@@ -638,13 +643,12 @@ is no open proposal to do so.
 ## 7. Path A — implement today on stock Istio
 
 Nothing in this section requires an Istio code change. It all works on
-1.30.4 as shipped, and it is what we do now.
+1.30.4 as shipped, and it is where an implementation would start.
 
 ### 7.1 Request → concurrency mapping
 
-Because Istio cannot read the CPU request, `clamp(2, round(R), 8)` is
-precomputed and written into the workload as a literal. Treat this table as
-the contract:
+Because Istio cannot read the CPU request, `clamp(2, round(R), 8)` would be
+precomputed and written into the workload as a literal:
 
 | Proxy CPU request `R` | `concurrency` | `GOMAXPROCS` |
 | --- | --- | --- |
@@ -904,8 +908,9 @@ injection templates, and the node-allocatable footgun is fixed for everyone
 
 The node-allocatable fallback described in [§1](#1-how-envoy-concurrency-is-determined-today)
 was confirmed against a live sidecar in this lab. The pod already has the
-shape the policy targets — a small CPU request and no CPU limit — but
-without the explicit `concurrency` and `GOMAXPROCS` the policy mandates. It
+shape the proposal targets — a small CPU request and no CPU limit — but
+without the explicit `concurrency` and `GOMAXPROCS` the proposal calls for.
+It
 is therefore a direct reproduction of the failure mode, not a synthetic
 test.
 
@@ -933,7 +938,7 @@ resources:
 
 ### 9.2 What the sidecar actually got
 
-| Signal | Observed | Required by the policy |
+| Signal | Observed | Under the proposed policy |
 | --- | --- | --- |
 | `/sys/fs/cgroup/cpu.max` | `max 100000` | no quota ✅ |
 | `/sys/fs/cgroup/cpu.stat` | `nr_throttled 0`, `throttled_usec 0` | no throttling ✅ |
@@ -977,7 +982,7 @@ Two details worth noting:
   worker threads, at which point the memory cost becomes the dominant
   problem.
 
-This confirms why the policy makes `concurrency` mandatory rather than
+This confirms why the proposal makes `concurrency` mandatory rather than
 optional: removing the CPU limit without also pinning `concurrency` does
 not produce a small sidecar — it produces a node-sized one.
 

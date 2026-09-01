@@ -68,26 +68,14 @@ All code references are against upstream Istio
 ### 1.1 The chain
 
 ```mermaid
-graph TD
-  A[Pod spec istio-proxy resources]
-  B[Downward API resourceFieldRef limits.cpu divisor 1]
-  C[env ISTIO_CPU_LIMIT]
-  D[pilot-agent ConstructProxyConfig]
-  E1[meshConfig.defaultConfig.concurrency]
-  E2[proxy.istio.io config annotation]
-  E3[ProxyConfig CR]
-  F[proxyConfig.Concurrency]
-  G[Agent.envoyOpts.Concurrency]
-  H[envoy concurrency N]
-  A --> B
-  B --> C
-  C --> D
-  E1 --> D
-  E2 --> D
-  E3 --> D
-  D --> F
-  F --> G
-  G --> H
+flowchart TD
+    A["Pod spec: istio-proxy resources"] --> B["Downward API<br/>resourceFieldRef: limits.cpu, divisor 1"]
+    B --> C["env ISTIO_CPU_LIMIT"]
+    C --> D["pilot-agent<br/>config.ConstructProxyConfig()"]
+    E["meshConfig.defaultConfig.concurrency<br/>PROXY_CONFIG env / proxy.istio.io/config annotation<br/>ProxyConfig CRD"] --> D
+    D --> F["proxyConfig.Concurrency"]
+    F --> G["Agent.envoyOpts.Concurrency"]
+    G --> H["envoy --concurrency N"]
 ```
 
 ### 1.2 Injection template

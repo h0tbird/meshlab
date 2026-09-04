@@ -25,7 +25,7 @@ NET_START=$(net_bytes)
 
 readonly KINDCCM_VERSION='0.11.1'                      # https://github.com/kubernetes-sigs/cloud-provider-kind/releases
 readonly K8S_GATEWAY_CHART_VERSION='3.7.2'             # https://github.com/k8s-gateway/k8s_gateway/blob/master/charts/k8s-gateway/Chart.yaml
-readonly ARGOCD_CHART_VERSION='10.4.2'                 # https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd
+readonly ARGOCD_CHART_VERSION='10.7.1'                 # https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd
 readonly ARGOWF_CHART_VERSION='2.0.3'                  # https://artifacthub.io/packages/helm/argo/argo-workflows
 readonly PROMETHEUS_CHART_VERSION='29.27.0'            # https://artifacthub.io/packages/helm/prometheus-community/prometheus
 readonly GRAFANA_CHART_VERSION='10.5.15'               # https://artifacthub.io/packages/helm/grafana/grafana
@@ -34,7 +34,7 @@ readonly VAULT_CHART_VERSION='0.34.1'                  # https://artifacthub.io/
 readonly CERT_MANAGER_CHART_VERSION='v1.21.1'          # https://artifacthub.io/packages/helm/cert-manager/cert-manager
 readonly KUBERNETES_REPLICATOR_CHART_VERSION='2.12.4'  # https://artifacthub.io/packages/helm/kubernetes-replicator/kubernetes-replicator
 readonly METRICS_SERVER_CHART_VERSION='3.14.0'         # https://artifacthub.io/packages/helm/metrics-server/metrics-server
-readonly ISTIO_CHART_VERSION='1.30.4'                  # https://artifacthub.io/packages/helm/istio-official/base
+readonly ISTIO_CHART_VERSION='1.31.0'                  # https://blob.istio.io/istio-release/charts/index.yaml
 readonly KIALI_CHART_VERSION='2.31.0'                  # https://artifacthub.io/packages/helm/kiali/kiali-operator
 readonly ZOT_VERSION='2.1.20'                          # https://github.com/project-zot/zot/releases
 

@@ -7,7 +7,7 @@ other through remote secrets.
 ## What is installed
 
 All from the official charts at
-`https://istio-release.storage.googleapis.com/charts`, pinned by
+`https://blob.istio.io/istio-release/charts`, pinned by
 `ISTIO_CHART_VERSION` in `bin/meshlab`:
 
 | Argo CD app | Chart | Notes |

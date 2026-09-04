@@ -9,6 +9,8 @@ This skill helps upgrade the versions of all meshlab infrastructure components d
 - `bin/meshlab` - Helm chart versions for deployed components
 - `.devcontainer/Dockerfile` - CLI tool versions for the development environment
 - `Tiltfile` - Istio version pinned for the `pilot-discovery` live-reload dev loop (must be bumped in lockstep with `ISTIO_CHART_VERSION`)
+- `charts/istio/templates/applicationsets/*.yaml` - the `repoURL` each Istio
+  ApplicationSet pulls charts from (see "Istio chart repository" below)
 
 ---
 
@@ -34,8 +36,28 @@ COMPONENT_VERSION='X.Y.Z'  # https://artifacthub.io/packages/helm/...
 | `VAULT_CHART_VERSION` | Vault | https://artifacthub.io/packages/helm/hashicorp/vault |
 | `CERT_MANAGER_CHART_VERSION` | cert-manager | https://artifacthub.io/packages/helm/cert-manager/cert-manager |
 | `KUBERNETES_REPLICATOR_CHART_VERSION` | kubernetes-replicator | https://artifacthub.io/packages/helm/kubernetes-replicator/kubernetes-replicator |
-| `ISTIO_CHART_VERSION` | Istio | https://artifacthub.io/packages/helm/istio-official/base |
+| `ISTIO_CHART_VERSION` | Istio | https://blob.istio.io/istio-release/charts/index.yaml (**not** ArtifactHub) |
 | `KIALI_CHART_VERSION` | Kiali Operator | https://artifacthub.io/packages/helm/kiali/kiali-operator |
+
+### Istio chart repository
+
+Istio moved stable chart publishing off Google Cloud Storage. As of 1.31.0 the
+release job ([istio/release-builder](https://github.com/istio/release-builder)
+`release/publish.sh`) pushes only to:
+
+- `https://blob.istio.io/istio-release/charts` (Cloudflare R2, the HTTP repo)
+- `oci://ghcr.io/istio/release/charts/<chart>` (OCI)
+
+Consequences when checking Istio versions:
+
+- The old `https://istio-release.storage.googleapis.com/charts` index is frozen
+  and will **not** get new releases. Do not check it and do not use it as a
+  `repoURL`.
+- **ArtifactHub `istio-official` is stale** — it still tracks the dead GCS index,
+  so it will show a release candidate as "latest" long after a stable release
+  ships. Never conclude Istio is up to date from ArtifactHub alone.
+- `oci://registry.istio.io/release/charts/...` does **not** serve charts; that
+  host only mirrors images. Use `ghcr.io` for OCI charts.
 
 ---
 
@@ -146,11 +168,20 @@ echo "cert-manager:          $(curl -sL https://charts.jetstack.io/index.yaml   
 echo "kubernetes-replicator: $(curl -sL https://helm.mittwald.de/index.yaml                                | yq ".entries.\"kubernetes-replicator\" | $f")"
 echo "metrics-server:        $(curl -sL https://kubernetes-sigs.github.io/metrics-server/index.yaml        | yq ".entries.\"metrics-server\" | $f")"
 echo "kiali-operator:        $(curl -sL https://kiali.org/helm-charts/index.yaml                           | yq ".entries.\"kiali-operator\" | $f")"
+echo "istio:                 $(curl -sL https://blob.istio.io/istio-release/charts/index.yaml               | yq ".entries.base | $f")"
 ```
+
+Note: `curl` must follow redirects for the Istio index (`-sL`, as above) — a bare
+`curl -s` returns a `308` and no body.
 
 Note: the Helm **chart** version differs from the upstream app version (e.g.
 the cert-manager chart is `vX.Y.Z`, Vault chart `0.32.x` vs Vault app `2.x`).
 Always compare against the chart `index.yaml`, not the project's GitHub release.
+
+For Istio the chart and app versions do match, but the GitHub release can land
+**days before** the charts are published. Only bump `ISTIO_CHART_VERSION` once
+the version appears in the `blob.istio.io` index — a tag on `istio/istio` with
+no chart is not upgradable, since ArgoCD deploys Istio from the charts.
 
 ### Block 3 — kubectl and Go
 
@@ -236,6 +267,16 @@ live-reload loop can consume them.
    ```bash
    make istio-images ISTIO_HUB=ghcr.io/h0tbird ISTIO_TAG=<ISTIO_CHART_VERSION>
    ```
+
+   Istio builds inside a `build-tools` container whose tag is pinned by
+   `common/scripts/setup_env.sh` in the checked-out tag. Upstream defaults to
+   its `registry.istio.io` mirror, which lags and frequently does **not** have
+   that tag (a `not found` error on `docker run`). The meshlab `Makefile`
+   therefore overrides the registry via `ISTIO_TOOLS_REGISTRY` /
+   `ISTIO_TOOLS_PROJECT`, defaulting to `gcr.io/istio-testing` (the source of
+   truth). If a build ever fails to resolve `build-tools`, confirm the pinned
+   tag with `crane manifest gcr.io/istio-testing/build-tools:<tag>` rather than
+   editing the pin.
 
 3. **Rebuild the Istio binaries** so the Tiltfile live-reload loop redeploys
    `pilot-discovery` with the new code (also from `/workspaces/meshlab`):

@@ -19,6 +19,12 @@ ISTIO_TAG ?= latest
 ISTIO_TARGETS ?= pilot proxyv2 install-cni istioctl ztunnel ext-authz
 ISTIO_SOURCE ?= https://github.com/h0tbird/forked-istio
 
+# Registry holding the build-tools image pinned by istio/common/scripts/setup_env.sh.
+# Istio defaults to its registry.istio.io mirror, which lags behind and is often
+# missing the exact tag a release pins; gcr.io/istio-testing is the source of truth.
+ISTIO_TOOLS_REGISTRY ?= gcr.io
+ISTIO_TOOLS_PROJECT ?= istio-testing
+
 #------------------------------------------------------------------------------
 # Help Target
 #------------------------------------------------------------------------------
@@ -52,7 +58,8 @@ istio-binaries: DOCKER_HOST := unix:///var/run/docker.sock
 istio-binaries: ## Build Istio binaries.
 	@echo "Building Istio binaries"
 	cd /workspaces/istio \
-	&& make build-linux
+	&& TOOLS_REGISTRY_PROVIDER=${ISTIO_TOOLS_REGISTRY} PROJECT_ID=${ISTIO_TOOLS_PROJECT} \
+	make build-linux
 
 #------------------------------------------------------------------------------
 # Build Istio images using Istio's own build system.
@@ -66,7 +73,8 @@ istio-images: ## Build Istio images.
 	rm ~/.docker/config.json || true \
 	&& echo ${GITHUB_TOKEN} | docker login ghcr.io -u ${GITHUB_USER} --password-stdin 2>/dev/null \
 	&& cd /workspaces/istio && ./prow/buildx-create \
-	&& make docker.push HUB=${ISTIO_HUB} TAG=${ISTIO_TAG} \
+	&& TOOLS_REGISTRY_PROVIDER=${ISTIO_TOOLS_REGISTRY} PROJECT_ID=${ISTIO_TOOLS_PROJECT} \
+	make docker.push HUB=${ISTIO_HUB} TAG=${ISTIO_TAG} \
 	DOCKER_BUILD_VARIANTS="distroless debug" \
 	DOCKER_ARCHITECTURES="linux/amd64,linux/arm64" \
 	DOCKER_TARGETS="${ISTIO_TARGETS}" \

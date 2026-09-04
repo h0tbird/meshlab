@@ -19,7 +19,7 @@ spec:
     spec:
       project: istio
       source:
-        repoURL: https://istio-release.storage.googleapis.com/charts
+        repoURL: https://blob.istio.io/istio-release/charts
         targetRevision: {{ .Values.chartVersion }}
         chart: ztunnel
         helm:

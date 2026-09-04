@@ -65,7 +65,7 @@ RUN echo "source <(meshlab completion zsh)" >> /root/.zshrc && \
     echo "source <(meshlab completion zsh)" >> /home/vscode/.zshrc
 
 # Install Go (https://go.dev/dl/)
-RUN VERSION="1.27.0" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="1.27.1" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL https://go.dev/dl/go${VERSION}.linux-${ARCH}.tar.gz | tar -xzC /usr/local && \
     echo 'export PATH=$PATH:/usr/local/go/bin' >> /etc/zsh/zshenv && \
     echo 'export PATH=$PATH:$HOME/go/bin' >> /etc/zsh/zshenv
@@ -103,7 +103,7 @@ RUN VERSION="v4.1.2" && ARCH=$(archmap 'arm64' 'amd64') && \
     chmod +x /usr/local/bin/argo && echo "source <(argo completion zsh)" >> /etc/zsh/zshrc
 
 # Install istioctl (https://github.com/istio/istio/releases)
-RUN VERSION="1.30.4" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="1.31.0" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL -o /tmp/istio.tar.gz https://github.com/istio/istio/releases/download/${VERSION}/istio-${VERSION}-linux-${ARCH}.tar.gz && \
     tar -xC /usr/local/bin --strip-components 2 -f /tmp/istio.tar.gz istio-${VERSION}/bin/istioctl && rm -f /tmp/istio.tar.gz && \
     echo "source <(istioctl completion zsh)" >> /etc/zsh/zshrc
@@ -116,7 +116,7 @@ RUN VERSION="0.30.6" && ARCH=$(archmap 'arm64' 'amd64') && cd /tmp && \
 
 # Install vault (https://releases.hashicorp.com/vault)
 # Vault ships a `complete -C` style completer, so zsh needs bashcompinit.
-RUN VERSION="2.0.4" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="2.1.0" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL -o /tmp/vault.zip https://releases.hashicorp.com/vault/${VERSION}/vault_${VERSION}_linux_${ARCH}.zip && \
     unzip -qo /tmp/vault.zip vault -d /usr/local/bin && rm -f /tmp/vault.zip && \
     echo "autoload -U +X bashcompinit && bashcompinit" >> /etc/zsh/zshrc && \
@@ -128,7 +128,7 @@ RUN VERSION="v2.5.0" && ARCH=$(archmap 'arm64' 'amd64') && \
     tar -xzC /usr/local/bin cmctl && echo "source <(cmctl completion zsh)" >> /etc/zsh/zshrc
 
 # Install gh (https://github.com/cli/cli/releases)
-RUN VERSION="2.98.0" && ARCH=$(archmap 'arm64' 'amd64') && cd /tmp && \
+RUN VERSION="2.100.0" && ARCH=$(archmap 'arm64' 'amd64') && cd /tmp && \
     $CURL -O https://github.com/cli/cli/releases/download/v${VERSION}/gh_${VERSION}_linux_${ARCH}.deb && \
     dpkg -i gh_${VERSION}_linux_${ARCH}.deb && rm -f gh_${VERSION}_linux_${ARCH}.deb && \
     echo "source <(gh completion -s zsh)" >> /etc/zsh/zshrc
@@ -154,7 +154,7 @@ RUN VERSION="0.37.7" && ARCH=$(archmap 'arm64' 'x86_64') && \
     tar -xzC /usr/local/bin tilt && echo "source <(tilt completion zsh)" >> /etc/zsh/zshrc
 
 # Install crane (https://github.com/google/go-containerregistry/releases)
-RUN VERSION="v0.22.0" && ARCH=$(archmap 'arm64' 'x86_64') && \
+RUN VERSION="v0.22.1" && ARCH=$(archmap 'arm64' 'x86_64') && \
     $CURL https://github.com/google/go-containerregistry/releases/download/${VERSION}/go-containerregistry_Linux_${ARCH}.tar.gz | \
     tar -xzC /usr/local/bin crane && echo "source <(crane completion zsh)" >> /etc/zsh/zshrc
 

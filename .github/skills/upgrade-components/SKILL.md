@@ -11,6 +11,12 @@ This skill helps upgrade the versions of all meshlab infrastructure components d
 - `Tiltfile` - Istio version pinned for the `pilot-discovery` live-reload dev loop (must be bumped in lockstep with `ISTIO_CHART_VERSION`)
 - `charts/istio/templates/applicationsets/*.yaml` - the `repoURL` each Istio
   ApplicationSet pulls charts from (see "Istio chart repository" below)
+- `hack/Dockerfile.toolbox` - Vault CLI baked into the toolbox image used by the
+  `populate-vault` WorkflowTemplate. Check it against
+  https://api.releases.hashicorp.com/v1/releases/vault?limit=20 (ignore `+ent`
+  builds). Bumping the `ARG VERSION` only takes effect once the image is
+  rebuilt and pushed with `make toolbox REGISTRY=ghcr.io/h0tbird`, since the
+  template pulls `ghcr.io/h0tbird/meshlab/toolbox:latest`.
 
 ---
 

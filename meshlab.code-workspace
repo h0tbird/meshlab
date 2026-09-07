@@ -3,7 +3,8 @@
 		{ "name": "meshlab", "path": "." },
 		{ "name": "istio", "path": "../istio" },
 		{ "name": "k-swarm", "path": "../k-swarm" },
-		{ "name": "kiali-charts", "path": "../kiali-charts" }
+		{ "name": "kiali-charts", "path": "../kiali-charts" },
+		{ "name": "kind", "path": "../kind" }
 	],
 	"settings": {
 		"remote.defaultExtensionsIfInstalledLocally": [

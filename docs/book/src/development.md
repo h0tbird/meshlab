@@ -1,9 +1,9 @@
 # Development
 
 The lab is designed to iterate on Istio itself. The workspace
-(`meshlab.code-workspace`) mounts four repositories side by side:
-`/workspaces/meshlab`, `/workspaces/istio`, `/workspaces/k-swarm` and
-`/workspaces/kiali-charts` (the Kiali Helm charts).
+(`meshlab.code-workspace`) mounts five repositories side by side:
+`/workspaces/meshlab`, `/workspaces/istio`, `/workspaces/k-swarm`,
+`/workspaces/kiali-charts` (the Kiali Helm charts) and `/workspaces/kind`.
 
 ## Partial labs
 

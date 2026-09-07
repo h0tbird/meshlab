@@ -63,11 +63,12 @@ declare -A REGISTRIES=(
 # generate_dag_mk() turns this into .tmp/dag.mk, which `meshlab create` runs
 # with `make -j` to execute independent sections in parallel.
 declare -A DEPS=(
-  [cloud-provider-kind]=""
-  [pull-through-cache]="cloud-provider-kind"
-  [create-clusters]="cloud-provider-kind"
+  [kind-network]=""
+  [cloud-provider-kind]="create-clusters"
+  [pull-through-cache]="kind-network"
+  [create-clusters]="kind-network"
   [add-registries-to-containerd]="create-clusters pull-through-cache"
-  [setup-kubeconfig]="create-clusters"
+  [setup-kubeconfig]="cloud-provider-kind"
   [setup-flat-network]="create-clusters"
   [install-k8s-gateway]="setup-kubeconfig"
   [setup-coredns]="install-k8s-gateway setup-kubeconfig"

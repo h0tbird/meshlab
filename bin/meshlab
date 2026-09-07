@@ -72,9 +72,12 @@ cleanup() {
 # [i] cloud-provider-kind
 #------------------------------------------------------------------------------
 
+kind-network() {
+  docker network ls | grep -q ' kind ' || docker network create kind
+}; SECTIONS+=( kind-network )
+
 cloud-provider-kind() {
   blue "───[ cloud-provider-kind ]──────────────────────────────────────────────"
-  docker network ls | grep -q ' kind ' || docker network create kind
   docker ps --format '{{.Names}}' | grep -q '^kindccm$' || \
   docker run --rm -d \
     --name kindccm \
@@ -408,6 +411,8 @@ setup-argocd() {
 		    initialDelaySeconds: 2
 		    periodSeconds: 2
 		configs:
+		  params:
+		    controller.sync.wave.delay.seconds: "1"
 		  cm:
 		    resource.customizations.ignoreDifferences.admissionregistration.k8s.io_MutatingWebhookConfiguration: |
 		      jqPathExpressions:

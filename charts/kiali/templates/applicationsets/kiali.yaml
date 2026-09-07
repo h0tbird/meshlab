@@ -24,6 +24,13 @@ spec:
         helm:
           releaseName: kiali-operator
           valuesObject:
+            # The operator is up in ~8s but its default startup probe idles 30s
+            # before the first check.
+            probes:
+              startup:
+                initialDelaySeconds: 5
+                periodSeconds: 5
+                failureThreshold: 12
             cr:
               create: true
               namespace: monitoring

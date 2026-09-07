@@ -752,13 +752,11 @@ bootstrap-dag() {
 	          parameters:
 	          - name: selectors
 	            value: name=istio-istiod
-	      # Kiali is the slowest app to go healthy (~45s, almost all of it the
-	      # operator's 30s startup probe delay, which the chart does not expose).
-	      # Nothing can shorten it, so start it at once instead: this app is just
-	      # the operator Deployment, which needs no Istio CRDs, and the Kiali CR
-	      # it reconciles is created before the DAG runs. Waiting on istio-base
-	      # only pushed those unavoidable 45s back by 11s, which was enough to
-	      # make kiali the last task in the whole workflow.
+	      # Started at once with no dependencies: this app is just the operator
+	      # Deployment, which needs no Istio CRDs, and the Kiali CR it reconciles
+	      # is created before the DAG runs. It used to be the workflow's longest
+	      # task (~45s, mostly the operator's startup probe delay); the chart now
+	      # exposes those probe timings and we override them in charts/kiali.
 	      - name: kiali-operator
 	        templateRef:
 	          name: argocd-sync-and-wait

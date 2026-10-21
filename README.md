@@ -98,6 +98,25 @@ As the lab starts up, the following services will become available:
 
 Use `admin` + `meshlab123` as credentials when prompted.
 
+### Custom Istio images
+
+Override images without changing the pinned Helm chart version:
+
+```console
+export ISTIO_IMAGE_HUB=ghcr.io/example/istio
+export ISTIO_IMAGE_TAG=test
+export ISTIO_IMAGE_VARIANT=distroless
+meshlab create --network-mode multi
+```
+
+This uses tag `test-distroless` for pilot, proxies/gateways, CNI, and ztunnel
+(ambient mode only). Images must be compatible with the pinned chart and run on
+your nodes, natively or through emulation. Tilt startup is skipped to avoid
+replacing custom pilot.
+
+Gateways, waypoints, and injected sidecars keep read-only root filesystems
+but mount writable `/tmp` storage, which Rosetta requires for amd64 Envoy.
+
 ---
 
 ## Make targets

@@ -480,7 +480,9 @@ install-applicationsets() {
   helm template ./charts/cert-manager --set "chartVersion=${CERT_MANAGER_CHART_VERSION}" | k0 "${ssa[@]}" &
   helm template ./charts/kubernetes-replicator --set "chartVersion=${KUBERNETES_REPLICATOR_CHART_VERSION}" | k0 "${ssa[@]}" &
   helm template ./charts/metrics-server --set "chartVersion=${METRICS_SERVER_CHART_VERSION}" | k0 "${ssa[@]}" &
-  helm template ./charts/istio --set "chartVersion=${ISTIO_CHART_VERSION}" --set "networkMode=${NETWORK_MODE}" --set "dataplaneMode=${MODE}" | k0 "${ssa[@]}" &
+  helm template ./charts/istio --set "chartVersion=${ISTIO_CHART_VERSION}" --set "networkMode=${NETWORK_MODE}" --set "dataplaneMode=${MODE}" \
+    --set-string "imageHub=${ISTIO_IMAGE_HUB}" --set-string "imageTag=${ISTIO_IMAGE_TAG}" \
+    --set-string "imageVariant=${ISTIO_IMAGE_VARIANT}" | k0 "${ssa[@]}" &
   helm template ./charts/kiali --set "chartVersion=${KIALI_CHART_VERSION}" | k0 "${ssa[@]}" &
   join
 }; SECTIONS+=( install-applicationsets )
@@ -871,6 +873,11 @@ grafana-git-sync() {
 tilt-up() {
   blue "───[ tilt up ]──────────────────────────────────────────────────────────"
 
+  if [[ -n "${ISTIO_IMAGE_HUB}${ISTIO_IMAGE_TAG}" || "${ISTIO_IMAGE_VARIANT}" != debug ]]; then
+    echo "Skipping Tilt: custom Istio images must not be replaced by the local pilot-discovery build."
+    return
+  fi
+
   # Git clone tilt extensions if not already done, otherwise update.
   # This prevents parallel tilt instances from cloning simultaneously.
   local tilt_ext_dir="/root/.local/share/tilt-dev/tilt_modules/github.com/tilt-dev/tilt-extensions"
@@ -1052,6 +1059,11 @@ export NETWORK_MODE="${NETWORK_MODE:-multi}"
 # Dataplane mode for the whole lab (istiod/CNI profile, ztunnel, east-west
 # gateway and the swarmctl workloads). Env-only, e.g. `MODE=sidecar meshlab create`.
 export MODE="${MODE:-ambient}"
+
+# Exported so create's section subprocesses use the same image selection.
+export ISTIO_IMAGE_HUB="${ISTIO_IMAGE_HUB:-}"
+export ISTIO_IMAGE_TAG="${ISTIO_IMAGE_TAG:-}"
+export ISTIO_IMAGE_VARIANT="${ISTIO_IMAGE_VARIANT-debug}"
 
 # Tiny validators (assert, with a friendly error).
 _uint()  { [[ "$1" =~ ^[0-9]+$ ]] || { echo "expected non-negative integer, got '$1'" >&2; exit 1; }; }

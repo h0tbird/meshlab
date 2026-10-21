@@ -33,9 +33,13 @@ spec:
               - name: custom-bootstrap
                 configMap:
                   name: istio-ns-custom-bootstrap
+              - name: proxy-tmp
+                emptyDir: {}
             volumeMounts:
               - name: custom-bootstrap
                 mountPath: /etc/istio/custom-bootstrap
+              - name: proxy-tmp
+                mountPath: /tmp
       - repoURL: https://github.com/h0tbird/meshlab.git
         targetRevision: master
         path: conf/istio

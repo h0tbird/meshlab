@@ -25,6 +25,15 @@ spec:
         helm:
           releaseName: istio-ztunnel
           valuesObject:
+{{- if .Values.imageHub }}
+            hub: {{ .Values.imageHub | quote }}
+{{- end }}
+{{- if .Values.imageTag }}
+            tag: {{ .Values.imageTag | quote }}
+{{- end }}
+{{- if or .Values.imageHub .Values.imageTag (ne .Values.imageVariant "debug") }}
+            variant: {{ .Values.imageVariant | quote }}
+{{- end }}
             revision: {{ .Values.chartVersion | replace "." "-" }}
             global:
               network: {{`'{{name}}'`}}

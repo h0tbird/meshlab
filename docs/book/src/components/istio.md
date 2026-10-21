@@ -45,10 +45,13 @@ A few notable `pilot.env` settings:
   network modes. See `docs/single-network-mode.md`.
 - `ENABLE_NATIVE_SIDECARS: "true"` — inject the sidecar as a Kubernetes native
   sidecar (sidecar mode only).
-- `PILOT_ENABLE_ALPHA_GATEWAY_API: "true"` — needed for the `TLS`/PASSTHROUGH
-  listener of the sidecar east-west gateway.
 - `AUTO_RELOAD_PLUGIN_CERTS: true` — pick up `cacerts` renewals without a
   restart.
+
+`PILOT_ENABLE_ALPHA_GATEWAY_API` is left at its default (`false`). Istio 1.31.2
+supports the sidecar east-west gateway's TLS/PASSTHROUGH listener without it.
+Enabling it also watches UDPRoute `v1alpha2`, which Gateway API 1.6.1 no longer
+serves, preventing istiod from becoming ready.
 
 ## Gateways
 

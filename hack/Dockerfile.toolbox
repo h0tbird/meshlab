@@ -5,7 +5,7 @@
 FROM alpine:edge AS build
 
 ARG TARGETPLATFORM
-ARG VERSION=2.1.0
+ARG VERSION=2.2.0
 
 # https://releases.hashicorp.com/vault
 

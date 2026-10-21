@@ -59,5 +59,17 @@ mdbook build docs/book
 Component versions are the `readonly *_VERSION` / `*_CHART_VERSION` constants at
 the top of `bin/meshlab`, and CLI tool versions live in
 `.devcontainer/Dockerfile`. The `upgrade-components` skill
-(`.github/skills/upgrade-components/`) checks ArtifactHub and GitHub releases
-and bumps them.
+(`.github/skills/upgrade-components/`) checks upstream chart repositories and
+stable releases and bumps them.
+
+Keep the Argo CD CLI version in
+`charts/wftemplates/templates/argocd-sync-and-wait.yaml` in sync with the
+devcontainer, and update the Vault CLI in `hack/Dockerfile.toolbox` alongside
+the devcontainer's Vault CLI. Rebuild and push the toolbox image with
+`make toolbox REGISTRY=ghcr.io/<you>` for the workflow to use the new version.
+
+Istio upgrades also require updating both version variables in `Tiltfile`,
+checking out the matching upstream tag in `/workspaces/istio`, and rebuilding
+the images and binaries with the targets above. After deployment, check the
+Argo CD diff for any upstream istiod Deployment changes that need to be
+mirrored in `Tiltfile`.

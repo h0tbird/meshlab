@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "latte";
             const default_dark_theme = "mocha";
-            window.path_to_searchindex_js = "../searchindex-7918378b.js";
+            window.path_to_searchindex_js = "../searchindex-588106a7.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f1907180.js"></script>
@@ -232,11 +232,13 @@ switch for ambient <strong>cross-cluster</strong> endpoint discovery, so it is o
 network modes. See <code>docs/single-network-mode.md</code>.</li>
 <li><code>ENABLE_NATIVE_SIDECARS: "true"</code> — inject the sidecar as a Kubernetes native
 sidecar (sidecar mode only).</li>
-<li><code>PILOT_ENABLE_ALPHA_GATEWAY_API: "true"</code> — needed for the <code>TLS</code>/PASSTHROUGH
-listener of the sidecar east-west gateway.</li>
 <li><code>AUTO_RELOAD_PLUGIN_CERTS: true</code> — pick up <code>cacerts</code> renewals without a
 restart.</li>
 </ul>
+<p><code>PILOT_ENABLE_ALPHA_GATEWAY_API</code> is left at its default (<code>false</code>). Istio 1.31.2
+supports the sidecar east-west gateway’s TLS/PASSTHROUGH listener without it.
+Enabling it also watches UDPRoute <code>v1alpha2</code>, which Gateway API 1.6.1 no longer
+serves, preventing istiod from becoming ready.</p>
 <h2 id="gateways"><a class="header" href="#gateways">Gateways</a></h2>
 <p><code>charts/ewgw</code> renders two Gateway API objects per cluster, both labelled with
 <code>topology.istio.io/network</code>:</p>

@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "latte";
             const default_dark_theme = "mocha";
-            window.path_to_searchindex_js = "searchindex-7918378b.js";
+            window.path_to_searchindex_js = "searchindex-588106a7.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-f1907180.js"></script>
@@ -849,11 +849,13 @@ switch for ambient <strong>cross-cluster</strong> endpoint discovery, so it is o
 network modes. See <code>docs/single-network-mode.md</code>.</li>
 <li><code>ENABLE_NATIVE_SIDECARS: "true"</code> — inject the sidecar as a Kubernetes native
 sidecar (sidecar mode only).</li>
-<li><code>PILOT_ENABLE_ALPHA_GATEWAY_API: "true"</code> — needed for the <code>TLS</code>/PASSTHROUGH
-listener of the sidecar east-west gateway.</li>
 <li><code>AUTO_RELOAD_PLUGIN_CERTS: true</code> — pick up <code>cacerts</code> renewals without a
 restart.</li>
 </ul>
+<p><code>PILOT_ENABLE_ALPHA_GATEWAY_API</code> is left at its default (<code>false</code>). Istio 1.31.2
+supports the sidecar east-west gateway’s TLS/PASSTHROUGH listener without it.
+Enabling it also watches UDPRoute <code>v1alpha2</code>, which Gateway API 1.6.1 no longer
+serves, preventing istiod from becoming ready.</p>
 <h2 id="gateways"><a class="header" href="#gateways">Gateways</a></h2>
 <p><code>charts/ewgw</code> renders two Gateway API objects per cluster, both labelled with
 <code>topology.istio.io/network</code>:</p>
@@ -1316,8 +1318,18 @@ mdbook build docs/book
 <p>Component versions are the <code>readonly *_VERSION</code> / <code>*_CHART_VERSION</code> constants at
 the top of <code>bin/meshlab</code>, and CLI tool versions live in
 <code>.devcontainer/Dockerfile</code>. The <code>upgrade-components</code> skill
-(<code>.github/skills/upgrade-components/</code>) checks ArtifactHub and GitHub releases
-and bumps them.</p>
+(<code>.github/skills/upgrade-components/</code>) checks upstream chart repositories and
+stable releases and bumps them.</p>
+<p>Keep the Argo CD CLI version in
+<code>charts/wftemplates/templates/argocd-sync-and-wait.yaml</code> in sync with the
+devcontainer, and update the Vault CLI in <code>hack/Dockerfile.toolbox</code> alongside
+the devcontainer’s Vault CLI. Rebuild and push the toolbox image with
+<code>make toolbox REGISTRY=ghcr.io/&lt;you&gt;</code> for the workflow to use the new version.</p>
+<p>Istio upgrades also require updating both version variables in <code>Tiltfile</code>,
+checking out the matching upstream tag in <code>/workspaces/istio</code>, and rebuilding
+the images and binaries with the targets above. After deployment, check the
+Argo CD diff for any upstream istiod Deployment changes that need to be
+mirrored in <code>Tiltfile</code>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="debug"><a class="header" href="#debug">Debug</a></h1>
 <h2 id="cluster-overview"><a class="header" href="#cluster-overview">Cluster overview</a></h2>

@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "latte";
             const default_dark_theme = "mocha";
-            window.path_to_searchindex_js = "searchindex-7918378b.js";
+            window.path_to_searchindex_js = "searchindex-588106a7.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-f1907180.js"></script>
@@ -221,8 +221,18 @@ mdbook build docs/book
 <p>Component versions are the <code>readonly *_VERSION</code> / <code>*_CHART_VERSION</code> constants at
 the top of <code>bin/meshlab</code>, and CLI tool versions live in
 <code>.devcontainer/Dockerfile</code>. The <code>upgrade-components</code> skill
-(<code>.github/skills/upgrade-components/</code>) checks ArtifactHub and GitHub releases
-and bumps them.</p>
+(<code>.github/skills/upgrade-components/</code>) checks upstream chart repositories and
+stable releases and bumps them.</p>
+<p>Keep the Argo CD CLI version in
+<code>charts/wftemplates/templates/argocd-sync-and-wait.yaml</code> in sync with the
+devcontainer, and update the Vault CLI in <code>hack/Dockerfile.toolbox</code> alongside
+the devcontainer’s Vault CLI. Rebuild and push the toolbox image with
+<code>make toolbox REGISTRY=ghcr.io/&lt;you&gt;</code> for the workflow to use the new version.</p>
+<p>Istio upgrades also require updating both version variables in <code>Tiltfile</code>,
+checking out the matching upstream tag in <code>/workspaces/istio</code>, and rebuilding
+the images and binaries with the targets above. After deployment, check the
+Argo CD diff for any upstream istiod Deployment changes that need to be
+mirrored in <code>Tiltfile</code>.</p>
 
                     </main>
 

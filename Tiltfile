@@ -167,8 +167,6 @@ spec:
           value: "true"
         - name: ISTIOD_CUSTOM_HOST
           value: istiod.{cluster_name}
-        - name: PILOT_ENABLE_ALPHA_GATEWAY_API
-          value: "true"
 {pilot_ambient_env}        - name: PILOT_ENABLE_WORKLOAD_ENTRY_AUTOREGISTRATION
           value: "true"
         - name: PILOT_ENABLE_WORKLOAD_ENTRY_HEALTHCHECKS

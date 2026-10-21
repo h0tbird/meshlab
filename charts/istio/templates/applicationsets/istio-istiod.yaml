@@ -43,11 +43,6 @@ spec:
                 # Job/CronJob termination. Sidecar mode only; ambient is
                 # unaffected.
                 ENABLE_NATIVE_SIDECARS: "true"
-                # Required for the sidecar east-west Gateway: the istio
-                # GatewayClass treats Gateway-API "TLS" listeners as alpha
-                # in 1.29.x, so PASSTHROUGH cross-network listeners on 15443
-                # are otherwise rejected with UnsupportedProtocol.
-                PILOT_ENABLE_ALPHA_GATEWAY_API: "true"
                 ISTIOD_CUSTOM_HOST: {{`'istiod.{{name}}'`}}
 {{- if eq .Values.dataplaneMode "ambient" }}
                 # Master switch for ambient cross-cluster endpoint

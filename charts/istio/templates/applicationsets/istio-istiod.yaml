@@ -29,8 +29,42 @@ spec:
 {{- end }}
             revision: {{ .Values.chartVersion | replace "." "-" }}
             revisionTags: [ "stable", "canary", "default" ]
+            # Keep gateway defaults in this locally rendered ApplicationSet;
+            # the east-west chart is fetched independently from Git.
+            gatewayClasses:
+{{- range list "istio" "istio-east-west" "istio-waypoint" }}
+              {{ . }}:
+                deployment:
+                  spec:
+                    template:
+                      spec:
+                        containers:
+                        - name: istio-proxy
+                          volumeMounts:
+                          - name: proxy-tmp
+                            mountPath: /tmp
+                        volumes:
+                        - name: proxy-tmp
+                          emptyDir: {}
+{{- end }}
+            sidecarInjectorWebhook:
+              defaultTemplates: [ "sidecar", "proxy-tmp" ]
+              templates:
+                proxy-tmp: |
+                  spec:
+                    {{`{{- if ne (index .ObjectMeta.Annotations "sidecar.istio.io/nativeSidecar" | default (printf "%t" .NativeSidecars)) "false" }}`}}
+                    initContainers:
+                    {{`{{- else }}`}}
+                    containers:
+                    {{`{{- end }}`}}
+                    - name: istio-proxy
+                      volumeMounts:
+                      - name: proxy-tmp
+                        mountPath: /tmp
+                    volumes:
+                    - name: proxy-tmp
+                      emptyDir: {}
             pilot:
-            # image: ghcr.io/h0tbird/pilot:1.28.3-patch.1-dev-debug
               autoscaleEnabled: false
               env:
                 AUTO_RELOAD_PLUGIN_CERTS: true
@@ -56,9 +90,13 @@ spec:
                 AMBIENT_ENABLE_BAGGAGE: "true"
 {{- end }}
             global:
-            # hub: ghcr.io/h0tbird
-            # tag: 1.28.3-patch.1-dev
-              variant: "debug"
+{{- if .Values.imageHub }}
+              hub: {{ .Values.imageHub | quote }}
+{{- end }}
+{{- if .Values.imageTag }}
+              tag: {{ .Values.imageTag | quote }}
+{{- end }}
+              variant: {{ .Values.imageVariant | quote }}
               meshID: {{`'{{metadata.labels.cell}}'`}}
               # Kind clusters are configured with kubeadm
               # `networking.dnsDomain: <cell>.local`, so in-cluster service

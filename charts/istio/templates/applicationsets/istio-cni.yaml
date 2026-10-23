@@ -27,6 +27,15 @@ spec:
 {{- if eq .Values.dataplaneMode "ambient" }}
             profile: ambient
 {{- end }}
+{{- if .Values.imageHub }}
+            hub: {{ .Values.imageHub | quote }}
+{{- end }}
+{{- if .Values.imageTag }}
+            tag: {{ .Values.imageTag | quote }}
+{{- end }}
+{{- if or .Values.imageHub .Values.imageTag (ne .Values.imageVariant "debug") }}
+            variant: {{ .Values.imageVariant | quote }}
+{{- end }}
             cni:
               pullPolicy: IfNotPresent
               excludeNamespaces:

@@ -11,3 +11,9 @@ networkMode: multi
 #   sidecar - no ambient profile, no ztunnel, sidecar injection only.
 # Overridden at deploy time by `MODE=... bin/meshlab`.
 dataplaneMode: ambient
+
+# Optional image overrides, independent of chartVersion. Empty hub/tag use
+# upstream defaults. The image tag is <tag>-<variant> when variant is nonempty.
+imageHub: ""
+imageTag: ""
+imageVariant: debug

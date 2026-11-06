@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "latte";
             const default_dark_theme = "mocha";
-            window.path_to_searchindex_js = "searchindex-588106a7.js";
+            window.path_to_searchindex_js = "searchindex-96120810.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-f1907180.js"></script>
@@ -1282,6 +1282,35 @@ k --context kind-pasta-1 -n istio-system describe certificate istio-cluster-ica
 (<code>meshlab.code-workspace</code>) mounts five repositories side by side:
 <code>/workspaces/meshlab</code>, <code>/workspaces/istio</code>, <code>/workspaces/k-swarm</code>,
 <code>/workspaces/kiali-charts</code> (the Kiali Helm charts) and <code>/workspaces/kind</code>.</p>
+<h2 id="github-credentials"><a class="header" href="#github-credentials">GitHub credentials</a></h2>
+<p>The Linux devcontainer cannot use the host’s macOS Keychain. The Copilot harness
+may also strip <code>GITHUB_TOKEN</code> from tool shells, even when the runtime inherits it.
+Mounting the host’s GitHub CLI configuration would not provide the token stored
+in macOS Keychain, so the devcontainer provisions its own login during creation.
+Export a token on the host before launching meshlab.</p>
+<p>Ensure the VS Code process inherits this environment. The creation command feeds
+the token to <code>gh auth login --with-token --insecure-storage</code>, with token environment
+variables unset for that command.
+It stores the token in the container’s <code>~/.config/gh/hosts.yml</code> using a restrictive
+<code>umask 077</code>. The command assumes <code>GITHUB_TOKEN</code> is set; a failed login fails the
+creation step. Use a token accepted by <code>gh auth login</code> (a classic PAT requires
+<code>repo</code>, <code>read:org</code> and <code>gist</code> scopes).</p>
+<p>The token is not baked into the image, committed to this repository, or exposed
+in Docker container metadata through <code>containerEnv</code>. It is stored in plaintext
+inside the container. Container processes can read the stored login.
+It survives container restarts, but token rotation requires rebuilding the
+container or rerunning the <code>configure-gh</code> command from
+<code>.devcontainer/devcontainer.json</code> in a terminal with the updated <code>GITHUB_TOKEN</code>.</p>
+<p>Verify file-based authentication without relying on inherited token variables:</p>
+<pre><code class="language-sh">env -u GITHUB_TOKEN -u GH_TOKEN gh api user --silent
+</code></pre>
+<p>This does not automatically export <code>GITHUB_TOKEN</code> in Copilot’s tool shells.
+Lab scripts that require the variable can explicitly read the stored login:</p>
+<pre><code class="language-sh">GITHUB_TOKEN="$(gh auth token --hostname github.com)" || exit
+export GITHUB_TOKEN
+meshlab run grafana-git-sync
+</code></pre>
+<p>Do not print the token or enable shell tracing when retrieving it.</p>
 <h2 id="partial-labs"><a class="header" href="#partial-labs">Partial labs</a></h2>
 <p><code>meshlab create</code> is a graph of idempotent sections, so you rarely need a full
 rebuild:</p>

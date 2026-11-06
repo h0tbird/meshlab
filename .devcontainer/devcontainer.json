@@ -123,6 +123,7 @@
 		"memory": "15gb"
 	},
 	"postCreateCommand": {
+		"configure-gh": "umask 077; echo \"$GITHUB_TOKEN\" | env -u GITHUB_TOKEN gh auth login --hostname github.com --with-token --insecure-storage --git-protocol ssh --skip-ssh-key",
 		// Backup config.json for restoring after DinD.
 		"backup-docker-config": "cp ~/.docker/config.json ~/.docker/config.json.bkp"
 	},

@@ -5,6 +5,46 @@ The lab is designed to iterate on Istio itself. The workspace
 `/workspaces/meshlab`, `/workspaces/istio`, `/workspaces/k-swarm`,
 `/workspaces/kiali-charts` (the Kiali Helm charts) and `/workspaces/kind`.
 
+## GitHub credentials
+
+The Linux devcontainer cannot use the host's macOS Keychain. The Copilot harness
+may also strip `GITHUB_TOKEN` from tool shells, even when the runtime inherits it.
+Mounting the host's GitHub CLI configuration would not provide the token stored
+in macOS Keychain, so the devcontainer provisions its own login during creation.
+Export a token on the host before launching meshlab.
+
+Ensure the VS Code process inherits this environment. The creation command feeds
+the token to `gh auth login --with-token --insecure-storage`, with token environment
+variables unset for that command.
+It stores the token in the container's `~/.config/gh/hosts.yml` using a restrictive
+`umask 077`. The command assumes `GITHUB_TOKEN` is set; a failed login fails the
+creation step. Use a token accepted by `gh auth login` (a classic PAT requires
+`repo`, `read:org` and `gist` scopes).
+
+The token is not baked into the image, committed to this repository, or exposed
+in Docker container metadata through `containerEnv`. It is stored in plaintext
+inside the container. Container processes can read the stored login.
+It survives container restarts, but token rotation requires rebuilding the
+container or rerunning the `configure-gh` command from
+`.devcontainer/devcontainer.json` in a terminal with the updated `GITHUB_TOKEN`.
+
+Verify file-based authentication without relying on inherited token variables:
+
+```sh
+env -u GITHUB_TOKEN -u GH_TOKEN gh api user --silent
+```
+
+This does not automatically export `GITHUB_TOKEN` in Copilot's tool shells.
+Lab scripts that require the variable can explicitly read the stored login:
+
+```sh
+GITHUB_TOKEN="$(gh auth token --hostname github.com)" || exit
+export GITHUB_TOKEN
+meshlab run grafana-git-sync
+```
+
+Do not print the token or enable shell tracing when retrieving it.
+
 ## Partial labs
 
 `meshlab create` is a graph of idempotent sections, so you rarely need a full

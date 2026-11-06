@@ -76,7 +76,7 @@ RUN VERSION="v0.33.0" && ARCH=$(archmap 'arm64' 'amd64') && \
     chmod +x /usr/local/bin/kind && echo "source <(kind completion zsh)" >> /etc/zsh/zshrc
 
 # Install kubectl (https://cdn.dl.k8s.io/release/stable.txt)
-RUN VERSION="v1.37.1" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="v1.37.2" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL -o /usr/local/bin/kubectl https://dl.k8s.io/release/${VERSION}/bin/linux/${ARCH}/kubectl && \
     chmod +x /usr/local/bin/kubectl && ln -s /usr/local/bin/kubectl /usr/local/bin/k && \
     echo "source <(kubectl completion zsh)" >> /etc/zsh/zshrc
@@ -88,22 +88,22 @@ RUN VERSION="v4.3.1" && \
     echo "source <(helm completion zsh)" >> /etc/zsh/zshrc
 
 # Install yq (https://github.com/mikefarah/yq/releases)
-RUN VERSION="v4.54.1" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="v4.54.2" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL -o /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/${VERSION}/yq_linux_${ARCH} && \
     chmod +x /usr/local/bin/yq && echo "source <(yq completion zsh)" >> /etc/zsh/zshrc
 
 # Install argocd (https://github.com/argoproj/argo-cd/releases)
-RUN VERSION="v3.5.6" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="v3.6.1" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/download/${VERSION}/argocd-linux-${ARCH} && \
     chmod +x /usr/local/bin/argocd && echo "source <(argocd completion zsh)" >> /etc/zsh/zshrc
 
 # Install argo (https://github.com/argoproj/argo-workflows/releases)
-RUN VERSION="v4.1.5" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="v4.1.6" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL https://github.com/argoproj/argo-workflows/releases/download/${VERSION}/argo-linux-${ARCH}.gz | gunzip -c > /usr/local/bin/argo && \
     chmod +x /usr/local/bin/argo && echo "source <(argo completion zsh)" >> /etc/zsh/zshrc
 
 # Install istioctl (https://github.com/istio/istio/releases)
-RUN VERSION="1.31.2" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="1.31.3" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL -o /tmp/istio.tar.gz https://github.com/istio/istio/releases/download/${VERSION}/istio-${VERSION}-linux-${ARCH}.tar.gz && \
     tar -xC /usr/local/bin --strip-components 2 -f /tmp/istio.tar.gz istio-${VERSION}/bin/istioctl && rm -f /tmp/istio.tar.gz && \
     echo "source <(istioctl completion zsh)" >> /etc/zsh/zshrc
@@ -116,19 +116,19 @@ RUN VERSION="0.31.0" && ARCH=$(archmap 'arm64' 'amd64') && cd /tmp && \
 
 # Install vault (https://releases.hashicorp.com/vault)
 # Vault ships a `complete -C` style completer, so zsh needs bashcompinit.
-RUN VERSION="2.2.0" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="2.2.1" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL -o /tmp/vault.zip https://releases.hashicorp.com/vault/${VERSION}/vault_${VERSION}_linux_${ARCH}.zip && \
     unzip -qo /tmp/vault.zip vault -d /usr/local/bin && rm -f /tmp/vault.zip && \
     echo "autoload -U +X bashcompinit && bashcompinit" >> /etc/zsh/zshrc && \
     echo "complete -o nospace -C /usr/local/bin/vault vault" >> /etc/zsh/zshrc
 
 # Install cmctl (https://github.com/cert-manager/cmctl/releases)
-RUN VERSION="v2.6.1" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="v2.6.2" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL https://github.com/cert-manager/cmctl/releases/download/${VERSION}/cmctl_linux_${ARCH}.tar.gz | \
     tar -xzC /usr/local/bin cmctl && echo "source <(cmctl completion zsh)" >> /etc/zsh/zshrc
 
 # Install gh (https://github.com/cli/cli/releases)
-RUN VERSION="2.102.1" && ARCH=$(archmap 'arm64' 'amd64') && cd /tmp && \
+RUN VERSION="2.103.3" && ARCH=$(archmap 'arm64' 'amd64') && cd /tmp && \
     $CURL -O https://github.com/cli/cli/releases/download/v${VERSION}/gh_${VERSION}_linux_${ARCH}.deb && \
     dpkg -i gh_${VERSION}_linux_${ARCH}.deb && rm -f gh_${VERSION}_linux_${ARCH}.deb && \
     echo "source <(gh completion -s zsh)" >> /etc/zsh/zshrc
@@ -144,7 +144,7 @@ RUN VERSION="0.3.7" && ARCH=$(archmap 'arm64' 'amd64') && \
     tar -xzC /usr/local/bin swarmctl && echo "source <(swarmctl completion zsh)" >> /etc/zsh/zshrc
 
 # Install btop (https://github.com/aristocratos/btop/releases)
-RUN VERSION="1.4.7" && ARCH=$(archmap 'aarch64' 'x86_64') && \
+RUN VERSION="1.4.8" && ARCH=$(archmap 'aarch64' 'x86_64') && \
     $CURL https://github.com/aristocratos/btop/releases/download/v${VERSION}/btop-${ARCH}-unknown-linux-musl.tar.gz | \
     tar -xzC /usr/local/bin --strip-components 3 -f - ./btop/bin/btop
 
@@ -164,7 +164,7 @@ RUN VERSION="v0.1.10" && ARCH=$(archmap 'arm64' 'x86_64') && \
     tar -xzC /usr/local/bin grafanactl && echo "source <(grafanactl completion zsh)" >> /etc/zsh/zshrc
 
 # Install mcp-grafana (https://github.com/grafana/mcp-grafana/releases)
-RUN VERSION="v2.1.1" && ARCH=$(archmap 'arm64' 'x86_64') && \
+RUN VERSION="v2.2.0" && ARCH=$(archmap 'arm64' 'x86_64') && \
     $CURL https://github.com/grafana/mcp-grafana/releases/download/${VERSION}/mcp-grafana_Linux_${ARCH}.tar.gz | \
     tar -xzC /usr/local/bin mcp-grafana
 
@@ -179,7 +179,7 @@ RUN VERSION="0.26.1" && ARCH=$(archmap 'aarch64' 'x86_64') && \
     tar -xzC /usr/local/bin --strip-components 1 -f - bat-v${VERSION}-${ARCH}-unknown-linux-musl/bat
 
 # Install stern (https://github.com/stern/stern/releases)
-RUN VERSION="1.34.0" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="1.35.0" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL https://github.com/stern/stern/releases/download/v${VERSION}/stern_${VERSION}_linux_${ARCH}.tar.gz | \
     tar -xzC /usr/local/bin stern && echo "source <(stern --completion=zsh)" >> /etc/zsh/zshrc
 

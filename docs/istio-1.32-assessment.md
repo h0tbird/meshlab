@@ -66,9 +66,9 @@ sidecar mode, for single- and multi-network deployments. The existing bootstrap
 dependency on healthy issuers is retained. A missing signing bundle deliberately
 blocks startup rather than silently creating a different trust root.
 
-Native histograms are enabled by default in both the collector chart and the
-bootstrap environment fallback. `OTEL_NATIVE_HISTOGRAMS=false` explicitly
-selects classic scraping for a subsequent bootstrap. The native configuration
+Native histograms are enabled by default in the collector chart, which the
+bootstrap uses directly. Setting `nativeHistograms.enabled=false` in
+`charts/otel-collector/values.yaml` selects classic scraping. The native configuration
 uses the tested protobuf protocol and query parameters, with a default bucket
 budget of 20. Worker histogram relabeling handles both classic suffixes and
 native names without losing the worker label. An additional probe confirmed

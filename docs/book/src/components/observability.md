@@ -67,15 +67,9 @@ remain queryable until retention expires and can briefly mask missing live
 data. The bucket budget still needs workload-specific accuracy evaluation;
 a merged application endpoint that only serves text can affect negotiation.
 
-For a classic-histogram rollback on the next bootstrap:
-
-```console
-OTEL_NATIVE_HISTOGRAMS=false meshlab
-```
-
-Changing the environment alone does not update running collectors. Render/apply
-the node collector ApplicationSet and sync its Applications to change the live
-pipeline. Omitting the variable enables native histograms.
+For a classic-histogram rollback, set `nativeHistograms.enabled=false` in
+`charts/otel-collector/values.yaml`. To update running collectors, render/apply
+the node collector ApplicationSet and sync its Applications.
 
 ### Consumer migration
 

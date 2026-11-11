@@ -476,8 +476,7 @@ install-applicationsets() {
   local ssa=( apply --server-side --force-conflicts -f - )
   helm template ./charts/prometheus --set "chartVersion=${PROMETHEUS_CHART_VERSION}" | k0 "${ssa[@]}" &
   helm template ./charts/grafana --set "chartVersion=${GRAFANA_CHART_VERSION}" | k0 "${ssa[@]}" &
-  helm template ./charts/otel-collector --set "chartVersion=${OTEL_COLLECTOR_CHART_VERSION}" \
-    --set "nativeHistograms.enabled=${OTEL_NATIVE_HISTOGRAMS:-true}" | k0 "${ssa[@]}" &
+  helm template ./charts/otel-collector --set "chartVersion=${OTEL_COLLECTOR_CHART_VERSION}" | k0 "${ssa[@]}" &
   helm template ./charts/vault --set "chartVersion=${VAULT_CHART_VERSION}" | k0 "${ssa[@]}" &
   helm template ./charts/cert-manager --set "chartVersion=${CERT_MANAGER_CHART_VERSION}" | k0 "${ssa[@]}" &
   helm template ./charts/kubernetes-replicator --set "chartVersion=${KUBERNETES_REPLICATOR_CHART_VERSION}" | k0 "${ssa[@]}" &

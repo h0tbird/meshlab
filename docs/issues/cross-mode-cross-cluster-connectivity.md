@@ -1,5 +1,9 @@
 # Issue 1: Cross-cluster sidecar/ambient connectivity in a multi-network mesh
 
+> Historical investigation. The two gateways described below have since been
+> consolidated into one in Istio 1.32, without changing the cross-mode failures.
+> See the [1.32 assessment](../istio-1.32-assessment.md) for the current topology.
+
 ## TL;DR — current status
 
 | Direction | Cross-cluster status |
@@ -29,11 +33,11 @@ Same-cluster paths (any combination of sidecar/ambient) all work. The two ❌ ro
 
 1. **Renamed** the original ambient EW gateway from `istio-eastwestgateway` to
    `istio-eastwestgateway-ambient`
-   ([charts/ewgw/templates/gateway-ambient.yaml](../../charts/ewgw/templates/gateway-ambient.yaml)).
+  (now consolidated in [charts/ewgw/templates/gateway.yaml](../../charts/ewgw/templates/gateway.yaml)).
    It still uses `gatewayClassName: istio-east-west`, listener `HBONE/15008`,
    `tls.mode: Terminate`, `gateway.istio.io/tls-terminate-mode: ISTIO_MUTUAL`.
 2. **Added** a sibling sidecar EW gateway `istio-eastwestgateway-sidecar`
-   ([charts/ewgw/templates/gateway-sidecar.yaml](../../charts/ewgw/templates/gateway-sidecar.yaml)).
+  (now consolidated in [charts/ewgw/templates/gateway.yaml](../../charts/ewgw/templates/gateway.yaml)).
    - `gatewayClassName: istio` (NOT `istio-east-west` — that class only accepts the
      ambient HBONE listener).
    - Single listener: `port: 15443`, `protocol: TLS`, `hostname: "*.local"`,
@@ -218,8 +222,7 @@ gateway. Steps that were taken since then (in chronological order):
 
 ## References
 
-- [charts/ewgw/templates/gateway-ambient.yaml](../../charts/ewgw/templates/gateway-ambient.yaml)
-- [charts/ewgw/templates/gateway-sidecar.yaml](../../charts/ewgw/templates/gateway-sidecar.yaml)
+- [charts/ewgw/templates/gateway.yaml](../../charts/ewgw/templates/gateway.yaml)
 - [charts/istio/templates/applicationsets/istio-istiod.yaml](../../charts/istio/templates/applicationsets/istio-istiod.yaml)
 - [bin/meshlab](../../bin/meshlab) — `deploy-workloads` section
 - Upstream code paths verified: `pilot/pkg/xds/endpoints/ep_filters.go`,

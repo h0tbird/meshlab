@@ -17,10 +17,10 @@ single Prometheus, which Grafana and Kiali read from.
 
 Two releases are deployed per cluster from `charts/otel-collector`:
 
-- `otelco-node` — a **DaemonSet** that scrapes, on its own node only, the Envoy
-  admin `/stats/prometheus` endpoint of every pod exposing a `*-envoy-prom`
-  port (sidecars and gateways), the ztunnel pods (`ztunnel-stats` port), and the
-  kubelet via the `kubeletstats` receiver.
+- `otelco-node` — a **DaemonSet** that scrapes, on its own node only, the Istio
+  agent metrics merger at `/stats/prometheus` on port 15020 (sidecars, waypoints,
+  and gateways), the ztunnel pods (`ztunnel-stats` port), and the kubelet via the
+  `kubeletstats` receiver.
 - `otelco-cluster` — a **Deployment** that scrapes istiod on port 15014 and
   collects cluster-level metrics through the `k8sclusterreceiver` preset.
 
@@ -33,6 +33,20 @@ dashboards possible.
 Because the scrape configuration lives in the collectors, Prometheus itself
 ships with an almost empty `scrape_configs`. That is expected, not a
 misconfiguration.
+
+The `envoy` scrape job keeps one discovery target per proxy by selecting its
+`*-envoy-prom` port, then uses the pod's `prometheus.io/port` and
+`prometheus.io/path` annotations to reach the merger. Pods must advertise
+`prometheus.io/scrape: "true"`. This also works for native sidecars that do not
+declare port 15020 in their container spec. Envoy is not scraped a second time
+on port 15090.
+
+The merger preserves Envoy metrics and adds agent metrics, including
+`istio_agent_scrape_format_total`. It also merges application metrics when
+configured on an injected workload; it does not collect ambient applications'
+metrics through ztunnel. The existing job name and worker histogram relabeling
+are retained. Native histogram scraping is not explicitly enabled: protobuf
+negotiation and the OTel-to-Prometheus histogram path need separate validation.
 
 > istiod is configured with an `otel-tracing` extension provider pointing at
 > `otelco-cluster-opentelemetry-collector.monitoring.svc:4318`, but no

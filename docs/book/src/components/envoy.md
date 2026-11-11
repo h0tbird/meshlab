@@ -68,10 +68,11 @@ k --context kind-pasta-1 -n istio-system exec deploy/istio-nsgw -- \
 
 ## Metrics
 
-The `otelco-node` collector scrapes `/stats/prometheus` on every pod exposing a
-`*-envoy-prom` port, so the same data is available in Prometheus. To look at it
-raw:
+The `otelco-node` collector discovers each proxy through its `*-envoy-prom`
+port and scrapes the annotated Istio agent metrics merger on port 15020. This
+includes Envoy and agent metrics without a second direct Envoy scrape. To inspect
+the merged output:
 ```console
 k --context kind-pasta-1 -n swarm-sidecar-n1 exec deploy/peer -c istio-proxy -- \
-  curl -s localhost:15000/stats/prometheus | head
+  curl -s localhost:15020/stats/prometheus | head
 ```

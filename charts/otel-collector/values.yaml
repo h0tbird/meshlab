@@ -1,1 +1,4 @@
 ---
+nativeHistograms:
+  enabled: true
+  maxBuckets: 20

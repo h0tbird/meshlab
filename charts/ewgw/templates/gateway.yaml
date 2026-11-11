@@ -1,20 +1,19 @@
 ---
-# East-west gateway for ambient-mode workloads.
-#
-# Ambient uses HBONE (HTTP/2 CONNECT tunneling mTLS) on port 15008 with
-# TLS.Mode=Terminate so the ztunnel/waypoint can decapsulate and forward
-# traffic to local workloads.
-{{- if eq .Values.dataplaneMode "ambient" }}
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
-  name: istio-eastwestgateway-ambient
+  name: istio-eastwestgateway
   namespace: istio-system
   labels:
     topology.istio.io/network: {{ .Values.network | quote }}
 spec:
+{{- if eq .Values.dataplaneMode "ambient" }}
   gatewayClassName: istio-east-west
+{{- else }}
+  gatewayClassName: istio
+{{- end }}
   listeners:
+{{- if eq .Values.dataplaneMode "ambient" }}
   - name: mesh
     port: 15008
     protocol: HBONE
@@ -23,3 +22,9 @@ spec:
       options:
         gateway.istio.io/tls-terminate-mode: ISTIO_MUTUAL
 {{- end }}
+  - name: cross-network
+    hostname: "*.local"
+    port: 15443
+    protocol: TLS
+    tls:
+      mode: Passthrough

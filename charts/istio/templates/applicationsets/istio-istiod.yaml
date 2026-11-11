@@ -68,6 +68,7 @@ spec:
               autoscaleEnabled: false
               env:
                 AUTO_RELOAD_PLUGIN_CERTS: true
+                PILOT_DISABLE_SELF_SIGNED_CA: "true"
                 PILOT_ENABLE_WORKLOAD_ENTRY_AUTOREGISTRATION: true
                 PILOT_ENABLE_WORKLOAD_ENTRY_HEALTHCHECKS: true
                 # Inject the istio-proxy sidecar as a Kubernetes native

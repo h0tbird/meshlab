@@ -24,17 +24,17 @@ NET_START=$(net_bytes)
 #------------------------------------------------------------------------------
 
 readonly KINDCCM_VERSION='0.12.0'                      # https://github.com/kubernetes-sigs/cloud-provider-kind/releases
-readonly K8S_GATEWAY_CHART_VERSION='3.7.2'             # https://github.com/k8s-gateway/k8s_gateway/blob/master/charts/k8s-gateway/Chart.yaml
-readonly ARGOCD_CHART_VERSION='10.14.0'                # https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd
-readonly ARGOWF_CHART_VERSION='2.0.16'                 # https://artifacthub.io/packages/helm/argo/argo-workflows
-readonly PROMETHEUS_CHART_VERSION='29.37.0'            # https://artifacthub.io/packages/helm/prometheus-community/prometheus
+readonly K8S_GATEWAY_CHART_VERSION='4.0.1'             # https://codeberg.org/k8s-gateway/k8s_gateway/src/branch/master/chart/Chart.yaml
+readonly ARGOCD_CHART_VERSION='10.17.2'                # https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd
+readonly ARGOWF_CHART_VERSION='2.0.18'                 # https://artifacthub.io/packages/helm/argo/argo-workflows
+readonly PROMETHEUS_CHART_VERSION='29.47.1'            # https://artifacthub.io/packages/helm/prometheus-community/prometheus
 readonly GRAFANA_CHART_VERSION='10.5.15'               # https://artifacthub.io/packages/helm/grafana/grafana
-readonly OTEL_COLLECTOR_CHART_VERSION='0.178.2'        # https://artifacthub.io/packages/helm/opentelemetry-helm/opentelemetry-collector
+readonly OTEL_COLLECTOR_CHART_VERSION='0.178.3'        # https://artifacthub.io/packages/helm/opentelemetry-helm/opentelemetry-collector
 readonly VAULT_CHART_VERSION='0.34.1'                  # https://artifacthub.io/packages/helm/hashicorp/vault
 readonly CERT_MANAGER_CHART_VERSION='v1.21.3'          # https://artifacthub.io/packages/helm/cert-manager/cert-manager
-readonly KUBERNETES_REPLICATOR_CHART_VERSION='2.12.4'  # https://artifacthub.io/packages/helm/kubernetes-replicator/kubernetes-replicator
+readonly KUBERNETES_REPLICATOR_CHART_VERSION='2.12.6'  # https://artifacthub.io/packages/helm/kubernetes-replicator/kubernetes-replicator
 readonly METRICS_SERVER_CHART_VERSION='3.14.0'         # https://artifacthub.io/packages/helm/metrics-server/metrics-server
-readonly ISTIO_CHART_VERSION='1.31.4'                  # https://blob.istio.io/istio-release/charts/index.yaml
+readonly ISTIO_CHART_VERSION='1.32.0'                  # https://blob.istio.io/istio-release/charts/index.yaml
 readonly KIALI_CHART_VERSION='2.34.1'                  # https://artifacthub.io/packages/helm/kiali/kiali-operator
 readonly ZOT_VERSION='2.1.23'                          # https://github.com/project-zot/zot/releases
 
@@ -296,14 +296,14 @@ setup-flat-network() {
 
 install-k8s-gateway() {
   blue "───[ k8s_gateway ]──────────────────────────────────────────────────────"
+  envsubst '${DOMAIN}' < ./conf/k8s-gateway.yaml > .tmp/k8s-gateway.yaml
   for cluster in $(all_clusters); do (
     retry helm --kube-context "kind-${cluster}" \
       upgrade -i exdns --plain-http \
-      "oci://${ZOT_LOCAL}/ghcr.io/k8s-gateway/charts/k8s-gateway" \
+      "oci://${ZOT_LOCAL}/codeberg.org/k8s-gateway/charts/k8s-gateway" \
       --version "${K8S_GATEWAY_CHART_VERSION}" \
       --namespace kube-system \
-      --set "domain=${DOMAIN}" |
-    grep 'LAST DEPLOYED'
+      -f .tmp/k8s-gateway.yaml | grep 'LAST DEPLOYED'
   ) & done; join
 }; SECTIONS+=( install-k8s-gateway )
 

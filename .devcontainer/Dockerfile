@@ -65,7 +65,7 @@ RUN echo "source <(meshlab completion zsh)" >> /root/.zshrc && \
     echo "source <(meshlab completion zsh)" >> /home/vscode/.zshrc
 
 # Install Go (https://go.dev/dl/)
-RUN VERSION="1.27.3" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="1.27.4" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL https://go.dev/dl/go${VERSION}.linux-${ARCH}.tar.gz | tar -xzC /usr/local && \
     echo 'export PATH=$PATH:/usr/local/go/bin' >> /etc/zsh/zshenv && \
     echo 'export PATH=$PATH:$HOME/go/bin' >> /etc/zsh/zshenv
@@ -88,7 +88,7 @@ RUN VERSION="v4.3.1" && \
     echo "source <(helm completion zsh)" >> /etc/zsh/zshrc
 
 # Install yq (https://github.com/mikefarah/yq/releases)
-RUN VERSION="v4.54.2" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="v4.54.3" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL -o /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/${VERSION}/yq_linux_${ARCH} && \
     chmod +x /usr/local/bin/yq && echo "source <(yq completion zsh)" >> /etc/zsh/zshrc
 
@@ -103,7 +103,7 @@ RUN VERSION="v4.1.6" && ARCH=$(archmap 'arm64' 'amd64') && \
     chmod +x /usr/local/bin/argo && echo "source <(argo completion zsh)" >> /etc/zsh/zshrc
 
 # Install istioctl (https://github.com/istio/istio/releases)
-RUN VERSION="1.31.4" && ARCH=$(archmap 'arm64' 'amd64') && \
+RUN VERSION="1.32.0" && ARCH=$(archmap 'arm64' 'amd64') && \
     $CURL -o /tmp/istio.tar.gz https://github.com/istio/istio/releases/download/${VERSION}/istio-${VERSION}-linux-${ARCH}.tar.gz && \
     tar -xC /usr/local/bin --strip-components 2 -f /tmp/istio.tar.gz istio-${VERSION}/bin/istioctl && rm -f /tmp/istio.tar.gz && \
     echo "source <(istioctl completion zsh)" >> /etc/zsh/zshrc
@@ -164,7 +164,7 @@ RUN VERSION="v0.1.10" && ARCH=$(archmap 'arm64' 'x86_64') && \
     tar -xzC /usr/local/bin grafanactl && echo "source <(grafanactl completion zsh)" >> /etc/zsh/zshrc
 
 # Install mcp-grafana (https://github.com/grafana/mcp-grafana/releases)
-RUN VERSION="v2.2.0" && ARCH=$(archmap 'arm64' 'x86_64') && \
+RUN VERSION="v2.3.0" && ARCH=$(archmap 'arm64' 'x86_64') && \
     $CURL https://github.com/grafana/mcp-grafana/releases/download/${VERSION}/mcp-grafana_Linux_${ARCH}.tar.gz | \
     tar -xzC /usr/local/bin mcp-grafana
 

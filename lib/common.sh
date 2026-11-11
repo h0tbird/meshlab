@@ -54,6 +54,7 @@ declare -A REGISTRIES=(
   [docker.io]="https://registry-1.docker.io"
   [quay.io]="https://quay.io"
   [ghcr.io]="https://ghcr.io"
+  [codeberg.org]="https://codeberg.org"
   [registry.k8s.io]="https://registry.k8s.io"
   [registry.istio.io]="https://registry.istio.io"
   [ecr-public.aws.com]="https://public.ecr.aws"

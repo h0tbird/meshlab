@@ -1,0 +1,26 @@
+servers:
+- zones:
+  - zone: .
+    use_tcp: true
+  port: 1053
+  servicePort: 53
+  plugins:
+  - name: k8s_gateway
+    parameters: ${DOMAIN}
+    configBlock: |-
+      apex exdns-k8s-gateway.kube-system
+      ttl 300
+      resources Ingress Service
+  - name: log
+  - name: errors
+  - name: health
+    configBlock: |-
+      lameduck 5s
+  - name: ready
+  - name: prometheus
+    parameters: 0.0.0.0:9153
+  - name: forward
+    parameters: . /etc/resolv.conf
+  - name: loop
+  - name: reload
+  - name: loadbalance

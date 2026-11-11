@@ -15,8 +15,8 @@ allow_k8s_contexts([
 # Variables
 #------------------------------------------------------------------------------
 
-version_dash = '1-31-4'
-version_dot = '1.31.4'
+version_dash = '1-32-0'
+version_dot = '1.32.0'
 image_ref = 'pilot-discovery-dev'
 cluster_name = k8s_context().removeprefix('kind-')
 
@@ -177,11 +177,6 @@ spec:
           value: "false"
         - name: CLUSTER_ID
           value: {cluster_name}
-        - name: GOMAXPROCS
-          valueFrom:
-            resourceFieldRef:
-              divisor: "1"
-              resource: limits.cpu
         - name: PLATFORM
           value: ""
         ports:

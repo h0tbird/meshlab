@@ -163,6 +163,8 @@ spec:
           value: istio-system/ztunnel
 {ambient_env}        - name: AUTO_RELOAD_PLUGIN_CERTS
           value: "true"
+        - name: PILOT_DISABLE_SELF_SIGNED_CA
+          value: "true"
         - name: ENABLE_NATIVE_SIDECARS
           value: "true"
         - name: ISTIOD_CUSTOM_HOST

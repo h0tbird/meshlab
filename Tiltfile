@@ -177,11 +177,6 @@ spec:
           value: "false"
         - name: CLUSTER_ID
           value: {cluster_name}
-        - name: GOMAXPROCS
-          valueFrom:
-            resourceFieldRef:
-              divisor: "1"
-              resource: limits.cpu
         - name: PLATFORM
           value: ""
         ports:

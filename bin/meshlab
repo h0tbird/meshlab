@@ -296,6 +296,7 @@ setup-flat-network() {
 
 install-k8s-gateway() {
   blue "───[ k8s_gateway ]──────────────────────────────────────────────────────"
+  # shellcheck disable=SC2016
   envsubst '${DOMAIN}' < ./conf/k8s-gateway.yaml > .tmp/k8s-gateway.yaml
   for cluster in $(all_clusters); do (
     retry helm --kube-context "kind-${cluster}" \

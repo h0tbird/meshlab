@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "latte";
             const default_dark_theme = "mocha";
-            window.path_to_searchindex_js = "../searchindex-96120810.js";
+            window.path_to_searchindex_js = "../searchindex-f7ab4875.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f1907180.js"></script>
@@ -202,10 +202,10 @@ single Prometheus, which Grafana and Kiali read from.</p>
 <h2 id="opentelemetry-collector"><a class="header" href="#opentelemetry-collector">OpenTelemetry Collector</a></h2>
 <p>Two releases are deployed per cluster from <code>charts/otel-collector</code>:</p>
 <ul>
-<li><code>otelco-node</code> — a <strong>DaemonSet</strong> that scrapes, on its own node only, the Envoy
-admin <code>/stats/prometheus</code> endpoint of every pod exposing a <code>*-envoy-prom</code>
-port (sidecars and gateways), the ztunnel pods (<code>ztunnel-stats</code> port), and the
-kubelet via the <code>kubeletstats</code> receiver.</li>
+<li><code>otelco-node</code> — a <strong>DaemonSet</strong> that scrapes, on its own node only, the Istio
+agent metrics merger at <code>/stats/prometheus</code> on port 15020 (sidecars, waypoints,
+and gateways), the ztunnel pods (<code>ztunnel-stats</code> port), and the kubelet via the
+<code>kubeletstats</code> receiver.</li>
 <li><code>otelco-cluster</code> — a <strong>Deployment</strong> that scrapes istiod on port 15014 and
 collects cluster-level metrics through the <code>k8sclusterreceiver</code> preset.</li>
 </ul>
@@ -217,6 +217,79 @@ dashboards possible.</p>
 <p>Because the scrape configuration lives in the collectors, Prometheus itself
 ships with an almost empty <code>scrape_configs</code>. That is expected, not a
 misconfiguration.</p>
+<p>The <code>envoy</code> scrape job keeps one discovery target per proxy by selecting its
+<code>*-envoy-prom</code> port, then uses the pod’s <code>prometheus.io/port</code> and
+<code>prometheus.io/path</code> annotations to reach the merger. Pods must advertise
+<code>prometheus.io/scrape: "true"</code>. This also works for native sidecars that do not
+declare port 15020 in their container spec. Envoy is not scraped a second time
+on port 15090.</p>
+<p>The merger preserves Envoy metrics and adds agent metrics, including
+<code>istio_agent_scrape_format_total</code>. It also merges application metrics when
+configured on an injected workload; it does not collect ambient applications’
+metrics through ztunnel. The existing job name and worker histogram relabeling
+are retained for both classic and native histogram names.</p>
+<h3 id="native-histograms"><a class="header" href="#native-histograms">Native histograms</a></h3>
+<p>Native Envoy histograms are enabled by default, both in the collector wrapper
+chart (<code>nativeHistograms.enabled=true</code>) and during bootstrap. The <code>envoy</code> job
+requests protobuf, enables native histogram ingestion, and
+passes <code>histogram_buckets=prometheusnative</code> to the merger. The bucket budget is
+controlled by the chart’s <code>nativeHistograms.maxBuckets</code> value (default 20).
+Ztunnel scraping, the separate istiod scrape, and the single-target-per-proxy
+discovery rules are unchanged. Agent/application histograms are not forcibly
+converted; this is an Envoy migration, not a conversion of every lab metric.</p>
+<p>Both pasta node collectors were synced successfully with these settings on
+2026-11-11. OTel 0.163.2 remote-writes native histograms to Prometheus 3.16.0.
+Envoy’s native-mode response omits its classic buckets: <code>_bucket</code>, <code>_sum</code>, and
+<code>_count</code> queries must migrate to the base metric. No duplicate classic scrape
+or compatibility recording rules are installed. Historical classic samples
+remain queryable until retention expires and can briefly mask missing live
+data. The bucket budget still needs workload-specific accuracy evaluation;
+a merged application endpoint that only serves text can affect negotiation.</p>
+<p>For a classic-histogram rollback, set <code>nativeHistograms.enabled=false</code> in
+<code>charts/otel-collector/values.yaml</code>. To update running collectors, render/apply
+the node collector ApplicationSet and sync its Applications.</p>
+<h3 id="consumer-migration"><a class="header" href="#consumer-migration">Consumer migration</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Consumer</th><th>Impact and required action</th></tr>
+</thead>
+<tbody>
+<tr><td>Kiali 2.34.1 histogram charts</td><td><code>prometheus/metrics.go</code>, <code>buildHistogramQueries</code>, builds classic quantiles and averages. Latency and request/response-size charts need native PromQL support in Kiali.</td></tr>
+<tr><td>Kiali graph response times</td><td><code>graph/telemetry/istio/appender/response_time.go</code> also hardcodes classic latency metrics. Both average and percentile edge labels need updating. Traffic rates and error ratios still use unaffected counters.</td></tr>
+<tr><td>Grafana: Memory leak</td><td>No histogram queries; no migration needed.</td></tr>
+<tr><td>Grafana: MeshLab - Istio Control Plane Dashboard</td><td>Its Push Size and Push Time panels use <code>pilot_*_bucket</code> metrics from the unchanged istiod scrape; no migration needed.</td></tr>
+<tr><td>Recording and alerting rules</td><td>None were returned by the live Prometheus/Grafana rule inventories during the audit. Future Envoy histogram rules must use native queries.</td></tr>
+</tbody>
+</table>
+</div>
+<p>The audit covered both deployed Grafana dashboards and Kiali’s exact release
+source. No native-histogram configuration switch was found in Kiali 2.34.1;
+this requires a server implementation change or a release with native support,
+not an invented Helm value. Kiali has deliberately not been patched here.</p>
+<p>These native queries were executed successfully against the live pipeline.
+They calculate destination-reported latency in milliseconds, grouped by the
+collecting cluster:</p>
+<pre><code class="language-promql">histogram_quantile(0.95,
+  sum by (k8s_cluster_name) (
+    rate(istio_request_duration_milliseconds{job=~".*/envoy",reporter="destination"}[1m])
+  )
+)
+
+histogram_avg(
+  sum by (k8s_cluster_name) (
+    rate(istio_request_duration_milliseconds{job=~".*/envoy",reporter="destination"}[1m])
+  )
+)
+</code></pre>
+<p>When migrating consumers, retain their reporter/namespace/workload filters and
+grouping labels, but remove <code>le</code> from native quantile aggregation. Replace
+classic count/sum access with <code>histogram_count</code>/<code>histogram_sum</code> applied to the
+native histogram (after <code>rate</code> when calculating rates). Apply the same pattern
+to <code>istio_request_bytes</code>, <code>istio_response_bytes</code>, and Envoy histograms. Do not
+sum source and destination reporters together as a count of unique requests.
+See Prometheus’s <a href="https://prometheus.io/docs/practices/histograms/">histogram guidance</a>,
+especially “Count and sum of observations” and “Quantiles”.</p>
 <blockquote>
 <p>istiod is configured with an <code>otel-tracing</code> extension provider pointing at
 <code>otelco-cluster-opentelemetry-collector.monitoring.svc:4318</code>, but no

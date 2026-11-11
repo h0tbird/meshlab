@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "latte";
             const default_dark_theme = "mocha";
-            window.path_to_searchindex_js = "../searchindex-96120810.js";
+            window.path_to_searchindex_js = "../searchindex-f7ab4875.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f1907180.js"></script>
@@ -229,11 +229,12 @@ curl -s localhost:15000/config_dump | jq '
   netstat -tuanp | grep LISTEN | sort -u
 </code></pre>
 <h2 id="metrics"><a class="header" href="#metrics">Metrics</a></h2>
-<p>The <code>otelco-node</code> collector scrapes <code>/stats/prometheus</code> on every pod exposing a
-<code>*-envoy-prom</code> port, so the same data is available in Prometheus. To look at it
-raw:</p>
+<p>The <code>otelco-node</code> collector discovers each proxy through its <code>*-envoy-prom</code>
+port and scrapes the annotated Istio agent metrics merger on port 15020. This
+includes Envoy and agent metrics without a second direct Envoy scrape. To inspect
+the merged output:</p>
 <pre><code class="language-console">k --context kind-pasta-1 -n swarm-sidecar-n1 exec deploy/peer -c istio-proxy -- \
-  curl -s localhost:15000/stats/prometheus | head
+  curl -s localhost:15020/stats/prometheus | head
 </code></pre>
 
                     </main>
